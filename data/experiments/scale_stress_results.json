@@ -1,0 +1,80 @@
+[
+  {
+    "scale_n": 1000,
+    "dim": 64,
+    "queries": 30,
+    "standard_hnsw": {
+      "algorithm": "StandardHNSW(m=16, ef=30, backend=fallback_graph)",
+      "build_time_sec": 0.065,
+      "ram_mb": 0.37,
+      "recall_at_10": 98.33,
+      "latency_p50_ms": 2.684,
+      "latency_p95_ms": 4.605,
+      "latency_p99_ms": 5.589,
+      "qps": 347.63
+    },
+    "two_tier_hnsw": {
+      "algorithm": "TwoTierHNSW(SQ8+EarlyExit(τ=3,ε=0.0001)+ReRank)",
+      "build_time_sec": 0.147,
+      "ram_mb": 0.18,
+      "recall_at_10": 74.0,
+      "latency_p50_ms": 2.175,
+      "latency_p95_ms": 3.767,
+      "latency_p99_ms": 5.845,
+      "qps": 421.03
+    },
+    "ram_reduction_pct": 49.87
+  },
+  {
+    "scale_n": 2500,
+    "dim": 64,
+    "queries": 30,
+    "standard_hnsw": {
+      "algorithm": "StandardHNSW(m=16, ef=30, backend=fallback_graph)",
+      "build_time_sec": 0.35,
+      "ram_mb": 0.92,
+      "recall_at_10": 96.0,
+      "latency_p50_ms": 4.403,
+      "latency_p95_ms": 6.906,
+      "latency_p99_ms": 7.515,
+      "qps": 213.9
+    },
+    "two_tier_hnsw": {
+      "algorithm": "TwoTierHNSW(SQ8+EarlyExit(τ=3,ε=0.0001)+ReRank)",
+      "build_time_sec": 0.796,
+      "ram_mb": 0.46,
+      "recall_at_10": 51.0,
+      "latency_p50_ms": 2.505,
+      "latency_p95_ms": 4.233,
+      "latency_p99_ms": 6.706,
+      "qps": 386.39
+    },
+    "ram_reduction_pct": 49.95
+  },
+  {
+    "scale_n": 5000,
+    "dim": 64,
+    "queries": 30,
+    "standard_hnsw": {
+      "algorithm": "StandardHNSW(m=16, ef=30, backend=fallback_graph)",
+      "build_time_sec": 4.151,
+      "ram_mb": 1.83,
+      "recall_at_10": 93.67,
+      "latency_p50_ms": 6.71,
+      "latency_p95_ms": 10.865,
+      "latency_p99_ms": 14.858,
+      "qps": 141.34
+    },
+    "two_tier_hnsw": {
+      "algorithm": "TwoTierHNSW(SQ8+EarlyExit(τ=3,ε=0.0001)+ReRank)",
+      "build_time_sec": 9.801,
+      "ram_mb": 0.92,
+      "recall_at_10": 50.33,
+      "latency_p50_ms": 4.047,
+      "latency_p95_ms": 9.206,
+      "latency_p99_ms": 14.725,
+      "qps": 223.98
+    },
+    "ram_reduction_pct": 49.97
+  }
+]

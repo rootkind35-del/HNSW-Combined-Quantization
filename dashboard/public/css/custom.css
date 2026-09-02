@@ -1,0 +1,110 @@
+/* Custom CSS for ANN-10M Dashboard & 3D Three.js Visualizer */
+
+/* High-Legibility Typography Scale: Large 28px-32px, Medium 20px-22px, Base/Small 15px-17px */
+html, body {
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+h1, h2, .text-large, .font-large {
+  font-size: 28px !important;
+  line-height: 1.35 !important;
+}
+
+h3, h4, .text-medium, .font-medium-title {
+  font-size: 20px !important;
+  line-height: 1.4 !important;
+}
+
+p, span, label, input, button, select, th, td, .text-small, .font-small {
+  font-size: 16px;
+}
+
+/* Animations */
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.6);
+  }
+  50% {
+    box-shadow: 0 0 35px rgba(16, 185, 129, 1.0);
+  }
+}
+
+@keyframes flowDash {
+  to {
+    stroke-dashoffset: -20;
+  }
+}
+
+@keyframes laserPulse {
+  0%, 100% { opacity: 0.8; filter: drop-shadow(0 0 10px #38bdf8); }
+  50% { opacity: 1.0; filter: drop-shadow(0 0 20px #0284c7); }
+}
+
+.active-pulse {
+  animation: pulseGlow 2s infinite ease-in-out;
+}
+
+.flow-edge {
+  stroke-dasharray: 6, 4;
+  animation: flowDash 1s linear infinite;
+}
+
+.tab-btn.active {
+  background-color: #1e293b;
+  color: #38bdf8;
+  border-bottom: 3px solid #38bdf8;
+  font-weight: 700;
+}
+
+.mode-btn-3d.active {
+  background: linear-gradient(135deg, #0284c7, #4f46e5);
+  color: #ffffff;
+  border-color: #38bdf8;
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.5);
+  font-weight: 700;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* 3D HUD Tooltip (Enlarged & Crisp) */
+#hud-tooltip-3d {
+  position: absolute;
+  display: none;
+  pointer-events: none;
+  z-index: 50;
+  background: rgba(10, 18, 36, 0.95);
+  backdrop-filter: blur(10px);
+  border: 1.5px solid rgba(56, 189, 248, 0.7);
+  border-radius: 0.85rem;
+  padding: 0.85rem 1.15rem;
+  max-width: 380px;
+  box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.7), 0 0 25px rgba(56, 189, 248, 0.4);
+  transition: opacity 0.15s ease;
+  font-size: 15px;
+}
+
+/* 3D Viewport Fullscreen Class */
+.threejs-fullscreen {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 9999 !important;
+  border-radius: 0 !important;
+  margin: 0 !important;
+}

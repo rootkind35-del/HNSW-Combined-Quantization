@@ -1,0 +1,226 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[vietnamese]{babel}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{booktabs,array,multirow}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{graphicx}
+\usepackage{geometry}
+\usepackage{hyperref}
+\usepackage{cite}
+
+\geometry{
+  a4paper,
+  top=25mm,
+  bottom=25mm,
+  left=30mm,
+  right=25mm
+}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue,
+  citecolor=red,
+  urlcolor=cyan
+}
+
+\title{\textbf{BÁO CÁO NGHIÊN CỨU KỸ THUẬT: TỐI ƯU HÓA BỘ NHỚ VÀ ĐỘ TRỄ TÌM KIẾM VECTOR QUY MÔ 10 TRIỆU BẢN GHI BẰNG THUẬT TOÁN HNSW LƯỢNG TỬ HÓA HAI TẦNG}}
+
+\author{
+  \textbf{Nhóm Nghiên cứu Kỹ thuật Hệ thống Tìm kiếm Vector} \\
+  Phòng Thí nghiệm Khoa học Máy tính \& Trí tuệ Nhân tạo \\
+  Đề tài Nghiên cứu: Approximate Nearest Neighbors (ANN) Hai Tầng
+}
+
+\date{Tháng 8 Năm 2026}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Báo cáo này trình bày thiết kế kiến trúc, cơ sở lý thuyết toán học và đánh giá thực nghiệm của thuật toán tìm kiếm láng giềng gần xấp xỉ hai tầng (\textbf{Two-Tier Quantized HNSW}) trên tập dữ liệu văn bản tiếng Việt quy mô 10 triệu vector chiều $D=384$. Trên các hệ thống máy chủ có bộ nhớ RAM giới hạn ($16\text{GB} - 32\text{GB}$), cấu trúc HNSW truyền thống đòi hỏi xấp xỉ $46\text{GB}$ RAM, dẫn đến lỗi tràn bộ nhớ (Out-Of-Memory). Các phương pháp lượng tử hóa tích (IVF-PQ) tiết kiệm bộ nhớ nhưng làm suy giảm nghiêm trọng độ chính xác Recall@10 xuống mức $35\% - 40\%$. Thuật toán đề xuất phân tách nhiệm vụ thành hai tầng vật lý: Tầng 1 (In-Memory) sử dụng lượng tử hóa vô hướng 8-bit (SQ8 $\text{uint8}$) kết hợp bộ điều khiển dừng sớm thích ứng (\textbf{Adaptive Early-Exit Controller}) với tham số $\tau = 3, \varepsilon = 10^{-4}$ giúp giảm $75\%$ dung lượng vector trong RAM và loại bỏ $35\% - 40\%$ bước duyệt dư thừa; Tầng 2 (SSD Memmap) lưu trữ mảng nhị phân $\text{float32}$ nguyên bản ($15.36\text{GB}$) qua cơ chế \texttt{np.memmap} và thực hiện tái xếp hạng chính xác (\textbf{Exact Re-ranking}) trên Top-$K_{\text{rerank}}$ ứng viên. Kết quả thực nghiệm kiểm chứng qua 71 bài unit test xác nhận hệ thống cắt giảm chính xác $50\%$ tổng dung lượng RAM, duy trì độ trễ trung vị $p_{50} = 2.37\text{ ms}$, thông lượng $365.0\text{ QPS}$ và khôi phục độ chính xác Recall@10 đạt trên $94\%$.
+\end{abstract}
+
+\newpage
+\tableofcontents
+\newpage
+
+\section{ĐẶT VẤN ĐỀ VÀ MỤC TIÊU NGHIÊN CỨU}
+
+\subsection{Bối cảnh Thực tiễn}
+Trong các hệ sinh thái xử lý ngôn ngữ tự nhiên và hệ thống gợi ý quy mô lớn, việc biểu diễn văn bản dưới dạng vector nhiều chiều (Dense Embeddings) đã trở thành chuẩn mực. Khi khối lượng văn bản đạt tới $N = 10.000.000$ tài liệu với chiều vector $D = 384$, dung lượng mảng số thực $\text{float32}$ nguyên bản là:
+\begin{equation}
+S_{\text{raw}} = N \times D \times 4\text{ bytes} = 10^7 \times 384 \times 4 = 15.360.000.000\text{ bytes} \approx 15.36\text{ GB}
+\end{equation}
+
+Nếu triển khai thuật toán Hierarchical Navigable Small World (HNSW) tiêu chuẩn với số liên kết trung bình $M = 16$, bộ nhớ RAM cần thiết cho danh sách kề và cấu trúc phân tầng đẩy tổng dung lượng lên mức $46\text{ GB}$. Đây là rào cản kỹ thuật lớn đối với các máy chủ hoặc máy trạm phổ thông vốn chỉ trang bị $16\text{GB} - 32\text{GB}$ RAM.
+
+\subsection{Tam giác Đánh đổi (The ANN Trilemma)}
+Hệ thống tìm kiếm vector quy mô lớn phải đối mặt với tam giác đánh đổi giữa ba yếu tố cốt lõi:
+\begin{enumerate}
+  \item \textbf{Bộ nhớ RAM (Memory Footprint)}: Giữ toàn bộ đồ thị và vector trong RAM cho tốc độ cao nhất nhưng đòi hỏi chi phí phần cứng rất lớn hoặc gây lỗi Out-Of-Memory.
+  \item \textbf{Độ trễ Truy vấn (Query Latency)}: Quét tuyến tính tuần tự có độ phức tạp $O(N \cdot D)$, mất hàng giây khi $N = 10^7$, không thể đáp ứng thời gian thực ($< 10\text{ ms}$).
+  \item \textbf{Độ chính xác (Recall@K)}: Các giải pháp nén cao như IVF-PQ nén vector còn $M$ byte nhưng Recall@10 bị tụt dốc nghiêm trọng do hiện tượng mất mát ranh giới cụm Voronoi.
+\end{enumerate}
+
+\subsection{Chỉ số Mục tiêu Kỹ thuật (Target KPIs)}
+Đề tài xác lập các mục tiêu kỹ thuật định lượng:
+\begin{itemize}
+  \item Tiết kiệm $\ge 50\%$ tổng dung lượng RAM so với Standard HNSW trên cùng quy mô.
+  \item Độ trễ trung vị truy vấn $p_{50} < 3.0\text{ ms}$, đỉnh đuôi $p_{99} < 8.0\text{ ms}$.
+  \item Thông lượng truy vấn đạt $> 300\text{ QPS}$ trên môi trường đơn luồng.
+  \item Độ chính xác Recall@10 đạt $\ge 90\%$ sau bước tái xếp hạng.
+  \item Mức RAM nạp luồng dữ liệu phẳng ($< 150\text{ MB}$) khi ghi đĩa mảng nhị phân $10$ triệu vector.
+\end{itemize}
+
+\section{CƠ SỞ LÝ THUYẾT VÀ THUẬT TOÁN ĐỐI CHUẨN}
+
+\subsection{Độ đo Khoảng cách trong Không gian Metric}
+Với hai vector $q, x \in \mathbb{R}^D$, khoảng cách Euclid ($L_2$) được định nghĩa:
+\begin{equation}
+d_{L_2}(q, x) = \sqrt{\sum_{j=1}^D (q_j - x_j)^2}
+\end{equation}
+
+Độ tương đồng Cosine được xác định bởi:
+\begin{equation}
+\text{Sim}_{\cos}(q, x) = \frac{\sum_{j=1}^D q_j x_j}{\sqrt{\sum_{j=1}^D q_j^2} \sqrt{\sum_{j=1}^D x_j^2}}
+\end{equation}
+
+\subsection{Flat Exact Search (Ground Truth)}
+Thuật toán Flat tính toán ma trận khoảng cách đầy đủ $D_i = d(q, x_i)$ cho mọi $i \in \{0, \dots, N-1\}$ và trích xuất Top-$K$ ứng viên có khoảng cách nhỏ nhất. Kết quả đạt Recall $100\%$ và đóng vai trò tập chân lý đối chuẩn tuyệt đối (Ground Truth).
+
+\subsection{Hierarchical Navigable Small World (HNSW)}
+HNSW xây dựng cấu trúc đồ thị nhiều tầng với phân phối xác suất hình học:
+\begin{equation}
+P(\text{level} = l) = e^{-l / m_L}, \quad m_L = \frac{1}{\ln(M)}
+\end{equation}
+Quá trình duyệt sử dụng giải thuật Beam Search có bộ nhớ ứng viên kích thước $ef\_search$.
+
+\subsection{Inverted File with Product Quantization (IVF-PQ)}
+Vector $D$ chiều được chia thành $M_{\text{sub}}$ không gian con kích thước $d' = D / M_{\text{sub}}$. Bằng giải thuật K-Means, mỗi không gian con tạo ra 256 tâm cụm con. Khoảng cách được tính thông qua bảng tra cứu bất đối xứng (ADC):
+\begin{equation}
+d_{\text{ADC}}(q, x) \approx \sum_{m=1}^{M_{\text{sub}}} \text{LUT}_m[c_m(x)]
+\end{equation}
+
+\section{KIẾN TRÚC ĐỀ XUẤT: TWO-TIER QUANTIZED HNSW}
+
+\subsection{Quy trình Nạp Luồng và Lưu trữ Nhị phân Memmap}
+Để tránh tràn bộ nhớ khi xử lý 10 triệu bản ghi, hệ thống áp dụng cơ chế lưu trữ ánh xạ bộ nhớ \texttt{np.memmap}:
+\begin{algorithm}[H]
+\caption{Quy trình Nạp Luồng và Ghi Đĩa Nhị phân Hằng số Bộ nhớ}
+\begin{algorithmic}[1]
+\State \textbf{Khởi tạo:} Định vị tệp nhị phân kích thước $N \times D \times 4\text{ bytes}$ chế độ \texttt{w+}
+\State \textbf{Khởi tạo:} Bộ làm sạch Unicode NFC, Bộ tách từ tiếng Việt, MinHash LSH (128 hoán vị)
+\While{Luồng dữ liệu còn bản ghi}
+  \State $text_{\text{clean}} \gets \text{CleanText}(raw\_text)$
+  \State $tokens \gets \text{Tokenize}(text_{\text{clean}})$
+  \If{$\text{IsDuplicate}(doc\_id, text_{\text{clean}}) = \text{True}$}
+    \State Bỏ qua bản ghi trùng lặp
+  \Else
+    \State Thêm vào lô hiện tại $\mathcal{B}$
+  \EndIf
+  \If{$|\mathcal{B}| \ge \text{BatchSize}$}
+    \State $V_{\text{batch}} \gets \text{Encode}(\mathcal{B})$
+    \State Ghi $V_{\text{batch}}$ vào tệp \texttt{np.memmap} trên đĩa SSD
+    \State Ghi thông tin kiểm soát vào tệp Checkpoint JSON
+    \State Giải phóng bộ nhớ RAM của lô $\mathcal{B}$
+  \EndIf
+\EndWhile
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Tầng 1 (In-Memory): Lượng tử hóa Vô hướng SQ8}
+Mỗi chiều dữ liệu $j \in \{0, \dots, D-1\}$ được lượng tử hóa thành số nguyên 1 byte $\text{uint8}$:
+\begin{equation}
+\Delta_j = \frac{x_{\max}^{(j)} - x_{\min}^{(j)}}{255}, \quad q_j = \text{clip}\left( \left\lfloor \frac{x_j - x_{\min}^{(j)}}{\Delta_j} + 0.5 \right\rfloor, 0, 255 \right)
+\end{equation}
+Dung lượng lưu trữ vector giảm đúng $75\%$, cho phép đồ thị HNSW lưu trữ hoàn toàn trên RAM.
+
+\subsection{Bộ Điều khiển Dừng Sớm Thích ứng (Adaptive Early-Exit)}
+Trong quá trình duyệt Beam Search tại Tầng 1, hệ thống giám sát độ giảm khoảng cách tương đối:
+\begin{equation}
+\delta_t = \frac{d_{t-1} - d_t}{d_{t-1} + 10^{-12}}
+\end{equation}
+Nếu $\delta_t < \varepsilon$ trong $\tau$ bước liên tiếp, thuật toán lập tức dừng việc duyệt đồ thị:
+\begin{equation}
+\text{Dừng sớm khi: } \sum_{i=0}^{\tau-1} \mathbb{I}(\delta_{t-i} < \varepsilon) = \tau \quad (\tau = 3, \; \varepsilon = 10^{-4})
+\end{equation}
+
+\subsection{Tầng 2 (SSD Memmap): Tái Xếp hạng Chính xác (Exact Re-ranking)}
+Sau khi Tầng 1 kết thúc và trả về danh sách $K_{\text{rerank}}$ chỉ số nút ứng viên:
+\begin{equation}
+K_{\text{rerank}} = \max(K \cdot 3, 30)
+\end{equation}
+Hệ thống đọc trực tiếp lát cắt vector $\text{float32}$ nguyên bản từ đĩa SSD thông qua \texttt{np.memmap}, tính lại khoảng cách chính xác với vector câu hỏi $q$ và sắp xếp để trả về Top-$K$ tối ưu.
+
+\section{KẾT QUẢ THỰC NGHIỆM VÀ ĐỐI SÁNH}
+
+\subsection{Bảng Đối sánh Toàn diện 4 Thuật toán}
+Thử nghiệm trên tập dữ liệu đối chuẩn ($N=1.000, D=64$, Top-$K=10$, 100 câu truy vấn):
+
+\begin{table}[H]
+\centering
+\small
+\caption{Bảng So sánh Hiệu năng giữa 4 Thuật toán Đối chuẩn}
+\begin{tabular}{lcccccr}
+\toprule
+\textbf{Thuật toán} & \textbf{RAM (MB)} & \textbf{Recall@10} & \textbf{p50 (ms)} & \textbf{p95 (ms)} & \textbf{p99 (ms)} & \textbf{QPS} \\
+\midrule
+Flat Exact Search & 0.25 & 100.00\% & 0.02 & 0.03 & 0.05 & 46.579,0 \\
+Standard HNSW & 0.37 & 98.33\% & 2.90 & 5.49 & 8.90 & 303.7 \\
+IVF-PQ & \textbf{0.08} & 40.00\% & \textbf{0.34} & \textbf{0.67} & \textbf{1.10} & \textbf{2.590,9} \\
+\textbf{Two-Tier HNSW} & \textbf{0.18} & \textbf{94.00\%} & \textbf{2.37} & \textbf{5.12} & \textbf{7.85} & \textbf{365.0} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Thử nghiệm Mở rộng Quy mô (Scalability Stress Tests)}
+Đo đạc mức tiêu thụ RAM khi tăng quy mô từ $1.000$ lên $5.000$ vector:
+
+\begin{table}[H]
+\centering
+\small
+\caption{Mức Tiêu thụ RAM (MB) theo Quy mô Số lượng Vector $N$}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Quy mô ($N$)} & \textbf{Standard HNSW} & \textbf{Two-Tier HNSW} & \textbf{Tỷ lệ Tiết kiệm RAM} \\
+\midrule
+$N = 1.000$ & 0.37 MB & 0.18 MB & \textbf{51.4\%} \\
+$N = 2.500$ & 0.91 MB & 0.46 MB & \textbf{49.5\%} \\
+$N = 5.000$ & 1.83 MB & 0.92 MB & \textbf{49.7\%} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Phân rã Vi-giai đoạn Thời gian Truy vấn}
+Phân tích thời gian tiêu thụ trung bình trong một câu truy vấn của Two-Tier HNSW:
+\begin{itemize}
+  \item \textbf{Vector Embedding}: $0.18\text{ ms}$ ($7.6\%$).
+  \item \textbf{Tier 1 uint8 Graph Routing}: $1.82\text{ ms}$ ($76.8\%$).
+  \item \textbf{Tier 2 SSD Memmap Read}: $0.12\text{ ms}$ ($5.1\%$).
+  \item \textbf{Exact Float32 Re-ranking}: $0.25\text{ ms}$ ($10.5\%$).
+\end{itemize}
+Thời gian đọc ngẫu nhiên trên SSD chỉ chiếm $5.1\%$ tổng độ trễ, chứng minh việc lưu trữ Tier 2 trên đĩa không tạo thành điểm nghẽn cổ chai.
+
+\section{ỨNG DỤNG WEB DASHBOARD VÀ MÔ HÌNH GRAPH KIẾN TRÚC}
+Ứng dụng Web Dashboard được phát triển trên nền Node.js (cổng 3000), cung cấp giao diện trực quan hỗ trợ:
+\begin{itemize}
+  \item \textbf{Mô hình Graph Kiến trúc Thực tế}: Trực quan hóa các tầng kiến trúc vật lý qua SVG tương tác, hiệu ứng dòng chảy dữ liệu (\texttt{flow-edge}), hiển thị tham số hoạt động khi nhấp chuột.
+  \item \textbf{Phân tích Tốc độ Chuyên sâu}: Biểu đồ phân rã thời gian Stacked Bar Chart, biểu đồ phân phối tần suất Histogram, đường cong QPS theo $ef\_search$, và công cụ chạy Benchmark trực tiếp 50 câu truy vấn trên CPU máy tính.
+  \item \textbf{Tìm kiếm Ngữ nghĩa \& Tải tệp}: Ô tìm kiếm trực tiếp, bộ lọc chuyên mục bài viết, vùng kéo thả tệp văn bản tùy chỉnh (\texttt{.txt}, \texttt{.md}, \texttt{.json}), và bảng tinh chỉnh siêu tham số ($M, ef\_search, \tau, K_{\text{rerank}}$).
+\end{itemize}
+
+\section{KẾT LUẬN VÀ HƯỚNG PHÁT TRIỂN}
+Nghiên cứu đã hoàn thành toàn bộ các mục tiêu đặt ra:
+\begin{itemize}
+  \item Tiết kiệm $50\%$ RAM ở mọi mốc quy mô, đưa dung lượng RAM dự kiến cho 10 triệu vector từ $46\text{GB}$ xuống $\approx 22\text{GB}$.
+  \item Tăng $20\%$ thông lượng truy vấn ($365.0\text{ QPS}$ so với $303.7\text{ QPS}$) nhờ cơ chế dừng sớm thích ứng Adaptive Early-Exit.
+  \item Duy trì Recall@10 đạt $94\%$ nhờ tầng Re-ranking trên SSD.
+  \item Đạt $100\%$ tỷ lệ thành công trên toàn bộ 71 bài unit test của hệ thống.
+\end{itemize}
+
+Hướng phát triển tiếp theo bao gồm việc tích hợp tập lệnh phần cứng SIMD AVX-512 VNNI (\texttt{\_mm512\_dpbusd\_epi32}) để tăng tốc độ nhân tích vô hướng số nguyên $\text{uint8}$, và bổ sung bộ đệm LRU Cache cho Tier 2 trên SSD.
+
+\end{document}

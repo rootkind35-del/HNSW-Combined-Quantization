@@ -1,0 +1,14 @@
+{
+  "model_name": "paraphrase-multilingual-MiniLM-L12-v2",
+  "embedding_dim": 384,
+  "batch_size": 2048,
+  "max_records": 10000000,
+  "output_memmap_path": "data/processed/vectors_10m.dat",
+  "dtype": "float32",
+  "minhash_threshold": 0.8,
+  "minhash_num_perm": 128,
+  "strip_html_tags": true,
+  "normalize_unicode_nfc": true,
+  "remove_urls": true,
+  "lowercase_tokens_for_dedup": true
+}
