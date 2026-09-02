@@ -1,4 +1,4 @@
-"""Scalability stress testing script benchmarking Standard HNSW vs Two-Tier Quantized HNSW."""
+"""Kịch bản kiểm thử áp lực quy mô lớn (Scalability Stress Test) giữa Standard HNSW và Two-Tier Quantized HNSW."""
 
 import argparse
 import json
@@ -14,7 +14,7 @@ if hasattr(sys.stdout, "reconfigure"):
     except Exception:
         pass
 
-# Ensure src/ is on python path
+# Thêm đường dẫn src/ vào sys.path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src")))
 
 from ann_index.benchmark import BenchmarkRunner
@@ -30,16 +30,16 @@ def run_scale_experiment(
     output_dir: str = "data/experiments",
 ) -> Dict[str, Any]:
     """
-    Executes scalability benchmarks across increasing dataset sizes.
+    Thực hiện kiểm thử đo đạc hiệu năng trên các mốc kích thước dữ liệu tăng dần.
 
-    Args:
-        scales: List of dataset sizes N (e.g. [1000, 2500, 5000]).
-        dim: Vector dimensionality.
-        num_queries: Number of test queries.
-        output_dir: Directory to persist experiment outputs.
+    Tham số:
+        scales: Danh sách các mốc quy mô tập dữ liệu N (ví dụ: [1000, 2500, 5000]).
+        dim: Số chiều không gian vector.
+        num_queries: Số lượng câu truy vấn kiểm thử.
+        output_dir: Thư mục lưu trữ tệp kết quả JSON và Markdown.
 
-    Returns:
-        Dict containing raw experiment records and formatted summary.
+    Trả về:
+        Dict chứa bản ghi kết quả chi tiết và báo cáo tổng hợp.
     """
     logger = get_logger("run_scale_stress_test")
     os.makedirs(output_dir, exist_ok=True)
@@ -47,21 +47,21 @@ def run_scale_experiment(
     experiment_records = []
     np.random.seed(42)
 
-    logger.info("Starting Scalability Stress Test across scales: %s (Dim: %d, Queries: %d)", scales, dim, num_queries)
+    logger.info("Bắt đầu thử nghiệm áp lực quy mô lớn trên các mốc: %s (Chiều: %d, Truy vấn: %d)", scales, dim, num_queries)
 
     for n in scales:
         logger.info("-" * 60)
-        logger.info("Evaluating Dataset Scale N = %d ...", n)
+        logger.info("Đang đánh giá mốc quy mô tập dữ liệu N = %d ...", n)
         dataset = np.random.randn(n, dim).astype(np.float32)
         queries = np.random.randn(num_queries, dim).astype(np.float32)
 
         runner = BenchmarkRunner(dataset=dataset, queries=queries, metric="l2", ground_truth_k=50)
 
-        # 1. Standard HNSW baseline
+        # 1. Thuật toán Standard HNSW đối chuẩn
         hnsw = StandardHNSWIndex(space="l2", m=16, ef_construction=100, ef_search=30)
         hnsw_eval = runner.evaluate_index(hnsw, top_k=10, repeat_runs=2)
 
-        # 2. Proposed TwoTierQuantizedHNSW
+        # 2. Thuật toán TwoTierQuantizedHNSW đề xuất
         two_tier = TwoTierQuantizedHNSW(
             m=16,
             ef_search=30,
@@ -89,17 +89,17 @@ def run_scale_experiment(
         }
         experiment_records.append(step_record)
         logger.info(
-            "Scale N=%d: Standard HNSW RAM: %.2f MB | Two-Tier HNSW RAM: %.2f MB (Giảm %.1f%%)",
+            "Mốc N=%d: RAM Standard HNSW: %.2f MB | RAM Two-Tier HNSW: %.2f MB (Giảm %.1f%%)",
             n,
             ram_hnsw,
             ram_twotier,
             ram_reduction,
         )
 
-    # Generate Markdown Summary Report
+    # Sinh báo cáo tóm tắt định dạng Markdown
     md_report = generate_markdown_report(experiment_records)
 
-    # Save JSON and Markdown artifacts
+    # Lưu trữ các tệp kết quả vào data/experiments/
     json_path = os.path.join(output_dir, "scale_stress_results.json")
     md_path = os.path.join(output_dir, "scale_stress_summary.md")
 
@@ -109,7 +109,7 @@ def run_scale_experiment(
     with open(md_path, "w", encoding="utf-8") as f:
         f.write(md_report)
 
-    logger.info("Experiment results saved to %s and %s", json_path, md_path)
+    logger.info("Đã lưu kết quả thực nghiệm tại: %s và %s", json_path, md_path)
     return {
         "records": experiment_records,
         "markdown_report": md_report,
@@ -119,7 +119,7 @@ def run_scale_experiment(
 
 
 def generate_markdown_report(records: List[Dict[str, Any]]) -> str:
-    """Formats experiment records into a markdown report with comparative tables."""
+    """Định dạng danh sách bản ghi thực nghiệm thành báo cáo Markdown đối sánh trực quan."""
     lines = [
         "# Báo cáo Thực nghiệm Quy mô Lớn (Scalability Stress Test)",
         "",
@@ -157,11 +157,12 @@ def generate_markdown_report(records: List[Dict[str, Any]]) -> str:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Run Scalability Stress Test comparing HNSW variants.")
-    parser.add_argument("--scales", type=int, nargs="+", default=[1000, 2500, 5000], help="List of dataset scales N")
-    parser.add_argument("--dim", type=int, default=64, help="Vector dimension")
-    parser.add_argument("--queries", type=int, default=30, help="Number of queries")
-    parser.add_argument("--output-dir", type=str, default="data/experiments", help="Output directory for reports")
+    """Hàm chạy chính từ dòng lệnh."""
+    parser = argparse.ArgumentParser(description="Chạy kiểm thử áp lực quy mô lớn so sánh các biến thể HNSW.")
+    parser.add_argument("--scales", type=int, nargs="+", default=[1000, 2500, 5000], help="Danh sách các mốc quy mô N")
+    parser.add_argument("--dim", type=int, default=64, help="Số chiều không gian vector")
+    parser.add_argument("--queries", type=int, default=30, help="Số lượng câu truy vấn kiểm thử")
+    parser.add_argument("--output-dir", type=str, default="data/experiments", help="Thư mục xuất báo cáo")
     args = parser.parse_args()
 
     results = run_scale_experiment(
@@ -175,3 +176,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

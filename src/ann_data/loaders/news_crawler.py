@@ -1,4 +1,4 @@
-"""News RSS crawler and article extractor module."""
+"""Module cào tin tức báo chí tiếng Việt qua RSS và trích xuất nội dung bài viết."""
 
 import hashlib
 import re
@@ -11,7 +11,7 @@ from ann_data.utils import get_logger
 
 
 class NewsRssCrawler(BaseDataLoader):
-    """Crawls latest Vietnamese news articles from RSS feeds and extracts clean body text."""
+    """Trình cào tin tức tiếng Việt thời sự từ các kênh RSS chính thống (VnExpress, Dân Trí) và bóc tách nội dung chi tiết."""
 
     DEFAULT_FEEDS = [
         "https://vnexpress.net/rss/tin-moi-nhat.rss",
@@ -19,6 +19,13 @@ class NewsRssCrawler(BaseDataLoader):
     ]
 
     def __init__(self, feed_urls: Optional[List[str]] = None, request_timeout: int = 10):
+        """
+        Khởi tạo trình cào báo.
+
+        Tham số:
+            feed_urls: Danh sách các đường dẫn RSS cần quét.
+            request_timeout: Thời gian chờ HTTP tối đa tính bằng giây (mặc định 10s).
+        """
         self.feed_urls = feed_urls or self.DEFAULT_FEEDS
         self.request_timeout = request_timeout
         self.logger = get_logger("NewsRssCrawler")
@@ -28,7 +35,15 @@ class NewsRssCrawler(BaseDataLoader):
         )
 
     def fetch_url(self, url: str) -> Optional[str]:
-        """Fetches raw text content from a URL via HTTP GET."""
+        """
+        Tải nội dung phản hồi văn bản thô từ một URL qua phương thức HTTP GET.
+
+        Tham số:
+            url: Đường dẫn URL cần truy cập.
+
+        Trả về:
+            Chuỗi văn bản nội dung HTML/XML hoặc None nếu xảy ra lỗi kết nối.
+        """
         req = urllib.request.Request(
             url,
             headers={"User-Agent": self._user_agent, "Accept": "text/html,application/xhtml+xml,application/xml"}
@@ -38,12 +53,20 @@ class NewsRssCrawler(BaseDataLoader):
                 charset = response.headers.get_content_charset() or "utf-8"
                 return response.read().decode(charset, errors="replace")
         except Exception as e:
-            self.logger.warning("Failed to fetch %s: %s", url, str(e))
+            self.logger.warning("Không thể tải URL %s: %s", url, str(e))
             return None
 
     @staticmethod
     def parse_rss_xml(xml_content: str) -> List[Dict[str, str]]:
-        """Parses an RSS XML string into a list of item dictionaries."""
+        """
+        Phân tích chuỗi XML của kênh RSS thành danh sách các bản ghi tin tức (tiêu đề, link, mô tả).
+
+        Tham số:
+            xml_content: Chuỗi nội dung XML.
+
+        Trả về:
+            Danh sách các dictionary chứa thông tin từng bài viết.
+        """
         items = []
         if not xml_content:
             return items
@@ -51,14 +74,14 @@ class NewsRssCrawler(BaseDataLoader):
         try:
             root = ET.fromstring(xml_content)
         except ET.ParseError:
-            # Attempt to clean encoding prefix or bad tokens if any
+            # Làm sạch tiền tố mã hóa hoặc các ký tự đặc biệt nếu có
             clean_xml = re.sub(r"&(?![a-zA-Z0-9#]+;)", "&amp;", xml_content)
             try:
                 root = ET.fromstring(clean_xml)
             except Exception:
                 return items
 
-        # Search for all item elements under channel or root
+        # Quét toàn bộ các phần tử item trong tài liệu RSS
         for item in root.findall(".//item"):
             title_node = item.find("title")
             link_node = item.find("link")
@@ -70,7 +93,7 @@ class NewsRssCrawler(BaseDataLoader):
             desc = desc_node.text.strip() if desc_node is not None and desc_node.text else ""
             guid = guid_node.text.strip() if guid_node is not None and guid_node.text else link
 
-            # Description in RSS often contains HTML or CDATA; strip basic tags
+            # Bóc tách mã HTML trong trường mô tả RSS
             if desc:
                 desc = BeautifulSoup(desc, "html.parser").get_text(separator=" ").strip()
 
@@ -85,17 +108,25 @@ class NewsRssCrawler(BaseDataLoader):
 
     @staticmethod
     def extract_article_content(html_content: str) -> str:
-        """Extracts article text from raw HTML body."""
+        """
+        Trích xuất văn bản thân bài báo từ tài liệu HTML thô.
+
+        Tham số:
+            html_content: Chuỗi mã nguồn HTML bài báo.
+
+        Trả về:
+            Chuỗi văn bản thân bài báo đã được bóc tách và ghép nối từ các đoạn văn.
+        """
         if not html_content:
             return ""
 
         soup = BeautifulSoup(html_content, "html.parser")
 
-        # Strip non-content elements
+        # Loại bỏ các thẻ không chứa nội dung chính như script, quảng cáo, menu
         for tag in soup(["script", "style", "nav", "footer", "header", "aside", "figure"]):
             tag.decompose()
 
-        # Target standard Vietnamese news content classes and tags
+        # Nhắm mục tiêu vào các vùng class chứa nội dung báo chí tiếng Việt phổ biến
         article_candidates = (
             soup.find("article")
             or soup.find(class_=re.compile(r"(fck_detail|singular-content|article-content|detail-content)"))
@@ -113,17 +144,25 @@ class NewsRssCrawler(BaseDataLoader):
         return "\n".join(paragraphs)
 
     def stream(self, limit: Optional[int] = None) -> Generator[Tuple[str, str], None, None]:
-        """Crawls feeds and streams (doc_id, text) pairs."""
+        """
+        Thu thập các kênh tin tức và sinh ra luồng các cặp (doc_id, full_text).
+
+        Tham số:
+            limit: Số lượng bài báo tối đa cần cào.
+
+        Sinh ra:
+            Tuple[str, str]: (doc_id, full_text)
+        """
         yielded_count = 0
 
         for feed_url in self.feed_urls:
-            self.logger.info("Fetching feed: %s", feed_url)
+            self.logger.info("Đang nạp kênh RSS: %s", feed_url)
             xml_text = self.fetch_url(feed_url)
             if not xml_text:
                 continue
 
             items = self.parse_rss_xml(xml_text)
-            self.logger.info("Parsed %d items from %s", len(items), feed_url)
+            self.logger.info("Phân tích thành công %d bài viết từ %s", len(items), feed_url)
 
             for item in items:
                 link = item.get("link", "")
@@ -132,7 +171,7 @@ class NewsRssCrawler(BaseDataLoader):
 
                 doc_id = hashlib.sha1(link.encode("utf-8") if link else title.encode("utf-8")).hexdigest()[:16]
 
-                # Fetch full article if link available, else fallback to title + description
+                # Tải chi tiết bài viết nếu có đường dẫn hợp lệ, nếu không lấy tiêu đề + mô tả
                 body_text = ""
                 if link.startswith("http"):
                     html = self.fetch_url(link)
@@ -146,3 +185,4 @@ class NewsRssCrawler(BaseDataLoader):
                     yielded_count += 1
                     if limit is not None and yielded_count >= limit:
                         return
+

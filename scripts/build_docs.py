@@ -1,16 +1,20 @@
-# Helper to build docs
+"""Kịch bản hỗ trợ tự động tạo tài liệu báo cáo định dạng Word (.docx) và hướng dẫn tổng thể."""
+
 import docx
 from docx.shared import Inches, Pt, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.enum.table import WD_TABLE_ALIGNMENT
 
+
 def main():
+    """Tạo lập tệp tài liệu Báo cáo cuối kỳ định dạng Microsoft Word (.docx)."""
     doc = docx.Document()
     for section in doc.sections:
         section.top_margin = Inches(1.0)
         section.bottom_margin = Inches(1.0)
         section.left_margin = Inches(1.0)
         section.right_margin = Inches(1.0)
+
 
     p_title = doc.add_paragraph()
     p_title.alignment = WD_ALIGN_PARAGRAPH.CENTER

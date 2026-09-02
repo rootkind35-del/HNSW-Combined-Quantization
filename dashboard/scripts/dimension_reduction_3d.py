@@ -1,7 +1,7 @@
 """
-3D Dimension Reduction & HNSW Topology Precomputation for Three.js Web Dashboard.
-Projects 384-dimensional document vectors to 3D coordinates using PCA/SVD
-and generates multi-layer HNSW graph structure.
+Giảm chiều không gian 3D (PCA/SVD) và tiền tính toán cấu trúc đồ thị phân tầng HNSW cho Web Dashboard Three.js.
+Chiếu các vector đặc trưng 384 chiều xuống tọa độ không gian 3 chiều (X, Y, Z)
+và sinh cấu trúc đồ thị phân tầng HNSW (Layer 2, Layer 1, Layer 0) kèm các liên kết chuyển tầng.
 """
 
 import json
@@ -20,7 +20,8 @@ sys.path.insert(0, os.path.join(BASE_DIR, "src"))
 
 
 def assign_category(text: str) -> str:
-    """Categorizes text based on topical keywords."""
+    """Phân loại nhóm chủ đề bài viết dựa trên từ khóa tiếng Việt."""
+
     t = text.lower()
     if any(k in t for k in ["chứng khoán", "tài chính", "ngân hàng", "xuất khẩu", "kinh tế", "doanh nghiệp", "usd", "giá cả", "lãi suất", "cổ phiếu", "tăng trưởng"]):
         return "Kinh doanh & Tài chính"

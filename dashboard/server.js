@@ -1,3 +1,9 @@
+/**
+ * Máy chủ Web Dashboard (Node.js Express Server)
+ * Cung cấp giao diện trực quan hóa 3D không gian vector, thử nghiệm tìm kiếm ngữ nghĩa,
+ * tinh chỉnh siêu tham số và đo lường đối sánh hiệu năng các thuật toán ANN.
+ */
+
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
@@ -11,6 +17,7 @@ const ROOT_DIR = path.resolve(__dirname, '..');
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
+
 
 // 1. API: System & Streaming Status
 app.get('/api/status', (req, res) => {

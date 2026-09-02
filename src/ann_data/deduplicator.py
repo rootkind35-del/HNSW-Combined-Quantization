@@ -1,11 +1,15 @@
-"""Deduplication module using MinHash and Locality Sensitive Hashing (LSH)."""
+"""Module lọc trùng lặp dữ liệu lớn bằng giải thuật MinHash và Locality Sensitive Hashing (LSH)."""
 
 from typing import Dict, Generator, Iterable, List, Optional, Tuple
 from datasketch import MinHash, MinHashLSH
 
 
 class StreamDeduplicator:
-    """Detects and filters duplicate or highly similar documents in a stream using MinHash LSH."""
+    """
+    Bộ lọc trùng lặp văn bản thời gian thực dạng luồng (Streaming Deduplicator):
+    Sử dụng dấu vân tay MinHash kết hợp cấu trúc băm cục bộ LSH để phát hiện và loại bỏ
+    các tài liệu trùng lặp hoàn toàn hoặc gần trùng lặp (Near-Duplicates) dựa trên độ tương đồng Jaccard.
+    """
 
     def __init__(
         self,
@@ -14,6 +18,15 @@ class StreamDeduplicator:
         lowercase: bool = True,
         shingle_size: int = 1,
     ):
+        """
+        Khởi tạo bộ lọc trùng lặp.
+
+        Tham số:
+            threshold: Ngưỡng tương đồng Jaccard để coi 2 văn bản là trùng lặp (mặc định 0.8 tức 80%).
+            num_perm: Số lượng hàm băm hoán vị MinHash (càng cao độ phân giải càng chính xác).
+            lowercase: Nếu True, chuyển chữ thường trước khi tạo shingle.
+            shingle_size: Kích thước cụm từ ghép N-gram shingles (mặc định 1 tức từng từ).
+        """
         self.threshold = threshold
         self.num_perm = num_perm
         self.lowercase = lowercase
@@ -24,7 +37,7 @@ class StreamDeduplicator:
         self.total_duplicates = 0
 
     def _extract_shingles(self, text: str) -> List[str]:
-        """Extracts n-gram word shingles from input text."""
+        """Trích xuất danh sách các cụm từ N-gram (shingles) từ chuỗi văn bản đầu vào."""
         normalized = text.lower() if self.lowercase else text
         tokens = normalized.split()
         if not tokens:
@@ -38,7 +51,15 @@ class StreamDeduplicator:
         return shingles or tokens
 
     def compute_minhash(self, text: str) -> MinHash:
-        """Computes a MinHash fingerprint for the provided document text."""
+        """
+        Tính toán dấu vân tay MinHash đại diện cho tập hợp shingles của văn bản.
+
+        Tham số:
+            text: Chuỗi nội dung văn bản.
+
+        Trả về:
+            Đối tượng MinHash chứa chữ ký băm 128 chiều.
+        """
         minhash = MinHash(num_perm=self.num_perm)
         shingles = self._extract_shingles(text)
         for s in shingles:
@@ -47,14 +68,21 @@ class StreamDeduplicator:
 
     def is_duplicate(self, doc_id: str, text: str) -> bool:
         """
-        Checks whether document is a near-duplicate.
-        If duplicate, returns True.
-        If unique, inserts into LSH index and returns False.
+        Kiểm tra văn bản có bị trùng lặp với các văn bản đã xuất hiện trước đó hay không.
+        - Nếu trùng lặp: Trả về True và tăng bộ đếm trùng lặp.
+        - Nếu duy nhất: Đưa vào chỉ mục băm LSH và trả về False.
+
+        Tham số:
+            doc_id: Mã định danh tài liệu.
+            text: Chuỗi nội dung văn bản.
+
+        Trả về:
+            bool: True nếu phát hiện trùng lặp, False nếu là văn bản duy nhất.
         """
         self.total_seen += 1
         
-        # Prevent OOM for 10M records by resetting LSH index periodically
-        # (local deduplication within chunks of 50,000 documents)
+        # Ngăn chặn tràn bộ nhớ (OOM) khi xử lý 10 triệu bản ghi
+        # bằng cách làm mới chỉ mục băm LSH theo từng khối cửa sổ trượt 50.000 tài liệu
         if self.total_seen % 50000 == 0:
             self.lsh = MinHashLSH(threshold=self.threshold, num_perm=self.num_perm)
             
@@ -71,14 +99,22 @@ class StreamDeduplicator:
     def filter_stream(
         self, stream: Iterable[Tuple[str, str]]
     ) -> Generator[Tuple[str, str], None, None]:
-        """Yields only unique (doc_id, text) pairs from an incoming stream."""
+        """
+        Bộ lọc luồng (Generator): Nhận luồng cặp (doc_id, text) và chỉ sinh ra các cặp văn bản không bị trùng.
+
+        Tham số:
+            stream: Luồng đầu vào chứa các cặp (doc_id, text).
+
+        Sinh ra:
+            Từng cặp (doc_id, text) duy nhất.
+        """
         for doc_id, text in stream:
             if not self.is_duplicate(doc_id, text):
                 yield doc_id, text
 
     @property
     def stats(self) -> Dict[str, int]:
-        """Returns processing statistics."""
+        """Trả về từ điển thống kê số lượng văn bản đã xử lý, số trùng lặp và số duy nhất giữ lại."""
         return {
             "total_seen": self.total_seen,
             "total_duplicates": self.total_duplicates,
@@ -86,7 +122,8 @@ class StreamDeduplicator:
         }
 
     def reset(self) -> None:
-        """Clears the LSH index and resets statistics."""
+        """Xóa trắng chỉ mục LSH và đặt lại các biến thống kê đếm về 0."""
         self.lsh = MinHashLSH(threshold=self.threshold, num_perm=self.num_perm)
         self.total_seen = 0
         self.total_duplicates = 0
+

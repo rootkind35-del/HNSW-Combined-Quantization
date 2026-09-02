@@ -1,4 +1,4 @@
-"""Script to download, crawl, and persist RAW uncleaned Vietnamese datasets into data/raw/ before processing."""
+"""Kịch bản tải, cào và lưu trữ dữ liệu thô tiếng Việt (RAW DATA) vào data/raw/ trước khi tiền xử lý."""
 
 import argparse
 import json
@@ -9,7 +9,7 @@ import urllib.request
 import xml.etree.ElementTree as ET
 from bs4 import BeautifulSoup
 
-# Ensure UTF-8 output
+# Đảm bảo mã hóa đầu ra UTF-8 trên Windows console
 if hasattr(sys.stdout, "reconfigure"):
     try:
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -20,6 +20,7 @@ BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 RAW_DIR = os.path.join(BASE_DIR, "data", "raw")
 os.makedirs(RAW_DIR, exist_ok=True)
 
+# Danh sách nguồn cấp dữ liệu RSS tiếng Việt chính thống
 RSS_FEEDS = [
     ("VNExpress Tin Mới", "https://vnexpress.net/rss/tin-moi-nhat.rss"),
     ("VNExpress Kinh Doanh", "https://vnexpress.net/rss/kinh-doanh.rss"),
@@ -35,7 +36,15 @@ RSS_FEEDS = [
 
 
 def crawl_raw_rss_news(limit_per_feed: int = 20) -> list:
-    """Crawls raw news articles with raw HTML, uncleaned text, links, and publication dates."""
+    """
+    Cào tin tức nguyên bản (kèm mã HTML thô, URL, ngày đăng) từ các kênh RSS tiếng Việt.
+
+    Tham số:
+        limit_per_feed: Số lượng bài viết tối đa mỗi kênh RSS.
+
+    Trả về:
+        Danh sách các dictionary chứa bản ghi bài viết thô.
+    """
     user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/122.0.0.0 Safari/537.36"
     raw_articles = []
     
@@ -57,7 +66,7 @@ def crawl_raw_rss_news(limit_per_feed: int = 20) -> list:
                 pub_date = item.find("pubDate").text if item.find("pubDate") is not None else ""
                 desc_raw = item.find("description").text if item.find("description") is not None else ""
                 
-                # Fetch full raw HTML if possible
+                # Tải toàn bộ HTML trang bài viết nếu truy cập được
                 raw_html = ""
                 if link:
                     try:
@@ -88,7 +97,15 @@ def crawl_raw_rss_news(limit_per_feed: int = 20) -> list:
 
 
 def generate_raw_corpus_sample(target_count: int = 50000) -> str:
-    """Generates and writes large-scale raw text stream before text cleaning/deduplication."""
+    """
+    Tạo lập tập mẫu ngữ liệu thô quy mô lớn trước khi lọc trùng và chuẩn hóa.
+
+    Tham số:
+        target_count: Số lượng mẫu văn bản cần sinh ra.
+
+    Trả về:
+        Đường dẫn tệp JSONL chứa dữ liệu thô.
+    """
     output_file = os.path.join(RAW_DIR, "raw_vietnamese_corpus_10m.jsonl")
     
     import hashlib
@@ -109,7 +126,7 @@ def generate_raw_corpus_sample(target_count: int = 50000) -> str:
             topic_name, vocab = topics[i % len(topics)]
             h = hashlib.sha256(f"raw_doc_seed_{i}".encode()).hexdigest()
             
-            # Form raw uncleaned text with HTML tags, unnormalized whitespace, and raw noise
+            # Tạo chuỗi văn bản thô chứa thẻ HTML, khoảng trắng dư và nhiễu định dạng
             raw_text = f"<div class='article-body'><p><b>[Bản tin thô số {i:08d}]</b> - Chủ đề: {topic_name}. "
             words = [vocab[int(h[j:j+2], 16) % len(vocab)] for j in range(0, 32, 2)]
             raw_text += " ".join(words) + f". Nguồn dữ liệu thô trước xử lý ID: {h[:12]}. <a href='https://vnexpress.net/item_{i}'>Xem chi tiết</a></p></div>"
@@ -131,7 +148,7 @@ def generate_raw_corpus_sample(target_count: int = 50000) -> str:
 
 
 def create_raw_manifest(raw_news: list, raw_corpus_path: str):
-    """Creates a comprehensive manifest documentation of all raw datasets."""
+    """Tạo tệp kê khai dữ liệu thô RAW_DATASET_MANIFEST.json chi tiết."""
     news_path = os.path.join(RAW_DIR, "raw_crawled_news.jsonl")
     with open(news_path, "w", encoding="utf-8") as f:
         for item in raw_news:
@@ -161,10 +178,10 @@ def create_raw_manifest(raw_news: list, raw_corpus_path: str):
             }
         ],
         "preprocessing_pipeline": {
-            "step_1": "Bóc tách HTML & Chuẩn hóa Unicode NFC (src/data_pipeline/cleaner.py)",
-            "step_2": "Tách từ ghép tiếng Việt (src/data_pipeline/tokenizer.py)",
-            "step_3": "Lọc trùng lặp MinHash LSH (src/data_pipeline/deduplicator.py)",
-            "step_4": "Nhúng Vector 384 chiều & Ghi Memmap SSD 15.36 GB (src/data_pipeline/storage.py)"
+            "step_1": "Bóc tách HTML & Chuẩn hóa Unicode NFC (src/ann_data/cleaner.py)",
+            "step_2": "Tách từ ghép tiếng Việt (src/ann_data/tokenizer.py)",
+            "step_3": "Lọc trùng lặp MinHash LSH (src/ann_data/deduplicator.py)",
+            "step_4": "Nhúng Vector 384 chiều & Ghi Memmap SSD 15.36 GB (src/ann_data/storage.py)"
         }
     }
     
@@ -172,26 +189,14 @@ def create_raw_manifest(raw_news: list, raw_corpus_path: str):
     with open(manifest_path, "w", encoding="utf-8") as f:
         json.dump(manifest, f, indent=2, ensure_ascii=False)
         
-    readme_path = os.path.join(RAW_DIR, "README.md")
-    with open(readme_path, "w", encoding="utf-8") as f:
-        f.write("# THƯ MỤC DỮ LIỆU THÔ (DATA/RAW)\n\n")
-        f.write("Thư mục này chứa toàn bộ **Dữ liệu Thô nguyên bản trước khi xử lý** phục vụ nộp bài và kiểm chứng quy trình Pipeline:\n\n")
-        f.write("## 1. Danh sách tệp dữ liệu thô\n")
-        f.write(f"- `raw_crawled_news.jsonl`: Chứa các bài báo thực tế tự thu thập từ Internet (nguyên mã HTML, URL, ngày xuất bản).\n")
-        f.write(f"- `raw_vietnamese_corpus_10m.jsonl`: Chứa các bản ghi ngữ liệu thô tiếng Việt trước khi qua bộ lọc trùng MinHash.\n")
-        f.write(f"- `RAW_DATASET_MANIFEST.json`: Bảng đặc tả chi tiết về cấu trúc trường, nguồn gốc và dung lượng của tập dữ liệu thô.\n\n")
-        f.write("## 2. Quy trình xử lý từ dữ liệu thô sang dữ liệu nhúng (Processed)\n")
-        f.write("Dữ liệu trong thư mục này được xử lý tuần tự qua:\n")
-        f.write("`data/raw/` -> `TextCleaner (NFC, bóc HTML)` -> `WordTokenizer` -> `StreamDeduplicator (MinHash LSH)` -> `data/processed/ (15.36 GB Memmap)`.\n")
-
-    print(f"[+] Đã tạo bảng kê khai dữ liệu thô: {manifest_path}")
-    print(f"[+] Đã tạo README dữ liệu thô: {readme_path}")
+    print(f"[+] Đã cập nhật bảng kê khai dữ liệu thô: {manifest_path}")
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Download and persist RAW datasets")
-    parser.add_argument("--crawler-limit", type=int, default=15, help="Limit per news RSS feed")
-    parser.add_argument("--corpus-count", type=int, default=50000, help="Number of raw corpus sample records")
+    """Hàm chạy chính từ dòng lệnh."""
+    parser = argparse.ArgumentParser(description="Tải và lưu trữ các tập dữ liệu thô vào thư mục data/raw/")
+    parser.add_argument("--crawler-limit", type=int, default=15, help="Số lượng bài viết tối đa cho mỗi kênh tin RSS")
+    parser.add_argument("--corpus-count", type=int, default=50000, help="Số lượng mẫu bản ghi ngữ liệu thô cần sinh")
     args = parser.parse_args()
     
     raw_news = crawl_raw_rss_news(limit_per_feed=args.crawler_limit)
@@ -202,3 +207,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

@@ -1,4 +1,4 @@
-"""Benchmarking framework for comparing ANN algorithms against Ground Truth."""
+"""Khung thử nghiệm đối chuẩn (Benchmarking Framework) đánh giá các thuật toán ANN so với Ground Truth."""
 
 import time
 from typing import Any, Dict, List
@@ -10,7 +10,11 @@ from ann_data.utils import get_logger
 
 
 class BenchmarkRunner:
-    """Orchestrates comprehensive benchmark experiments measuring Build Time, RAM, Recall, Latency, and QPS."""
+    """
+    Trình điều phối thực nghiệm đối chuẩn toàn diện:
+    Đo đạc 5 chỉ số cốt lõi: Thời gian dựng chỉ mục (Build Time), Dung lượng RAM, Độ chính xác Recall@K,
+    Phân phối độ trễ (Latency p50, p95, p99), và Thông lượng truy vấn (QPS).
+    """
 
     def __init__(
         self,
@@ -19,6 +23,15 @@ class BenchmarkRunner:
         metric: str = "l2",
         ground_truth_k: int = 50,
     ):
+        """
+        Khởi tạo bộ chạy thực nghiệm đối chuẩn.
+
+        Tham số:
+            dataset: Mảng vector dữ liệu float32 (N, D).
+            queries: Mảng vector truy vấn float32 (num_queries, D).
+            metric: Độ đo khoảng cách ('l2' hoặc 'cosine').
+            ground_truth_k: Số lượng láng giềng mốc chuẩn cần tính trước bằng FlatIndex.
+        """
         self.dataset = np.ascontiguousarray(dataset, dtype=np.float32)
         self.queries = np.ascontiguousarray(queries, dtype=np.float32)
         self.metric = metric
@@ -29,20 +42,20 @@ class BenchmarkRunner:
         self.num_queries = len(self.queries)
 
         self.logger.info(
-            "Initializing BenchmarkRunner: Dataset (%d, %d), Queries (%d, %d)",
+            "Khởi tạo BenchmarkRunner: Tập dữ liệu (%d, %d), Tập truy vấn (%d, %d)",
             self.num_vectors,
             self.dim,
             self.num_queries,
             self.dim,
         )
 
-        # Build baseline FlatIndex to generate ground truth
+        # Xây dựng mốc chuẩn Ground Truth bằng thuật toán vét cạn chính xác FlatIndex
         self.flat_index = FlatIndex(metric=self.metric)
         self.flat_index.build(self.dataset)
         self.ground_truth_indices = self.flat_index.generate_ground_truth(
             self.queries, top_k=self.ground_truth_k
         )
-        self.logger.info("Ground Truth computed successfully for %d queries", self.num_queries)
+        self.logger.info("Đã sinh xong mốc chuẩn Ground Truth cho %d câu truy vấn", self.num_queries)
 
     def evaluate_index(
         self,
@@ -50,22 +63,32 @@ class BenchmarkRunner:
         top_k: int = 10,
         repeat_runs: int = 3,
     ) -> Dict[str, Any]:
-        """Runs thorough evaluation on a single index instance."""
-        self.logger.info("Evaluating index: %s", index.name)
+        """
+        Đo lường chi tiết hiệu năng của một thể hiện chỉ mục thuật toán.
 
-        # 1. Measure Build Time
+        Tham số:
+            index: Thể hiện của thuật toán cần kiểm thử (kế thừa từ BaseIndex).
+            top_k: Số lượng kết quả láng giềng đánh giá.
+            repeat_runs: Số lượt chạy lặp lại để lấy trung bình thống kê độ trễ ổn định.
+
+        Trả về:
+            Dict chứa toàn bộ các chỉ số đo lường thực nghiệm.
+        """
+        self.logger.info("Bắt đầu đánh giá chỉ mục: %s", index.name)
+
+        # 1. Đo thời gian xây dựng chỉ mục (Build Time)
         build_start = time.perf_counter()
         index.build(self.dataset)
         build_time_sec = time.perf_counter() - build_start
 
-        # 2. Measure Memory
+        # 2. Đo dung lượng bộ nhớ RAM tiêu thụ
         ram_bytes = index.get_memory_bytes()
         ram_mb = ram_bytes / (1024 * 1024)
 
-        # 3. Warmup Run
+        # 3. Lượt chạy khởi động bộ đệm (Warmup Run)
         _, _ = index.search(self.queries[: min(5, self.num_queries)], top_k=top_k)
 
-        # 4. Measure Latency and QPS across repeats
+        # 4. Đo đạc độ trễ từng câu truy vấn và thông lượng qua nhiều lượt lặp
         latencies = []
         last_predictions = None
 
@@ -76,11 +99,11 @@ class BenchmarkRunner:
                 preds, _ = index.search(q_vec, top_k=top_k)
                 latencies.append(time.perf_counter() - t0)
 
-        # Batch query for final recall check
+        # Truy vấn lô để tính Recall@K chính xác
         batch_preds, _ = index.search(self.queries, top_k=top_k)
         last_predictions = batch_preds
 
-        # 5. Compute Metrics
+        # 5. Tổng hợp các chỉ số thống kê
         latency_metrics = compute_latency_stats(latencies, num_queries=len(latencies))
         recall = compute_recall_at_k(self.ground_truth_indices, last_predictions, k=top_k)
 
@@ -94,13 +117,22 @@ class BenchmarkRunner:
             "latency_p99_ms": latency_metrics["p99_ms"],
             "qps": latency_metrics["qps"],
         }
-        self.logger.info("Evaluation completed for %s: %s", index.name, result)
+        self.logger.info("Hoàn tất đánh giá cho %s: %s", index.name, result)
         return result
 
     def run_comparison(
         self, indices: List[BaseIndex], top_k: int = 10
     ) -> List[Dict[str, Any]]:
-        """Evaluates multiple algorithms and returns comparative summary table."""
+        """
+        Chạy kiểm thử so sánh lần lượt toàn bộ danh sách các thuật toán cấu hình.
+
+        Tham số:
+            indices: Danh sách các chỉ mục thuật toán cần đối chuẩn.
+            top_k: Số lượng láng giềng đánh giá.
+
+        Trả về:
+            Danh sách kết quả đo lường của từng thuật toán.
+        """
         results = []
         for idx in indices:
             res = self.evaluate_index(idx, top_k=top_k)
@@ -109,7 +141,7 @@ class BenchmarkRunner:
 
     @staticmethod
     def format_markdown_table(results: List[Dict[str, Any]]) -> str:
-        """Formats evaluation results into a clean markdown table."""
+        """Định dạng bảng kết quả so sánh đối chuẩn thành định dạng Markdown tiêu chuẩn."""
         headers = [
             "Thuật toán / Cấu hình",
             "Build Time (s)",
@@ -135,3 +167,4 @@ class BenchmarkRunner:
             ]
             lines.append("| " + " | ".join(row) + " |")
         return "\n".join(lines)
+

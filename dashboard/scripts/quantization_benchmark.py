@@ -1,4 +1,4 @@
-"""Comprehensive Before vs. After Quantization Benchmark and Evaluation Script."""
+"""Kịch bản đánh giá chuyên sâu Trước và Sau Lượng tử hóa (Before vs After Quantization Benchmark)."""
 
 import argparse
 import json
@@ -7,7 +7,7 @@ import sys
 import time
 import numpy as np
 
-# Ensure UTF-8 output
+# Đảm bảo mã hóa console UTF-8 trên hệ điều hành Windows
 if hasattr(sys.stdout, "reconfigure"):
     try:
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -20,7 +20,14 @@ MEMMAP_PATH = os.path.join(BASE_DIR, "data", "processed", "hf_large_vectors.dat"
 
 
 def evaluate_quantization(num_samples: int = 1500, dimension: int = 384) -> dict:
-    """Evaluates mathematical properties, error bounds, and hardware efficiency before and after SQ8."""
+    """
+    Đánh giá chi tiết các chỉ số toán học sai số lượng tử hóa và hiệu năng phần cứng trước và sau SQ8:
+    - Sai số bình phương trung bình MSE, RMSE, sai số góc phân kỳ Angular Error.
+    - Tỷ số tín hiệu trên nhiễu lượng tử SQNR (dB).
+    - Tốc độ tính toán khoảng cách SIMD int16 so với float32.
+    - Phân tích khả năng chống tràn RAM trên tập 10 triệu vector (15.36 GB).
+    """
+
     
     # 1. Load sample vectors from memmap or cache or generate realistic normalized embeddings
     vectors_float32 = None

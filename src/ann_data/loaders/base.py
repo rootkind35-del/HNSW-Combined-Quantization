@@ -1,21 +1,22 @@
-"""Base abstract interface for data loaders and crawlers."""
+"""Giao diện trừu tượng cơ sở cho các bộ nạp dữ liệu và trình cào báo (Data Loaders & Crawlers)."""
 
 from abc import ABC, abstractmethod
 from typing import Generator, Optional, Tuple
 
 
 class BaseDataLoader(ABC):
-    """Abstract base class for all corpus ingestion loaders and crawlers."""
+    """Lớp trừu tượng cơ sở định nghĩa hành vi thu thập và nạp dữ liệu ngữ liệu văn bản theo luồng."""
 
     @abstractmethod
     def stream(self, limit: Optional[int] = None) -> Generator[Tuple[str, str], None, None]:
         """
-        Yields (doc_id, text) pairs from the underlying data source.
+        Sinh ra từng cặp (doc_id, text) từ nguồn dữ liệu theo dạng generator tiết kiệm bộ nhớ.
 
-        Args:
-            limit: Maximum number of records to yield. None indicates no limit.
+        Tham số:
+            limit: Số lượng bản ghi tối đa cần nạp (None nghĩa là nạp toàn bộ không giới hạn).
 
-        Yields:
-            Tuple[str, str]: (doc_id, text)
+        Sinh ra:
+            Tuple[str, str]: Cặp gồm mã định danh tài liệu (doc_id) và nội dung văn bản (text).
         """
         pass
+

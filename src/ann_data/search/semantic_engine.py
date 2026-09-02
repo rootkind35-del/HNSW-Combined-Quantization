@@ -1,4 +1,4 @@
-"""End-to-end Semantic Search Engine combining vector index and text metadata."""
+"""Công cụ tìm kiếm ngữ nghĩa thông minh (Semantic Search Engine) kết hợp chỉ mục vector và siêu dữ liệu (metadata)."""
 
 import json
 import os
@@ -12,7 +12,13 @@ from ann_data.utils import get_logger
 
 
 class SemanticSearchEngine:
-    """Orchestrates query preprocessing, embedding inference, vector retrieval, and metadata mapping."""
+    """
+    Trình điều phối tìm kiếm ngữ nghĩa toàn diện:
+    1. Tiền xử lý và tách từ câu truy vấn tiếng Việt.
+    2. Sinh vector nhúng truy vấn qua mô hình ngôn ngữ sâu (MiniLM).
+    3. Tìm kiếm láng giềng k-NN trên mảng vector ánh xạ bộ nhớ Memmap.
+    4. Ánh xạ chỉ số kết quả với siêu dữ liệu JSONL (tiêu đề, bài viết, trích đoạn) để trả về cho người dùng.
+    """
 
     def __init__(
         self,
@@ -23,6 +29,17 @@ class SemanticSearchEngine:
         tokenizer: Optional[BaseTokenizer] = None,
         dim: int = 384,
     ):
+        """
+        Khởi tạo động cơ tìm kiếm ngữ nghĩa.
+
+        Tham số:
+            vector_file: Đường dẫn tệp nhị phân chứa vector (.dat).
+            metadata_file: Đường dẫn tệp siêu dữ liệu JSONL chứa thông tin bài báo (.jsonl).
+            embedder: Đối tượng mô hình sinh vector nhúng.
+            cleaner: Đối tượng làm sạch văn bản tiếng Việt.
+            tokenizer: Đối tượng tách từ ghép tiếng Việt.
+            dim: Số chiều không gian vector (mặc định 384).
+        """
         self.vector_file = vector_file
         self.metadata_file = metadata_file
         self.dim = dim
@@ -39,9 +56,9 @@ class SemanticSearchEngine:
         self._load_vector_index()
 
     def _load_metadata(self) -> None:
-        """Loads metadata records from JSONL file."""
+        """Đọc và nạp toàn bộ các bản ghi siêu dữ liệu từ tệp JSONL vào bộ nhớ."""
         if not os.path.exists(self.metadata_file):
-            raise FileNotFoundError(f"Metadata file not found: {self.metadata_file}")
+            raise FileNotFoundError(f"Không tìm thấy tệp siêu dữ liệu: {self.metadata_file}")
 
         with open(self.metadata_file, "r", encoding="utf-8") as f:
             for line in f:
@@ -49,18 +66,18 @@ class SemanticSearchEngine:
                 if stripped:
                     self.metadata.append(json.loads(stripped))
 
-        self.logger.info("Loaded %d metadata records from %s", len(self.metadata), self.metadata_file)
+        self.logger.info("Đã nạp %d bản ghi siêu dữ liệu từ %s", len(self.metadata), self.metadata_file)
 
     def _load_vector_index(self) -> None:
-        """Loads vector binary file as memory-mapped array and builds exact search index."""
+        """Đọc tệp nhị phân vector từ đĩa SSD qua ánh xạ memmap và khởi tạo chỉ mục tìm kiếm."""
         if not os.path.exists(self.vector_file):
-            raise FileNotFoundError(f"Vector file not found: {self.vector_file}")
+            raise FileNotFoundError(f"Không tìm thấy tệp vector: {self.vector_file}")
 
         num_records = len(self.metadata)
         if num_records == 0:
-            raise ValueError("No metadata records found to map vectors to.")
+            raise ValueError("Tập siêu dữ liệu rỗng, không thể ánh xạ vector tương ứng.")
 
-        # Read only the active populated slice from disk
+        # Đọc lát cắt dữ liệu vector thực tế trên đĩa SSD
         raw_mmap = np.memmap(
             self.vector_file,
             dtype="float32",
@@ -71,14 +88,18 @@ class SemanticSearchEngine:
         del raw_mmap
 
         self.index = ExactVectorSearch(vectors=vectors, normalize=True)
-        self.logger.info("Initialized vector search index with shape (%d, %d)", num_records, self.dim)
+        self.logger.info("Khởi tạo xong chỉ mục tìm kiếm vector với kích thước (%d, %d)", num_records, self.dim)
 
     def search(self, query_text: str, top_k: int = 5) -> List[Dict[str, Any]]:
         """
-        Executes semantic search for a text query.
+        Thực thi tìm kiếm ngữ nghĩa cho câu truy vấn văn bản tự nhiên.
 
-        Returns:
-            List of matching records with rank, similarity score, title, preview, and doc_id.
+        Tham số:
+            query_text: Chuỗi truy vấn văn bản (ví dụ: "giá xăng dầu hôm nay").
+            top_k: Số lượng kết quả gần nhất cần truy xuất.
+
+        Trả về:
+            Danh sách kết quả bài viết kèm thứ hạng (rank), điểm tương đồng (score), tiêu đề và trích đoạn xem trước.
         """
         if not query_text or not query_text.strip():
             return []
@@ -86,7 +107,7 @@ class SemanticSearchEngine:
         cleaned_query = self.cleaner.clean(query_text)
         tokenized_query = self.tokenizer.tokenize(cleaned_query)
 
-        # Generate query embedding
+        # Sinh vector biểu diễn ngữ nghĩa cho câu truy vấn
         query_vectors = self.embedder.encode([tokenized_query])
         if len(query_vectors) == 0:
             return []
@@ -107,3 +128,4 @@ class SemanticSearchEngine:
             })
 
         return enriched_results
+

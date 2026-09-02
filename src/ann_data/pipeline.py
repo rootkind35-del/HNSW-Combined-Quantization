@@ -1,4 +1,4 @@
-"""Streaming Data Pipeline orchestrator for large-scale text preprocessing and embedding."""
+"""Bộ điều phối Pipeline xử lý dữ liệu lớn theo luồng (Streaming Data Pipeline) cho 10 triệu văn bản."""
 
 import time
 from typing import Any, Dict, Iterable, Optional, Tuple
@@ -12,7 +12,14 @@ from ann_data.utils import get_logger
 
 
 class DataPipeline:
-    """Orchestrates end-to-end streaming data transformation from raw text to memory-mapped embeddings."""
+    """
+    Điều phối toàn diện chu trình xử lý dữ liệu từ đầu đến cuối (End-to-End Streaming Pipeline):
+    1. Làm sạch ký tự rác, chuẩn hóa Unicode NFC và bóc tách HTML.
+    2. Tách từ ghép tiếng Việt bằng PyVi.
+    3. Lọc trùng lặp thời gian thực bằng MinHash LSH.
+    4. Sinh vector đặc trưng 384 chiều bằng mô hình ngôn ngữ Transformer.
+    5. Gom lô và ghi trực tiếp vào tệp nhị phân np.memmap 15.36 GB trên SSD.
+    """
 
     def __init__(
         self,
@@ -20,10 +27,18 @@ class DataPipeline:
         embedder: Optional[BaseEmbedder] = None,
         tokenizer: Optional[BaseTokenizer] = None,
     ):
+        """
+        Khởi tạo Pipeline xử lý dữ liệu.
+
+        Tham số:
+            config: Đối tượng cấu hình PipelineConfig.
+            embedder: Mô hình sinh vector nhúng (tùy chọn, mặc định nạp SentenceTransformer).
+            tokenizer: Bộ tách từ tiếng Việt (tùy chọn, mặc định PyViTokenizer).
+        """
         self.config = config
         self.logger = get_logger("DataPipeline")
         
-        # Subcomponents
+        # Các module thành phần con
         self.cleaner = TextCleaner(
             normalize_nfc=config.normalize_unicode_nfc,
             strip_html=config.strip_html_tags,
@@ -53,7 +68,16 @@ class DataPipeline:
         )
 
     def process_item(self, doc_id: str, raw_text: str) -> Optional[str]:
-        """Runs cleaning, tokenization, and deduplication check on a single sample."""
+        """
+        Xử lý tiền xử lý, tách từ và kiểm tra khử trùng lặp cho một mẫu văn bản đơn lẻ.
+
+        Tham số:
+            doc_id: Mã định danh tài liệu.
+            raw_text: Nội dung văn bản thô.
+
+        Trả về:
+            Chuỗi văn bản đã qua xử lý nếu hợp lệ và không trùng lặp, ngược lại trả về None.
+        """
         cleaned = self.cleaner.clean(raw_text)
         if not cleaned:
             return None
@@ -71,14 +95,20 @@ class DataPipeline:
         self, stream: Iterable[Tuple[str, str]], log_interval: int = 10000
     ) -> Dict[str, Any]:
         """
-        Consumes an incoming stream of (doc_id, text) tuples, processes each through the pipeline,
-        and saves embeddings to disk.
+        Xử lý một luồng liên tục các cặp (doc_id, text), nạp qua pipeline và ghi vector nhúng xuống đĩa SSD.
+
+        Tham số:
+            stream: Iterable sinh ra các tuple (doc_id, text).
+            log_interval: Tần suất ghi nhật ký tiến độ (mặc định mỗi 10.000 tài liệu).
+
+        Trả về:
+            Dict chứa các chỉ số thống kê tổng kết tiến trình chạy.
         """
         start_time = time.perf_counter()
         total_input = 0
         total_valid = 0
 
-        self.logger.info("Starting stream processing...")
+        self.logger.info("Bắt đầu xử lý luồng dữ liệu...")
 
         for doc_id, text in stream:
             total_input += 1
@@ -90,13 +120,13 @@ class DataPipeline:
 
             if total_input % log_interval == 0:
                 self.logger.info(
-                    "Processed %d documents | Valid: %d | Duplicates: %d",
+                    "Đã xử lý %d tài liệu | Hợp lệ: %d | Trùng lặp: %d",
                     total_input,
                     total_valid,
                     self.deduplicator.total_duplicates,
                 )
 
-        # Flush remaining vectors
+        # Xả toàn bộ các vector còn dư trong bộ đệm vào file lưu trữ
         self.batch_embedder.flush()
         elapsed = time.perf_counter() - start_time
 
@@ -109,11 +139,11 @@ class DataPipeline:
             "elapsed_seconds": round(elapsed, 4),
             "throughput_docs_per_sec": round(total_input / max(elapsed, 1e-6), 2),
         }
-        self.logger.info("Pipeline completed: %s", stats)
+        self.logger.info("Pipeline hoàn tất: %s", stats)
         return stats
 
     def close(self) -> None:
-        """Closes all underlying open resources."""
+        """Đóng toàn bộ các tài nguyên tệp tin đang mở."""
         self.batch_embedder.close()
 
     def __enter__(self) -> "DataPipeline":
@@ -121,3 +151,4 @@ class DataPipeline:
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         self.close()
+

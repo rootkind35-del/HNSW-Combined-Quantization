@@ -1,3 +1,5 @@
+"""Kịch bản cào tin tức tiếng Việt thực tế từ RSS và lập chỉ mục lưu trữ Memmap."""
+
 import argparse
 import json
 import os
@@ -10,7 +12,7 @@ if hasattr(sys.stdout, "reconfigure"):
     except Exception:
         pass
 
-# Ensure src/ is on python path
+# Thêm đường dẫn src/ vào sys.path để import các module
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src")))
 
 from ann_data.config import PipelineConfig
@@ -26,6 +28,15 @@ def crawl_and_index(
     batch_size: int = 16,
     use_mock_embedder: bool = False,
 ):
+    """
+    Thu thập tin tức từ các kênh RSS trực tiếp, xử lý pipeline và lưu trữ vector cùng siêu dữ liệu.
+
+    Tham số:
+        limit: Số lượng bài viết tối đa cần cào và lập chỉ mục.
+        output_dir: Thư mục lưu trữ kết quả (vector .dat và metadata .jsonl).
+        batch_size: Kích thước lô nhúng vector.
+        use_mock_embedder: Nếu True, dùng vector giả lập để chạy thử nghiệm nhanh.
+    """
     logger = get_logger("crawl_real_data")
     os.makedirs(output_dir, exist_ok=True)
 
@@ -41,25 +52,25 @@ def crawl_and_index(
 
     if use_mock_embedder:
         embedder = MockEmbedder(dim=config.embedding_dim)
-        logger.info("Using MockEmbedder for fast verification")
+        logger.info("Sử dụng MockEmbedder để xác minh nhanh luồng ghi")
     else:
         embedder = SentenceTransformerEmbedder(model_name=config.model_name, dim=config.embedding_dim)
-        logger.info("Using SentenceTransformerEmbedder: %s", config.model_name)
+        logger.info("Sử dụng mô hình ngôn ngữ SentenceTransformer: %s", config.model_name)
 
     crawler = NewsRssCrawler()
-    logger.info("Initialising live crawling from news feeds (target limit: %d articles)...", limit)
+    logger.info("Khởi chạy thu thập tin tức thời sự trực tiếp (chỉ tiêu: %d bài viết)...", limit)
 
     saved_metadata = []
     start_time = time.perf_counter()
 
     with DataPipeline(config=config, embedder=embedder) as pipeline:
-        # Stream from news crawler
+        # Lấy luồng bài viết từ bộ cào tin tức RSS
         for doc_id, raw_text in crawler.stream(limit=limit):
             processed_text = pipeline.process_item(doc_id, raw_text)
             if processed_text is not None:
                 pipeline.batch_embedder.add(processed_text)
                 
-                # Extract first line as title preview
+                # Trích xuất dòng đầu tiên làm tiêu đề bài viết
                 lines = [line.strip() for line in raw_text.split("\n") if line.strip()]
                 title = lines[0] if lines else "Không có tiêu đề"
                 preview = lines[1] if len(lines) > 1 else processed_text[:150]
@@ -73,7 +84,7 @@ def crawl_and_index(
                 }
                 saved_metadata.append(record_meta)
                 logger.info(
-                    "Indexed [%03d]: %s (tokens: %d)",
+                    "Đã lập chỉ mục [%03d]: %s (tokens: %d)",
                     record_meta["vector_idx"],
                     title[:60],
                     record_meta["token_count"],
@@ -84,15 +95,15 @@ def crawl_and_index(
     elapsed = time.perf_counter() - start_time
     total_written = len(saved_metadata)
 
-    # Save metadata to jsonl
+    # Lưu trữ danh sách thông tin bài báo vào tệp JSONL
     with open(meta_file, "w", encoding="utf-8") as f:
         for item in saved_metadata:
             f.write(json.dumps(item, ensure_ascii=False) + "\n")
 
-    logger.info("Crawling and indexing finished successfully in %.2f seconds.", elapsed)
-    logger.info("Total real articles indexed: %d", total_written)
-    logger.info("Vector binary file: %s", vector_file)
-    logger.info("Metadata JSONL file: %s", meta_file)
+    logger.info("Hoàn tất cào báo và lập chỉ mục trong %.2f giây.", elapsed)
+    logger.info("Tổng số bài báo thực tế đã lập chỉ mục: %d", total_written)
+    logger.info("Tệp nhị phân vector memmap: %s", vector_file)
+    logger.info("Tệp siêu dữ liệu metadata: %s", meta_file)
 
     return {
         "total_written": total_written,
@@ -103,11 +114,12 @@ def crawl_and_index(
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Crawl real news articles and store in memmap.")
-    parser.add_argument("--limit", type=int, default=30, help="Number of articles to crawl and index")
-    parser.add_argument("--output-dir", type=str, default="data/processed", help="Output directory")
-    parser.add_argument("--batch-size", type=int, default=16, help="Batch size for embedding")
-    parser.add_argument("--use-mock-embedder", action="store_true", help="Use MockEmbedder for fast offline testing")
+    """Hàm thực thi chính khi gọi script từ dòng lệnh."""
+    parser = argparse.ArgumentParser(description="Cào tin tức tiếng Việt thực tế và lưu trữ vào memmap.")
+    parser.add_argument("--limit", type=int, default=30, help="Số lượng bài viết cần cào")
+    parser.add_argument("--output-dir", type=str, default="data/processed", help="Thư mục xuất dữ liệu")
+    parser.add_argument("--batch-size", type=int, default=16, help="Kích thước lô nhúng")
+    parser.add_argument("--use-mock-embedder", action="store_true", help="Sử dụng MockEmbedder khi không có mạng")
     args = parser.parse_args()
 
     crawl_and_index(
@@ -120,3 +132,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

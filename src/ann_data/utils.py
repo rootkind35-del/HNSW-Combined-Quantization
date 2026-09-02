@@ -1,4 +1,4 @@
-"""Utility functions for logging, timing, and stream generation."""
+"""Các hàm tiện ích hệ thống cho ghi nhật ký (logging), bấm giờ (timing) và phân khối luồng (streaming)."""
 
 import logging
 import sys
@@ -8,11 +8,20 @@ from typing import Generator, Iterable, List
 
 
 def get_logger(name: str = "ann_data", level: int = logging.INFO) -> logging.Logger:
-    """Creates a configured logger with standard formatting."""
+    """
+    Tạo hoặc lấy bộ ghi nhật ký (logger) đã được cấu hình định dạng chuẩn và hỗ trợ UTF-8 cho Windows console.
+
+    Tham số:
+        name: Tên của logger.
+        level: Cấp độ ghi nhật ký (mặc định INFO).
+
+    Trả về:
+        logging.Logger: Đối tượng logger sẵn sàng ghi thông điệp.
+    """
     logger = logging.getLogger(name)
     if not logger.handlers:
         logger.setLevel(level)
-        # Ensure stdout handles unicode without crashing on Windows cp1252
+        # Đảm bảo stdout xử lý mượt mà ký tự tiếng Việt Unicode trên Windows mà không bị lỗi mã hóa cp1252
         if hasattr(sys.stdout, "reconfigure"):
             try:
                 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -31,11 +40,17 @@ def get_logger(name: str = "ann_data", level: int = logging.INFO) -> logging.Log
 
 @contextmanager
 def timer(name: str, logger: logging.Logger = None):
-    """Context manager to measure execution time."""
+    """
+    Bộ quản lý ngữ cảnh (Context Manager) đo đạc thời gian thực thi của một đoạn mã.
+
+    Tham số:
+        name: Tên khối tác vụ đang đo đạc.
+        logger: Bộ ghi nhật ký tùy chọn (nếu None sẽ dùng lệnh print chuẩn).
+    """
     start_time = time.perf_counter()
     yield
     elapsed = time.perf_counter() - start_time
-    msg = f"Operation '{name}' finished in {elapsed:.4f} seconds"
+    msg = f"Tác vụ '{name}' hoàn thành trong {elapsed:.4f} giây"
     if logger:
         logger.info(msg)
     else:
@@ -43,7 +58,17 @@ def timer(name: str, logger: logging.Logger = None):
 
 
 def chunk_stream(iterable: Iterable[str], chunk_size: int) -> Generator[List[str], None, None]:
-    """Splits an iterable stream into fixed-size chunks without loading entire data into RAM."""
+    """
+    Phân chia một luồng dữ liệu liên tục thành các khối (chunks) có kích thước cố định,
+    giúp xử lý luồng lớn mà không nạp toàn bộ dữ liệu vào bộ nhớ RAM.
+
+    Tham số:
+        iterable: Luồng dữ liệu nguồn.
+        chunk_size: Kích thước của mỗi khối xử lý.
+
+    Sinh ra:
+        Từng khối danh sách phần tử kích thước chunk_size.
+    """
     chunk = []
     for item in iterable:
         chunk.append(item)
@@ -52,3 +77,4 @@ def chunk_stream(iterable: Iterable[str], chunk_size: int) -> Generator[List[str
             chunk = []
     if chunk:
         yield chunk
+

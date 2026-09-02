@@ -1,4 +1,4 @@
-"""Script for deep-dive speed and latency analysis across algorithms with micro-stage breakdown."""
+"""Kịch bản phân tích chuyên sâu tốc độ và độ trễ truy vấn qua các vi công đoạn (Micro-stage Breakdown)."""
 
 import argparse
 import json
@@ -25,7 +25,14 @@ from search_bridge import load_dataset_and_metadata, get_query_vector
 
 
 def run_live_benchmark(num_queries: int = 50, algorithm: str = "two_tier", top_k: int = 5):
-    """Executes live queries measuring latency percentiles and micro-stage breakdown."""
+    """
+    Đo đạc trực tiếp các phân vị độ trễ (p50, p90, p95, p99) và bóc tách thời gian từng vi công đoạn:
+    1. Thời gian tạo vector nhúng (Embedding time).
+    2. Duyệt đồ thị Tier 1 kèm dừng sớm (Tier 1 Routing).
+    3. Đọc dữ liệu từ ổ cứng SSD memmap (Tier 2 Disk Read).
+    4. Tái xếp hạng chính xác và sắp xếp kết quả (Re-ranking Sort).
+    """
+
     vectors, metadata, dataset_source = load_dataset_and_metadata()
     num_vectors, dim = vectors.shape
 

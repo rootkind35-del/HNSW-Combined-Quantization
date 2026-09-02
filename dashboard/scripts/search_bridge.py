@@ -1,4 +1,4 @@
-"""CLI Search Bridge invoked by Node.js backend with Category Filtering and Hyperparameter Tuning."""
+"""Cầu nối tìm kiếm dòng lệnh (CLI Search Bridge) phục vụ giao tiếp với backend Node.js, hỗ trợ lọc chủ đề và tinh chỉnh siêu tham số."""
 
 import argparse
 import json
@@ -13,7 +13,7 @@ if hasattr(sys.stdout, "reconfigure"):
     except Exception:
         pass
 
-# Ensure src/ is on python path
+# Thêm đường dẫn thư mục src/ vào sys.path
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 sys.path.insert(0, os.path.join(BASE_DIR, "src"))
 
@@ -24,7 +24,15 @@ from ann_index.two_tier_hnsw import TwoTierQuantizedHNSW
 
 
 def assign_category(text: str) -> str:
-    """Categorizes text based on topical keywords."""
+    """
+    Phân loại chủ đề bài viết dựa trên từ khóa ngữ nghĩa tiếng Việt.
+
+    Tham số:
+        text: Chuỗi văn bản cần phân loại.
+
+    Trả về:
+        Tên chủ đề tương ứng (Kinh doanh, Công nghệ, Giáo dục, Y tế, Giao thông, Văn hóa).
+    """
     t = text.lower()
     if any(k in t for k in ["chứng khoán", "tài chính", "ngân hàng", "xuất khẩu", "kinh tế", "doanh nghiệp", "usd", "giá cả", "lãi suất", "thương mại"]):
         return "Kinh doanh & Tài chính"
@@ -40,7 +48,11 @@ def assign_category(text: str) -> str:
 
 
 def load_dataset_and_metadata():
-    """Locates the best available processed vector file and corresponding metadata with O(1) performance."""
+    """
+    Xác định và nạp tệp vector tốt nhất kèm siêu dữ liệu với hiệu năng O(1).
+    Ưu tiên tệp bộ đệm 3D, tiếp đến là tệp nhị phân tin tức thực tế hoặc 10 triệu vector.
+    """
+
     cache_path = os.path.join(BASE_DIR, "data", "processed", "vectors_3d_cache.json")
     if os.path.exists(cache_path):
         try:

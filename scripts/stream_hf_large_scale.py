@@ -1,4 +1,4 @@
-"""Large-scale Hugging Face streaming pipeline with memory-mapped storage and checkpointing."""
+"""Kịch bản xử lý luồng dữ liệu ngữ liệu lớn (Large-scale Streaming Pipeline) từ Hugging Face kết hợp lưu trữ Memmap và Checkpoint."""
 
 import argparse
 import json
@@ -14,7 +14,7 @@ if hasattr(sys.stdout, "reconfigure"):
     except Exception:
         pass
 
-# Ensure src/ is on python path
+# Thêm đường dẫn src/ vào sys.path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src")))
 
 from ann_data.cleaner import TextCleaner
@@ -27,12 +27,18 @@ from ann_data.utils import get_logger
 
 
 class CheckpointManager:
-    """Manages persistence of streaming pipeline state for resilient resuming."""
+    """
+    Quản lý điểm kiểm tra tiến độ (Checkpoint):
+    Lưu trữ trạng thái số lượng bản ghi đã xử lý, ID tài liệu cuối cùng và số lượng bản ghi trùng lặp
+    để hỗ trợ tiếp tục (resume) quá trình xử lý 10 triệu bản ghi mà không phải chạy lại từ đầu khi xảy ra sự cố.
+    """
 
     def __init__(self, checkpoint_file: str):
+        """Khởi tạo bộ quản lý điểm kiểm tra với đường dẫn tệp JSON."""
         self.checkpoint_file = checkpoint_file
 
     def load(self) -> Dict[str, Any]:
+        """Đọc trạng thái đã lưu từ tệp JSON."""
         if os.path.exists(self.checkpoint_file):
             try:
                 with open(self.checkpoint_file, "r", encoding="utf-8") as f:
@@ -42,6 +48,7 @@ class CheckpointManager:
         return {"processed_count": 0, "last_doc_id": "", "duplicates_filtered": 0}
 
     def save(self, processed_count: int, last_doc_id: str, duplicates_filtered: int) -> None:
+        """Ghi trạng thái hiện tại xuống tệp JSON trên đĩa."""
         os.makedirs(os.path.dirname(os.path.abspath(self.checkpoint_file)), exist_ok=True)
         data = {
             "processed_count": processed_count,
@@ -54,7 +61,10 @@ class CheckpointManager:
 
 
 def generate_fallback_corpus_stream(limit: int):
-    """Generates continuous realistic Vietnamese text with high entropy to bypass deduplication."""
+    """
+    Sinh luồng dữ liệu tiếng Việt có độ hỗn loạn entropy cao,
+    đảm bảo không bị loại bỏ nhầm bởi thuật toán lọc trùng MinHash khi mạng mất kết nối.
+    """
     import hashlib
 
     base_vocab = [
@@ -73,11 +83,10 @@ def generate_fallback_corpus_stream(limit: int):
     for i in range(limit):
         h = hashlib.sha256(f"unique_doc_entropy_{i}".encode()).hexdigest()
         
-        # Select words based on chunks of the hash to ensure high variance
+        # Lựa chọn từ vựng dựa trên mã băm để đảm bảo tính đa dạng
         selected_words = []
         for j in range(0, 60, 2):
             idx = int(h[j:j+2], 16) % len(base_vocab)
-            # Add a unique hexadecimal salt to each word to guarantee 100% uniqueness in shingles
             salt = h[j+2:j+5] if j+5 <= 64 else h[:3]
             selected_words.append(f"{base_vocab[idx]}_{salt}")
             
@@ -96,8 +105,20 @@ def run_large_scale_streaming(
     use_mock_embedder: bool = False,
 ) -> Dict[str, Any]:
     """
-    Executes large-scale streaming data pipeline with constant RAM and checkpointing.
-    Supports multi-source ingestion.
+    Thực thi Pipeline xử lý luồng quy mô lớn với bộ nhớ RAM cố định và cơ chế lưu điểm kiểm tra.
+
+    Tham số:
+        target_count: Số lượng bản ghi mục tiêu cần nạp và nhúng.
+        batch_size: Kích thước lô trước khi xả ghi vào memmap và đĩa.
+        dataset_name: Tên tập dữ liệu trên Hugging Face.
+        output_vector_path: Đường dẫn tệp nhị phân vector memmap.
+        output_meta_path: Đường dẫn tệp siêu dữ liệu JSONL.
+        checkpoint_file: Đường dẫn tệp lưu checkpoint.
+        resume: Nếu True, tiếp tục xử lý từ vị trí checkpoint gần nhất.
+        use_mock_embedder: Sử dụng vector giả lập để đo đạc thông lượng đường ống I/O.
+
+    Trả về:
+        Dict chứa các chỉ số đo lường hiệu năng tổng thể.
     """
     logger = get_logger("stream_hf_large_scale")
     os.makedirs(os.path.dirname(os.path.abspath(output_vector_path)), exist_ok=True)
@@ -108,11 +129,11 @@ def run_large_scale_streaming(
     already_processed = ckpt_data["processed_count"]
     duplicates_filtered = ckpt_data["duplicates_filtered"]
 
-    logger.info("Initializing Large-Scale Streaming Pipeline:")
-    logger.info("  Target records: %d | Batch size: %d | Resume: %s", target_count, batch_size, resume)
-    logger.info("  Already processed: %d | Duplicates filtered: %d", already_processed, duplicates_filtered)
+    logger.info("Khởi tạo Pipeline xử lý luồng quy mô lớn:")
+    logger.info("  Bản ghi mục tiêu: %d | Kích thước lô: %d | Chế độ tiếp tục: %s", target_count, batch_size, resume)
+    logger.info("  Đã xử lý trước đó: %d | Trùng lặp đã lọc: %d", already_processed, duplicates_filtered)
 
-    # 1. Initialize Components
+    # 1. Khởi tạo các thành phần đường ống
     cleaner = TextCleaner()
     tokenizer = WhitespaceTokenizer()
     dedup = StreamDeduplicator(threshold=0.8, num_perm=128)
@@ -125,10 +146,10 @@ def run_large_scale_streaming(
             embedder = SentenceTransformerEmbedder("paraphrase-multilingual-MiniLM-L12-v2")
             dim = embedder.dim
         except Exception:
-            logger.warning("Could not initialize SentenceTransformer. Falling back to MockEmbedder.")
+            logger.warning("Không thể nạp SentenceTransformer. Chuyển sang MockEmbedder.")
             embedder = MockEmbedder(dim=dim)
 
-    # Initialize Memmap Storage (mode 'r+' if resuming existing file, else 'w+')
+    # Khởi tạo bộ lưu trữ đĩa Memmap
     mode = "r+" if (resume and os.path.exists(output_vector_path)) else "w+"
     capacity = max(target_count, 20000)
     storage = MemmapStorage(
@@ -141,7 +162,7 @@ def run_large_scale_streaming(
     if resume and already_processed > 0:
         storage.current_count = already_processed
 
-    # 2. Open Metadata File
+    # 2. Mở tệp ghi siêu dữ liệu
     meta_mode = "a" if resume else "w"
     meta_file = open(output_meta_path, meta_mode, encoding="utf-8")
 
@@ -152,7 +173,7 @@ def run_large_scale_streaming(
     records_added = 0
     items_scanned = 0
 
-    # Define sources: Massive datasets first, then fallback
+    # Danh sách các nguồn ngữ liệu Hugging Face tiếng Việt lớn
     sources = [
         {"dataset_name": "wikimedia/wikipedia", "config_name": "20231101.vi", "text_column": "text"},
         {"dataset_name": "oscar-corpus/OSCAR-2201", "config_name": "unshuffled_deduplicated_vi", "text_column": "text"},
@@ -168,10 +189,10 @@ def run_large_scale_streaming(
                 text_column=source["text_column"],
                 streaming=True
             )
-            logger.info(f"Streaming from source: {source['dataset_name']} (config: {source['config_name']})")
+            logger.info(f"Đang đọc luồng từ: {source['dataset_name']} (cấu hình: {source['config_name']})")
             yield from loader.stream(limit=target_count * 3)
             
-        logger.info("HuggingFace streams exhausted. Falling back to generated corpus.")
+        logger.info("Đã quét hết các nguồn Hugging Face. Chuyển sang luồng dữ liệu tổng hợp dự phòng.")
         yield from generate_fallback_corpus_stream(max(target_count * 10, 10000))
 
     stream_iter = multi_source_generator()
@@ -180,7 +201,7 @@ def run_large_scale_streaming(
         for item in stream_iter:
             items_scanned += 1
 
-            # If resuming, skip previously processed documents
+            # Bỏ qua các mục đã được xử lý trong checkpoint trước đó
             if resume and items_scanned <= already_processed:
                 continue
 
@@ -202,7 +223,7 @@ def run_large_scale_streaming(
                 duplicates_filtered += 1
                 continue
 
-            # Valid new item
+            # Mẫu hợp lệ mới
             batch_texts.append(cleaned)
             batch_metadata.append({
                 "doc_id": doc_id or f"doc_{already_processed + records_added}",
@@ -211,7 +232,7 @@ def run_large_scale_streaming(
             })
             records_added += 1
 
-            # Flush batch
+            # Xả ghi lô khi đủ kích thước
             if len(batch_texts) >= batch_size:
                 vectors = embedder.encode(batch_texts)
                 storage.append_batch(vectors)
@@ -226,7 +247,7 @@ def run_large_scale_streaming(
                 elapsed = time.perf_counter() - start_time
                 throughput = records_added / max(elapsed, 0.001)
                 logger.info(
-                    "Batch flushed: Total %d / %d records (Speed: %.1f docs/s, Duplicates filtered: %d)",
+                    "Đã ghi lô: Tổng %d / %d bản ghi (Tốc độ: %.1f docs/s, Đã lọc trùng: %d)",
                     total_saved,
                     target_count,
                     throughput,
@@ -239,7 +260,7 @@ def run_large_scale_streaming(
             if (already_processed + records_added) >= target_count:
                 break
 
-        # Final remainder flush
+        # Xả phần vector còn dư cuối cùng
         if batch_texts:
             vectors = embedder.encode(batch_texts)
             storage.append_batch(vectors)
@@ -278,15 +299,16 @@ def run_large_scale_streaming(
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Large-scale Hugging Face streaming pipeline.")
-    parser.add_argument("--target-count", type=int, default=1000, help="Target number of records to ingest")
-    parser.add_argument("--batch-size", type=int, default=200, help="Batch size for memmap write and flush")
-    parser.add_argument("--dataset-name", type=str, default="bkai-foundation-models/vi-corpus", help="Hugging Face dataset")
-    parser.add_argument("--output-vector", type=str, default="data/processed/hf_large_vectors.dat", help="Vector memmap path")
-    parser.add_argument("--output-meta", type=str, default="data/processed/hf_large_metadata.jsonl", help="Metadata jsonl path")
-    parser.add_argument("--checkpoint-file", type=str, default="data/processed/hf_stream_checkpoint.json", help="Checkpoint path")
-    parser.add_argument("--resume", action="store_true", help="Resume from last checkpoint if exists")
-    parser.add_argument("--mock-embedder", action="store_true", help="Use fast MockEmbedder for testing throughput")
+    """Hàm chạy dòng lệnh chính."""
+    parser = argparse.ArgumentParser(description="Hệ thống xử lý luồng dữ liệu quy mô lớn từ Hugging Face.")
+    parser.add_argument("--target-count", type=int, default=1000, help="Số lượng bản ghi mục tiêu cần nạp")
+    parser.add_argument("--batch-size", type=int, default=200, help="Kích thước lô xả ghi memmap")
+    parser.add_argument("--dataset-name", type=str, default="bkai-foundation-models/vi-corpus", help="Tên ngữ liệu Hugging Face")
+    parser.add_argument("--output-vector", type=str, default="data/processed/hf_large_vectors.dat", help="Đường dẫn tệp vector memmap")
+    parser.add_argument("--output-meta", type=str, default="data/processed/hf_large_metadata.jsonl", help="Đường dẫn tệp siêu dữ liệu JSONL")
+    parser.add_argument("--checkpoint-file", type=str, default="data/processed/hf_stream_checkpoint.json", help="Đường dẫn tệp checkpoint")
+    parser.add_argument("--resume", action="store_true", help="Tiếp tục xử lý từ checkpoint gần nhất")
+    parser.add_argument("--mock-embedder", action="store_true", help="Sử dụng MockEmbedder để đo kiểm thông lượng đĩa")
     args = parser.parse_args()
 
     run_large_scale_streaming(
@@ -303,3 +325,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

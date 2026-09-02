@@ -1,4 +1,4 @@
-"""Streaming dataset loader from Hugging Face Hub."""
+"""Module nạp dữ liệu ngữ liệu lớn theo luồng trực tiếp từ Hugging Face Hub."""
 
 from typing import Generator, Optional, Tuple
 from ann_data.loaders.base import BaseDataLoader
@@ -6,7 +6,10 @@ from ann_data.utils import get_logger
 
 
 class HuggingFaceLoader(BaseDataLoader):
-    """Streams records directly from Hugging Face Hub datasets without full local downloads."""
+    """
+    Trình nạp dữ liệu văn bản theo luồng (streaming) từ các tập ngữ liệu tiếng Việt lớn trên Hugging Face.
+    Cho phép đọc từng bản ghi qua mạng mà không cần tải toàn bộ hàng chục GB về ổ cứng trước.
+    """
 
     def __init__(
         self,
@@ -17,6 +20,17 @@ class HuggingFaceLoader(BaseDataLoader):
         id_column: Optional[str] = None,
         streaming: bool = True,
     ):
+        """
+        Khởi tạo trình nạp dữ liệu Hugging Face.
+
+        Tham số:
+            dataset_name: Tên ngữ liệu trên Hugging Face Hub (mặc định fsnaix/vietnamese-corpus-large).
+            config_name: Tên cấu hình tập con (subset) nếu có.
+            split: Tập phân chia ('train', 'validation', 'test').
+            text_column: Tên trường chứa nội dung văn bản.
+            id_column: Tên trường chứa mã ID (nếu None sẽ tự sinh mã).
+            streaming: Kích hoạt chế độ luồng (True) để tiết kiệm ổ đĩa và bộ nhớ.
+        """
         self.dataset_name = dataset_name
         self.config_name = config_name
         self.split = split
@@ -26,7 +40,7 @@ class HuggingFaceLoader(BaseDataLoader):
         self.logger = get_logger("HuggingFaceLoader")
 
     def _load_dataset_stream(self):
-        """Attempts to load streaming dataset object."""
+        """Khởi tạo đối tượng luồng dữ liệu từ thư viện datasets."""
         try:
             from datasets import load_dataset
             kwargs = {
@@ -42,7 +56,7 @@ class HuggingFaceLoader(BaseDataLoader):
             return dataset
         except Exception as e:
             self.logger.warning(
-                "Could not initialize Hugging Face stream for '%s' (config: %s): %s",
+                "Không thể khởi tạo luồng Hugging Face cho '%s' (cấu hình: %s): %s",
                 self.dataset_name,
                 self.config_name,
                 str(e),
@@ -50,10 +64,18 @@ class HuggingFaceLoader(BaseDataLoader):
             return None
 
     def stream(self, limit: Optional[int] = None) -> Generator[Tuple[str, str], None, None]:
-        """Streams (doc_id, text) pairs from Hugging Face dataset."""
+        """
+        Sinh ra từng cặp (doc_id, text) từ luồng ngữ liệu tiếng Việt.
+
+        Tham số:
+            limit: Số lượng bản ghi tối đa cần nạp.
+
+        Sinh ra:
+            Tuple[str, str]: (doc_id, text)
+        """
         dataset = self._load_dataset_stream()
         if dataset is None:
-            self.logger.info("Dataset stream unavailable or network unreachable.")
+            self.logger.info("Luồng dữ liệu ngữ liệu không khả dụng hoặc mạng không phản hồi.")
             return
 
         yielded = 0
@@ -76,3 +98,4 @@ class HuggingFaceLoader(BaseDataLoader):
 
             if limit is not None and yielded >= limit:
                 break
+
