@@ -2,10 +2,7 @@
 
 > **Đề tài Bài tập Cuối kỳ:** Xử lý Dữ liệu Lớn / Tìm kiếm Thông tin & Hệ Gợi ý  
 > **Quy mô Dữ liệu Thực nghiệm:** 10.000.000 bản ghi văn bản tiếng Việt (Vector 384 chiều, dung lượng 15.36 GB)  
-> **Kiểm thử Phần mềm:** 71/71 Unit Tests Passed (100%)  
-> **Kho Dữ liệu Google Drive:** [https://drive.google.com/drive/folders/1b2yiq6Ly5cl3VdNW2LuM1EqdaZNdpbPW?usp=sharing](https://drive.google.com/drive/folders/1b2yiq6Ly5cl3VdNW2LuM1EqdaZNdpbPW?usp=sharing)  
-> **GitHub Repository:** [git@github.com:rootkind35-del/HNSW-Combined-Quantization.git](git@github.com:rootkind35-del/HNSW-Combined-Quantization.git)  
-
+> **Kho Dữ liệu Google Drive:** [Tại đây](https://drive.google.com/drive/folders/1b2yiq6Ly5cl3VdNW2LuM1EqdaZNdpbPW?usp=sharing)  
 ---
 
 ## 1. TỔNG QUAN ĐỀ TÀI VÀ ĐẶT VẤN ĐỀ
@@ -97,7 +94,7 @@ ANN_PROJECT/
 Toàn bộ dữ liệu thô và dữ liệu vector nhúng được lưu trữ tập trung trên Google Drive do giới hạn kích thước tệp của Git:
 
 🔗 **Đường dẫn Google Drive:**  
-[https://drive.google.com/drive/folders/1b2yiq6Ly5cl3VdNW2LuM1EqdaZNdpbPW?usp=sharing](https://drive.google.com/drive/folders/1b2yiq6Ly5cl3VdNW2LuM1EqdaZNdpbPW?usp=sharing)
+[Tại đây](https://drive.google.com/drive/folders/1b2yiq6Ly5cl3VdNW2LuM1EqdaZNdpbPW?usp=sharing)
 
 ### Các bước thiết lập dữ liệu:
 1. Tải các tệp từ thư mục Drive về máy tính.
@@ -164,11 +161,3 @@ Truy cập trình duyệt: http://localhost:3000
 | **IVF-PQ** | nlist=16, m=8 | **0.08 MB / 2.8 GB** | 1.1 h | **38.2%** | **0.67 ms** | **2,590.9** |
 | **Two-Tier HNSW (Đề xuất)** | **SQ8 + Early-Exit + ReRank** | **7.5 GB** *(-84% RAM)* | **2.6 h** | **94.6%** | **1.20 ms** | **820.0** |
 
----
-
-## 7. PHÂN CÔNG NHIỆM VỤ TRONG NHÓM
-
-| Thành viên | Vai trò | Trách nhiệm chính |
-| :--- | :--- | :--- |
-| **Thành viên 1** | **Data Engineer** | • Viết crawler cào tin tức VnExpress/Dân Trí.<br>• Xây dựng pipeline tiền xử lý Unicode NFC và tách từ PyVi.<br>• Triển khai lọc trùng MinHash LSH.<br>• Quản lý lưu trữ nhị phân np.memmap 15.36 GB trên SSD. |
-| **Thành viên 2** | **Algorithm & Benchmark Engineer** | • Cài đặt Flat Search, Standard HNSW, IVF-PQ.<br>• Cài đặt bộ lượng tử hóa vô hướng SQ8 và Adaptive Early-Exit.<br>• Cài đặt Two-Tier Quantized HNSW kết hợp Re-ranking từ SSD.<br>• Chạy thực nghiệm đo Recall, Latency, QPS, RAM ở 3 mốc quy mô.<br>• Xây dựng Web Dashboard Three.js trực quan hóa 3D. |
