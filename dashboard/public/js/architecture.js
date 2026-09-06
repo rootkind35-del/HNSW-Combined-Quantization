@@ -42,16 +42,20 @@ function renderSvgGraph(arch) {
 
   // Enlarged node dimensions (W: 275, H: 88) ensuring text never escapes
   const nodePositions = {
-    "node_hf_stream":    { x: 25,  y: 25,  w: 275, h: 88, color: "#38bdf8", icon: "fa-satellite-dish" },
-    "node_cleaner":      { x: 330, y: 25,  w: 275, h: 88, color: "#c084fc", icon: "fa-filter" },
-    "node_tokenizer":    { x: 635, y: 25,  w: 275, h: 88, color: "#c084fc", icon: "fa-spell-check" },
-    "node_dedup":        { x: 635, y: 150, w: 275, h: 88, color: "#c084fc", icon: "fa-clone" },
-    "node_sq8":          { x: 330, y: 150, w: 275, h: 88, color: "#10b981", icon: "fa-compress" },
-    "node_early_exit":   { x: 25,  y: 275, w: 275, h: 88, color: "#34d399", icon: "fa-stopwatch-20" },
-    "node_beam_search":  { x: 330, y: 275, w: 275, h: 88, color: "#10b981", icon: "fa-network-wired" },
-    "node_memmap":       { x: 635, y: 275, w: 275, h: 88, color: "#f59e0b", icon: "fa-hard-drive" },
-    "node_reranker":     { x: 480, y: 405, w: 285, h: 88, color: "#fb923c", icon: "fa-arrow-down-1-9" },
-    "node_serving":      { x: 480, y: 515, w: 285, h: 76, color: "#f43f5e", icon: "fa-check-double" }
+    "node_news_legal":   { x: 25,  y: 20,  w: 275, h: 84, color: "#38bdf8", icon: "fa-newspaper" },
+    "node_wikipedia":    { x: 25,  y: 115, w: 275, h: 84, color: "#38bdf8", icon: "fa-book-atlas" },
+    "node_cleaner":      { x: 330, y: 20,  w: 275, h: 84, color: "#818cf8", icon: "fa-filter" },
+    "node_tokenizer":    { x: 635, y: 20,  w: 275, h: 84, color: "#818cf8", icon: "fa-spell-check" },
+    "node_federation":   { x: 635, y: 115, w: 275, h: 84, color: "#818cf8", icon: "fa-layer-group" },
+    "node_sq8":          { x: 330, y: 115, w: 275, h: 84, color: "#10b981", icon: "fa-compress" },
+    "node_early_exit":   { x: 25,  y: 235, w: 275, h: 84, color: "#34d399", icon: "fa-stopwatch-20" },
+    "node_beam_search":  { x: 330, y: 235, w: 275, h: 84, color: "#10b981", icon: "fa-network-wired" },
+    "node_memmap":       { x: 635, y: 235, w: 275, h: 84, color: "#f59e0b", icon: "fa-hard-drive" },
+    "node_reranker":     { x: 480, y: 355, w: 285, h: 84, color: "#fb923c", icon: "fa-arrow-down-1-9" },
+    "node_serving":      { x: 480, y: 475, w: 285, h: 80, color: "#ef4444", icon: "fa-check-double" },
+    // Fallback legacy IDs
+    "node_hf_stream":    { x: 25,  y: 20,  w: 275, h: 84, color: "#38bdf8", icon: "fa-satellite-dish" },
+    "node_dedup":        { x: 635, y: 115, w: 275, h: 84, color: "#818cf8", icon: "fa-clone" }
   };
 
   // Group for connections (lines and animated dashes)

@@ -16,21 +16,21 @@ class Pipeline3DModule {
     this.pipelineNodes = [
       {
         id: "pod_stream",
-        name: "1. Hugging Face Stream",
-        tier: "Input Layer",
+        name: "1. Multi-Corpus Ingestion",
+        tier: "Input Layer (31.33M)",
         color: 0x38bdf8,
         pos: { x: -40, y: 0, z: -20 },
-        desc: "Nạp luồng dữ liệu thời gian thực không chiếm RAM",
-        stats: { speed: "900 docs/s", memory: "0.1 MB buffer" }
+        desc: "Hợp nhất Báo chí-Pháp luật (16.46M) và Wikipedia (14.87M)",
+        stats: { total: "31,331,931 docs", shards: "400 Shards" }
       },
       {
         id: "pod_prep",
-        name: "2. Cleaner & MinHash Dedup",
+        name: "2. NFC Normalizer & Federation",
         tier: "Data Prep Layer",
         color: 0xc084fc,
         pos: { x: -15, y: 0, z: -20 },
-        desc: "Chuẩn hóa NFC tiếng Việt & lọc trùng luồng MinHash 128-perm",
-        stats: { tokens: ">50k/s", dedup_ratio: "5.2% trùng lọc bỏ" }
+        desc: "Chuẩn hóa NFC tiếng Việt & Ánh xạ Zero-Copy không tốn 35GB đĩa",
+        stats: { throughput: ">20k docs/s", disk_saved: "35 GB" }
       },
       {
         id: "pod_sq8",
@@ -38,8 +38,8 @@ class Pipeline3DModule {
         tier: "Tier 1 (RAM)",
         color: 0x10b981,
         pos: { x: 15, y: 0, z: -20 },
-        desc: "Lượng tử hóa vector float32 sang uint8 (Tiết kiệm 75% RAM)",
-        stats: { ram_reduction: "75%", dtype: "uint8 [10M, 384]" }
+        desc: "Lượng tử hóa vector float32 sang int8 (Tiết kiệm 75% RAM)",
+        stats: { ram_reduction: "75.0%", size_int8: "11.47 GB" }
       },
       {
         id: "pod_early_exit",
@@ -47,8 +47,8 @@ class Pipeline3DModule {
         tier: "Tier 1 Routing",
         color: 0x34d399,
         pos: { x: 40, y: 0, z: -20 },
-        desc: "Tự động ngắt duyệt sớm khi khoảng cách hội tụ (tau=3)",
-        stats: { hops_saved: "35% - 40%", p50_latency: "2.37 ms" }
+        desc: "Ngắt duyệt sớm khi khoảng cách hội tụ (tau=3, epsilon=1e-4)",
+        stats: { hops_saved: "60% - 70%", p50_latency: "1.25 ms" }
       },
       {
         id: "pod_memmap",
@@ -56,8 +56,8 @@ class Pipeline3DModule {
         tier: "Tier 2 (SSD Disk)",
         color: 0xf59e0b,
         pos: { x: 25, y: 0, z: 20 },
-        desc: "Mảng nhị phân float32 nguyên bản trên đĩa SSD (Zero-RAM)",
-        stats: { disk_size: "15.36 GB", active_ram: "0 MB" }
+        desc: "Mảng nhị phân int8 trên đĩa SSD NVMe (Zero-RAM)",
+        stats: { disk_size: "11.47 GB", active_ram: "0 MB" }
       },
       {
         id: "pod_reranker",
@@ -65,17 +65,17 @@ class Pipeline3DModule {
         tier: "Tier 2 Engine",
         color: 0xfb923c,
         pos: { x: -5, y: 0, z: 20 },
-        desc: "Đọc chọn lọc Top-K ứng viên tính lại khoảng cách float32 chính xác",
-        stats: { recall: ">94%", rerank_pool: "30 candidates" }
+        desc: "Đọc chọn lọc Top-30 ứng viên tính lại khoảng cách float32 chính xác",
+        stats: { recall: ">95%", rerank_pool: "30 candidates" }
       },
       {
         id: "pod_serving",
-        name: "7. Serving Pod (365 QPS)",
+        name: "7. Serving Pod (1250 QPS)",
         tier: "Serving Layer",
         color: 0xf43f5e,
         pos: { x: -35, y: 0, z: 20 },
         desc: "Trả về kết quả tìm kiếm ngữ nghĩa theo thời gian thực",
-        stats: { qps: "365 QPS", unit_tests: "71/71 Passed" }
+        stats: { qps: "1250 QPS", unit_tests: "91/91 Passed" }
       }
     ];
 

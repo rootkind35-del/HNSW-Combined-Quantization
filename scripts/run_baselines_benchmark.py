@@ -19,85 +19,80 @@ from ann_index.flat import FlatIndex
 from ann_index.hnsw import StandardHNSWIndex
 from ann_index.ivf_pq import IVFPQIndex
 from ann_index.two_tier_hnsw import TwoTierQuantizedHNSW
+from ann_data.loaders.benchmark_loader import BenchmarkDatasetLoader
 from ann_data.utils import get_logger
 
 
 def load_or_generate_data(
-    num_vectors: int,
-    num_queries: int,
-    dim: int,
-    use_real_data: bool = False,
-    real_data_path: str = "data/processed/real_news_vectors.dat",
+    dataset_name: str = "sift10k",
+    num_vectors: int = 10000,
+    num_queries: int = 100,
+    dim: int = 128,
 ):
     """
-    Nạp dữ liệu vector tin tức thực tế từ đĩa SSD hoặc sinh dữ liệu vector ngẫu nhiên để thử nghiệm.
+    Nạp dữ liệu vector đối chuẩn chuẩn mực (SIFT) hoặc sinh dữ liệu vector ngẫu nhiên để thử nghiệm.
 
     Tham số:
+        dataset_name: Tên tập dữ liệu ('sift10k', 'sift1m', 'random').
         num_vectors: Số lượng vector cần nạp hoặc sinh.
         num_queries: Số lượng câu truy vấn kiểm thử.
-        dim: Số chiều không gian vector.
-        use_real_data: Nếu True, ưu tiên nạp từ tệp nhị phân tin tức thực tế.
-        real_data_path: Đường dẫn tệp nhị phân vector thực tế.
+        dim: Số chiều không gian vector (nếu dùng random).
 
     Trả về:
-        Tuple (dataset, queries) dạng mảng numpy float32.
+        Tuple (dataset, queries, ground_truth) dạng mảng numpy.
     """
     logger = get_logger("run_baselines_benchmark")
-    if use_real_data and os.path.exists(real_data_path):
-        meta_file = "data/processed/real_news_metadata.jsonl"
-        with open(meta_file, "r", encoding="utf-8") as f:
-            total_real = sum(1 for line in f if line.strip())
-
-        logger.info("Nạp vector tin tức thực tế từ %s (hiện có: %d bản ghi)", real_data_path, total_real)
-        mmap = np.memmap(real_data_path, dtype="float32", mode="r", shape=(total_real, 384))
-        dataset = np.array(mmap)
-        del mmap
-
-        # Trích mẫu ngẫu nhiên các câu truy vấn từ tập dữ liệu kèm nhiễu Gaussian nhẹ
-        query_indices = np.random.choice(total_real, size=min(num_queries, total_real), replace=False)
-        queries = dataset[query_indices] + np.random.normal(0, 0.01, size=(len(query_indices), 384)).astype(np.float32)
-        return dataset, queries
+    if dataset_name in ["sift10k", "sift1m"]:
+        loader = BenchmarkDatasetLoader()
+        data = loader.load_dataset(dataset_name, max_base=num_vectors if num_vectors > 0 else -1)
+        base = data["base"]
+        query = data["query"][:num_queries] if num_queries > 0 else data["query"]
+        gt = data["groundtruth"][:num_queries] if num_queries > 0 else data["groundtruth"]
+        return base, query, gt
 
     logger.info("Sinh tập dữ liệu vector thực nghiệm ngẫu nhiên: N=%d, Q=%d, D=%d", num_vectors, num_queries, dim)
     np.random.seed(42)
     dataset = np.random.randn(num_vectors, dim).astype(np.float32)
     queries = np.random.randn(num_queries, dim).astype(np.float32)
-    return dataset, queries
+    return dataset, queries, None
 
 
 def main():
     """Hàm chạy thực nghiệm so sánh đối chuẩn từ giao diện dòng lệnh (CLI)."""
     parser = argparse.ArgumentParser(description="Chạy thực nghiệm đối chuẩn các thuật toán ANN (Flat vs HNSW vs IVF-PQ vs Two-Tier).")
-    parser.add_argument("--num-vectors", type=int, default=1000, help="Số lượng vector trong tập dữ liệu")
-    parser.add_argument("--num-queries", type=int, default=50, help="Số lượng câu truy vấn kiểm thử")
-    parser.add_argument("--dim", type=int, default=64, help="Số chiều không gian vector")
+    parser.add_argument("--dataset-name", type=str, default="sift10k", choices=["sift10k", "sift1m", "random"], help="Tập dữ liệu đối chuẩn")
+    parser.add_argument("--num-vectors", type=int, default=-1, help="Giới hạn số lượng vector base (-1 để dùng toàn bộ)")
+    parser.add_argument("--num-queries", type=int, default=100, help="Số lượng câu truy vấn kiểm thử")
+    parser.add_argument("--dim", type=int, default=128, help="Số chiều vector (chỉ dùng cho random)")
     parser.add_argument("--metric", type=str, default="l2", choices=["l2", "cosine"], help="Độ đo khoảng cách")
     parser.add_argument("--top-k", type=int, default=10, help="Số lượng láng giềng k cần trích xuất")
-    parser.add_argument("--use-real-data", action="store_true", help="Sử dụng dữ liệu vector tin tức thực tế trên đĩa")
     parser.add_argument("--output-report", type=str, default=None, help="Đường dẫn lưu tệp báo cáo markdown kết quả")
     args = parser.parse_args()
 
     logger = get_logger("run_baselines_benchmark")
     logger.info("=== BẮT ĐẦU CHẠY THỰC NGHIỆM ĐỐI CHUẨN (ANN BASELINES BENCHMARK) ===")
 
-    dataset, queries = load_or_generate_data(
+    dataset, queries, ground_truth = load_or_generate_data(
+        dataset_name=args.dataset_name,
         num_vectors=args.num_vectors,
         num_queries=args.num_queries,
         dim=args.dim,
-        use_real_data=args.use_real_data,
     )
+
+    vector_dim = dataset.shape[1]
 
     runner = BenchmarkRunner(
         dataset=dataset,
         queries=queries,
         metric=args.metric,
         ground_truth_k=max(args.top_k, 50),
+        ground_truth_indices=ground_truth,
     )
 
     indices_to_test = [
         FlatIndex(metric=args.metric),
         StandardHNSWIndex(space=args.metric, m=16, ef_construction=100, ef_search=30),
-        IVFPQIndex(nlist=16, num_subvectors=min(8, max(1, args.dim // 4)), nprobe=4, metric=args.metric),
+        IVFPQIndex(nlist=16, num_subvectors=min(8, max(1, vector_dim // 4)), nprobe=4, metric=args.metric),
         TwoTierQuantizedHNSW(
             m=16,
             ef_search=30,

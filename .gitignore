@@ -30,15 +30,28 @@ Thumbs.db
 paper/
 *.pdf
 
-# DATA PAYLOAD FILES - Excluded from Git (Hosted on Google Drive)
-data/raw/*.jsonl
-data/raw/*.json
-data/raw/*.csv
-data/processed/*.dat
-data/processed/*.jsonl
-data/processed/*.json
-data/processed/*.npy
-!data/raw/README.md
-!data/processed/README.md
+# DATA PAYLOAD FILES & FOLDERS - Excluded from Git (Hosted on Google Drive / Downloadable via scripts)
+data/*
 !data/README.md
-!data/experiments/
+!data/raw/
+!data/raw/README.md
+!data/processed/
+!data/processed/README.md
+data/crawl/
+data/crawl_wiki/
+data/quantized/
+data/quantized_wiki/
+data/quantized_combined/
+data/raw/*
+!data/raw/README.md
+data/processed/*
+!data/processed/README.md
+data/experiments/*
+!data/experiments/scale_stress_results.json
+!data/experiments/scale_stress_summary.md
+*.dat
+*.npz
+*.bin
+*.fvecs
+*.ivecs
+*.bvecs

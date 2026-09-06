@@ -53,13 +53,15 @@ class HnswGraphModule {
       this.createGlassPlane(layer.y, layer.name, layer.level);
     });
 
-    // 2. Build Bright Glowing Nodes
-    const sphereGeo = new THREE.SphereGeometry(1.6, 20, 20);
+    // 2. Build Bright Glowing Nodes with visual hierarchy
+    const geoL2 = new THREE.SphereGeometry(1.8, 14, 14);
+    const geoL1 = new THREE.SphereGeometry(1.4, 12, 12);
+    const geoL0 = new THREE.SphereGeometry(1.0, 10, 10);
 
     const layerConfig = {
-      2: { color: 0xf59e0b, emissive: 0xd97706, label: "TẦNG 2" },
-      1: { color: 0xc084fc, emissive: 0x9333ea, label: "TẦNG 1" },
-      0: { color: 0x38bdf8, emissive: 0x0284c7, label: "TẦNG 0" }
+      2: { color: 0xf59e0b, emissive: 0xd97706, label: "TẦNG 2 (Top Navigation)", geo: geoL2 },
+      1: { color: 0xc084fc, emissive: 0x9333ea, label: "TẦNG 1 (Mid Routing)", geo: geoL1 },
+      0: { color: 0x38bdf8, emissive: 0x0284c7, label: "TẦNG 0 (Base Data)", geo: geoL0 }
     };
 
     this.topology.layers.forEach(layer => {
@@ -73,13 +75,13 @@ class HnswGraphModule {
       });
 
       layer.nodes.forEach(node => {
-        const mesh = new THREE.Mesh(sphereGeo, mat);
+        const mesh = new THREE.Mesh(cfg.geo, mat);
         mesh.position.set(node.x, node.y, node.z);
         mesh.userData = { nodeData: node };
 
         // Make entry point prominent
         if (node.id === this.topology.entry_point_id) {
-          mesh.scale.set(1.9, 1.9, 1.9);
+          mesh.scale.set(1.7, 1.7, 1.7);
 
           const entryHaloGeo = new THREE.RingGeometry(3.0, 3.8, 24);
           const entryHaloMat = new THREE.MeshBasicMaterial({ color: 0xf59e0b, side: THREE.DoubleSide });
@@ -100,45 +102,56 @@ class HnswGraphModule {
       });
     });
 
-    // 3. Build Intra-layer Edges (Bright Glowing Links)
+    // 3. Build Intra-layer Edges (Batched into LineSegments per layer for 60 FPS)
     if (this.topology.intra_edges) {
-      this.topology.intra_edges.forEach(edge => {
-        const fromMesh = this.nodesMap.get(edge.from);
-        const toMesh = this.nodesMap.get(edge.to);
-        if (!fromMesh || !toMesh) return;
-
-        const points = [fromMesh.position, toMesh.position];
-        const lineGeo = new THREE.BufferGeometry().setFromPoints(points);
-        const lineMat = new THREE.LineBasicMaterial({
-          color: edge.layer === 2 ? 0xfbbf24 : edge.layer === 1 ? 0xc084fc : 0x38bdf8,
-          transparent: true,
-          opacity: edge.layer === 0 ? 0.45 : 0.85
+      [2, 1, 0].forEach(level => {
+        const levelEdges = this.topology.intra_edges.filter(e => e.layer === level);
+        const points = [];
+        levelEdges.forEach(edge => {
+          const fromMesh = this.nodesMap.get(edge.from);
+          const toMesh = this.nodesMap.get(edge.to);
+          if (fromMesh && toMesh) {
+            points.push(fromMesh.position, toMesh.position);
+          }
         });
-        const line = new THREE.Line(lineGeo, lineMat);
-        this.group.add(line);
+
+        if (points.length > 0) {
+          const lineGeo = new THREE.BufferGeometry().setFromPoints(points);
+          const lineMat = new THREE.LineBasicMaterial({
+            color: level === 2 ? 0xfbbf24 : level === 1 ? 0xc084fc : 0x38bdf8,
+            transparent: true,
+            opacity: level === 0 ? 0.35 : (level === 1 ? 0.65 : 0.85)
+          });
+          const lineSegments = new THREE.LineSegments(lineGeo, lineMat);
+          this.group.add(lineSegments);
+        }
       });
     }
 
-    // 4. Build Inter-layer Links (Vertical Conduits)
-    if (this.topology.inter_links) {
+    // 4. Build Inter-layer Links (Batched into 1 LineSegments)
+    if (this.topology.inter_links && this.topology.inter_links.length > 0) {
+      const interPoints = [];
       this.topology.inter_links.forEach(link => {
         const fromMesh = this.nodesMap.get(link.from);
         const toMesh = this.nodesMap.get(link.to);
-        if (!fromMesh || !toMesh) return;
+        if (fromMesh && toMesh) {
+          interPoints.push(fromMesh.position, toMesh.position);
+        }
+      });
 
-        const points = [fromMesh.position, toMesh.position];
-        const lineGeo = new THREE.BufferGeometry().setFromPoints(points);
-        const lineMat = new THREE.LineDashedMaterial({
+      if (interPoints.length > 0) {
+        const interGeo = new THREE.BufferGeometry().setFromPoints(interPoints);
+        const interMat = new THREE.LineDashedMaterial({
           color: 0x34d399,
-          dashSize: 2.0,
+          dashSize: 1.6,
           gapSize: 1.2,
           transparent: true,
-          opacity: 0.9
+          opacity: 0.75
         });
-        const line = new THREE.Line(lineGeo, lineMat);
-        line.computeLineDistances();
-        this.group.add(line);
-      });
+        const interLines = new THREE.LineSegments(interGeo, interMat);
+        interLines.computeLineDistances();
+        this.group.add(interLines);
+      }
     }
   }
 

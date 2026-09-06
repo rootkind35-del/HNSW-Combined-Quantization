@@ -1,0 +1,22 @@
+\begin{table}[H]
+\centering
+\small
+\caption{Kết quả Tối ưu Siêu tham số Dừng sớm Thích ứng ($\tau, \varepsilon$) trên Thuật toán Two-Tier Quantized HNSW}
+\label{tab:tuning_early_exit}
+\begin{tabular}{ccccccc}
+\toprule
+\textbf{Tau ($\tau$)} & \textbf{Epsilon ($\varepsilon$)} & \textbf{Rerank} & \textbf{Recall@10} & \textbf{QPS} & \textbf{Latency (ms)} & \textbf{Speedup} \\
+\midrule
+2 & 1e-05 & 1 & 27.0\% & 1775.1 & 0.56 & \textbf{7.30x} \\
+2 & 1e-04 & 3 & 27.0\% & 1545.8 & 0.65 & \textbf{6.36x} \\
+2 & 1e-05 & 3 & 27.0\% & 1534.8 & 0.65 & \textbf{6.31x} \\
+2 & 1e-03 & 2 & 27.0\% & 1524.1 & 0.66 & \textbf{6.27x} \\
+2 & 1e-03 & 3 & 27.0\% & 1457.3 & 0.69 & \textbf{5.99x} \\
+2 & 1e-04 & 2 & 27.0\% & 1346.8 & 0.74 & \textbf{5.54x} \\
+3 & 1e-04 & 1 & 35.0\% & 1273.0 & 0.79 & \textbf{5.24x} \\
+3 & 1e-04 & 3 & 35.0\% & 1250.2 & 0.80 & \textbf{5.14x} \\
+3 & 1e-05 & 3 & 35.0\% & 1222.8 & 0.82 & \textbf{5.03x} \\
+3 & 1e-05 & 2 & 35.0\% & 1221.6 & 0.82 & \textbf{5.03x} \\
+\bottomrule
+\end{tabular}
+\end{table}

@@ -60,38 +60,6 @@ class CheckpointManager:
             json.dump(data, f, indent=2, ensure_ascii=False)
 
 
-def generate_fallback_corpus_stream(limit: int):
-    """
-    Sinh luồng dữ liệu tiếng Việt có độ hỗn loạn entropy cao,
-    đảm bảo không bị loại bỏ nhầm bởi thuật toán lọc trùng MinHash khi mạng mất kết nối.
-    """
-    import hashlib
-
-    base_vocab = [
-        "thị trường", "tài chính", "ngân hàng", "chứng khoán", "cổ phiếu", "lãi suất", "tiền tệ", "đầu tư",
-        "trí tuệ", "nhân tạo", "học máy", "mạng nơ-ron", "thị giác", "ngôn ngữ", "xử lý", "dữ liệu",
-        "giáo dục", "đại học", "nghiên cứu", "khoa học", "học bổng", "sinh viên", "giảng viên", "luận văn",
-        "giao thông", "cao tốc", "đường bộ", "hạ tầng", "cầu đường", "vận tải", "đô thị", "quy hoạch",
-        "năng lượng", "điện gió", "mặt trời", "tái tạo", "lưới điện", "truyền tải", "tiết kiệm", "phát thải",
-        "nông nghiệp", "lúa gạo", "thủy sản", "cà phê", "nông dân", "xuất khẩu", "hữu cơ", "tiêu chuẩn",
-        "y tế", "bệnh viện", "bác sĩ", "chẩn đoán", "dược phẩm", "điều trị", "sức khỏe", "phòng dịch",
-        "công nghệ", "bán dẫn", "vi mạch", "điện tử", "linh kiện", "chế tạo", "phần cứng", "tối ưu",
-        "văn hóa", "du lịch", "di sản", "lễ hội", "thắng cảnh", "ẩm thực", "truyền thống", "bản sắc",
-        "kinh tế", "doanh nghiệp", "sản xuất", "thương mại", "dịch vụ", "hội nhập", "cạnh tranh", "tăng trưởng",
-    ]
-
-    for i in range(limit):
-        h = hashlib.sha256(f"unique_doc_entropy_{i}".encode()).hexdigest()
-        
-        # Lựa chọn từ vựng dựa trên mã băm để đảm bảo tính đa dạng
-        selected_words = []
-        for j in range(0, 60, 2):
-            idx = int(h[j:j+2], 16) % len(base_vocab)
-            salt = h[j+2:j+5] if j+5 <= 64 else h[:3]
-            selected_words.append(f"{base_vocab[idx]}_{salt}")
-            
-        text = f"Tài liệu {i} {h[:8]}: " + " ".join(selected_words) + f" Kết thúc báo cáo {i}."
-        yield f"fallback_doc_{i}", text
 
 
 def run_large_scale_streaming(
@@ -191,9 +159,7 @@ def run_large_scale_streaming(
             )
             logger.info(f"Đang đọc luồng từ: {source['dataset_name']} (cấu hình: {source['config_name']})")
             yield from loader.stream(limit=target_count * 3)
-            
-        logger.info("Đã quét hết các nguồn Hugging Face. Chuyển sang luồng dữ liệu tổng hợp dự phòng.")
-        yield from generate_fallback_corpus_stream(max(target_count * 10, 10000))
+        logger.info("Hoàn tất quét toàn bộ các nguồn ngữ liệu Hugging Face.")
 
     stream_iter = multi_source_generator()
 

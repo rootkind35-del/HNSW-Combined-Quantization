@@ -154,6 +154,7 @@ class NewsRssCrawler(BaseDataLoader):
             Tuple[str, str]: (doc_id, full_text)
         """
         yielded_count = 0
+        seen_doc_ids = set()
 
         for feed_url in self.feed_urls:
             self.logger.info("Đang nạp kênh RSS: %s", feed_url)
@@ -170,6 +171,9 @@ class NewsRssCrawler(BaseDataLoader):
                 description = item.get("description", "")
 
                 doc_id = hashlib.sha1(link.encode("utf-8") if link else title.encode("utf-8")).hexdigest()[:16]
+                if doc_id in seen_doc_ids:
+                    continue
+                seen_doc_ids.add(doc_id)
 
                 # Tải chi tiết bài viết nếu có đường dẫn hợp lệ, nếu không lấy tiêu đề + mô tả
                 body_text = ""

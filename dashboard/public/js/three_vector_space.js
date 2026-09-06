@@ -33,7 +33,65 @@ class VectorSpaceModule {
     };
 
     this.initHoverReticle();
+    this.initFocusMarker();
     this.loadVectorsData();
+  }
+
+  initFocusMarker() {
+    this.focusMarker = new THREE.Group();
+    this.focusMarker.visible = false;
+
+    // Vòng phát sáng trung tâm
+    const ring1Geo = new THREE.RingGeometry(2.2, 2.7, 32);
+    const ring1Mat = new THREE.MeshBasicMaterial({
+      color: 0x38bdf8,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.95
+    });
+    this.focusRingInner = new THREE.Mesh(ring1Geo, ring1Mat);
+    this.focusMarker.add(this.focusRingInner);
+
+    // Vòng ngoài màu ngọc lục bảo xoay nhịp nhàng
+    const ring2Geo = new THREE.RingGeometry(3.6, 4.2, 32);
+    const ring2Mat = new THREE.MeshBasicMaterial({
+      color: 0x10b981,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.85
+    });
+    this.focusRingOuter = new THREE.Mesh(ring2Geo, ring2Mat);
+    this.focusMarker.add(this.focusRingOuter);
+
+    // 4 vạch tiêu cự crosshair
+    const crossMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, side: THREE.DoubleSide });
+    const hBar = new THREE.PlaneGeometry(1.6, 0.35);
+    const vBar = new THREE.PlaneGeometry(0.35, 1.6);
+
+    const barTop = new THREE.Mesh(vBar, crossMat);
+    barTop.position.set(0, 4.8, 0);
+    this.focusMarker.add(barTop);
+
+    const barBottom = new THREE.Mesh(vBar, crossMat);
+    barBottom.position.set(0, -4.8, 0);
+    this.focusMarker.add(barBottom);
+
+    const barLeft = new THREE.Mesh(hBar, crossMat);
+    barLeft.position.set(-4.8, 0, 0);
+    this.focusMarker.add(barLeft);
+
+    const barRight = new THREE.Mesh(hBar, crossMat);
+    barRight.position.set(4.8, 0, 0);
+    this.focusMarker.add(barRight);
+
+    this.group.add(this.focusMarker);
+  }
+
+  highlightNode(x, y, z, label = "") {
+    if (!this.focusMarker) return;
+    this.focusMarker.position.set(x, y, z);
+    this.focusMarker.visible = true;
+    this.focusAnimTimer = 0;
   }
 
   initHoverReticle() {
@@ -146,35 +204,24 @@ class VectorSpaceModule {
 
     geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    geometry.computeBoundingSphere();
+    geometry.computeBoundingBox();
 
     const texture = this.createCrispNodeTexture();
 
-    // High-Contrast Crisp Points Material (NormalBlending with depthWrite for crisp occlusion)
+    // High-Contrast Crisp Points Material
     const material = new THREE.PointsMaterial({
       size: 3.2,
       vertexColors: true,
       map: texture,
       transparent: true,
-      alphaTest: 0.08, // Sharp cutoff eliminating blurry fuzzy box edges
-      depthWrite: true,
+      alphaTest: 0.05,
+      depthWrite: false,
       blending: THREE.NormalBlending
     });
 
     this.pointCloud = new THREE.Points(geometry, material);
     this.group.add(this.pointCloud);
-
-    // Build spatial raycast target spheres
-    const sphereGeo = new THREE.SphereGeometry(1.6, 8, 8);
-    const sphereMat = new THREE.MeshBasicMaterial({ visible: false });
-    
-    for (let i = 0; i < count; i++) {
-      const v = this.vectorsData[i];
-      const mesh = new THREE.Mesh(sphereGeo, sphereMat);
-      mesh.position.set(v.x, v.y, v.z);
-      mesh.userData = { index: i, data: v };
-      this.group.add(mesh);
-      this.interactiveSpheres.push(mesh);
-    }
   }
 
   buildQuantizationGrid() {
@@ -209,12 +256,16 @@ class VectorSpaceModule {
   }
 
   handleMouseMove(raycaster) {
-    const intersects = raycaster.intersectObjects(this.interactiveSpheres);
+    if (!this.pointCloud) return;
+    raycaster.params.Points = raycaster.params.Points || {};
+    raycaster.params.Points.threshold = 2.2;
+    const intersects = raycaster.intersectObject(this.pointCloud);
     const tooltipEl = document.getElementById('hud-tooltip-3d');
 
     if (intersects.length > 0) {
-      const hit = intersects[0].object;
-      const data = hit.userData.data;
+      const idx = intersects[0].index;
+      const data = this.vectorsData[idx];
+      if (!data) return;
 
       document.body.style.cursor = 'pointer';
 
@@ -247,14 +298,20 @@ class VectorSpaceModule {
   }
 
   handleClick(raycaster) {
-    const intersects = raycaster.intersectObjects(this.interactiveSpheres);
+    if (!this.pointCloud) return;
+    raycaster.params.Points = raycaster.params.Points || {};
+    raycaster.params.Points.threshold = 2.2;
+    const intersects = raycaster.intersectObject(this.pointCloud);
     if (intersects.length > 0) {
-      const data = intersects[0].object.userData.data;
-      this.inspectVectorPoint(data);
+      const idx = intersects[0].index;
+      const data = this.vectorsData[idx];
+      if (data) this.inspectVectorPoint(data);
     }
   }
 
   inspectVectorPoint(data) {
+    this.highlightNode(data.x, data.y, data.z, data.title);
+
     const infoPanel = document.getElementById('hud-detail-panel');
     if (!infoPanel) return;
 
@@ -422,6 +479,19 @@ class VectorSpaceModule {
 
     if (this.hoverReticle && this.hoverReticle.visible) {
       this.hoverReticle.children[1].rotation.z += delta * 2.5;
+    }
+
+    if (this.focusMarker && this.focusMarker.visible) {
+      this.focusMarker.lookAt(this.engine.camera.position);
+      this.focusAnimTimer = (this.focusAnimTimer || 0) + delta;
+      if (this.focusRingOuter) {
+        this.focusRingOuter.rotation.z += delta * 2.0;
+      }
+      if (this.focusRingInner) {
+        this.focusRingInner.rotation.z -= delta * 1.5;
+      }
+      const s = 1.0 + Math.sin(this.focusAnimTimer * 5.0) * 0.14;
+      this.focusMarker.scale.set(s, s, s);
     }
   }
 }

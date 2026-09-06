@@ -89,17 +89,61 @@ ANN_PROJECT/
 
 ---
 
-## 3. HƯỚNG DẪN TẢI VÀ CẤU HÌNH DỮ LIỆU (DATASET SETUP)
+## 3. HƯỚNG DẪN THIẾT LẬP DỮ LIỆU (DATASET SETUP & DOWNLOAD)
 
-Toàn bộ dữ liệu thô và dữ liệu vector nhúng được lưu trữ tập trung trên Google Drive do giới hạn kích thước tệp của Git:
+Do kích thước tập dữ liệu lớn (> 20 GB), các tệp nhị phân và dữ liệu thô được loại trừ khỏi Git repository. Bạn có thể thiết lập dữ liệu theo một trong hai cách dưới đây:
 
-🔗 **Đường dẫn Google Drive:**  
-[Tại đây](https://drive.google.com/drive/folders/1b2yiq6Ly5cl3VdNW2LuM1EqdaZNdpbPW?usp=sharing)
+### Cách 1: Tải dữ liệu tiền xử lý từ Google Drive (Khuyến nghị)
+1. Tải toàn bộ thư mục dữ liệu đã đóng gói sẵn tại:  
+   👉 **Google Drive Storage:** [Tải bộ dữ liệu tại đây](https://drive.google.com/drive/folders/1b2yiq6Ly5cl3VdNW2LuM1EqdaZNdpbPW?usp=sharing)
+2. Giải nén vào thư mục `data/` trong thư mục gốc của dự án theo cấu trúc:
+   ```text
+   data/
+   ├── README.md
+   ├── raw/
+   ├── processed/
+   │   ├── search_index_cache.npz
+   │   ├── search_index_metadata.json
+   │   ├── pca_3d_projection.json
+   │   └── vectors_3d_cache.json
+   ├── crawl/
+   ├── crawl_wiki/
+   ├── quantized/
+   ├── quantized_wiki/
+   └── quantized_combined/
+   ```
 
-### Các bước thiết lập dữ liệu:
-1. Tải các tệp từ thư mục Drive về máy tính.
-2. Đặt các tệp dữ liệu thô (`raw_crawled_news.jsonl`, `raw_vietnamese_corpus_10m.jsonl`) vào thư mục `data/raw/`.
-3. Đặt các tệp vector và metadata (`hf_10m_vectors.dat`, `hf_10m_metadata.jsonl`, `real_news_vectors.dat`, `real_news_metadata.jsonl`) vào thư mục `data/processed/`.
+### Cách 2: Tự động thu thập và tái tạo dữ liệu từ đầu (Reproducibility Pipeline)
+Nếu muốn tự sinh toàn bộ dữ liệu từ Internet và chạy lượng tử hóa:
+
+1. **Thu thập dữ liệu Báo chí & Pháp luật:**
+   ```bash
+   python scripts/run_crawler.py --target-records 100000 --batch-size 1000
+   ```
+2. **Thu thập dữ liệu Wikipedia tiếng Việt:**
+   ```bash
+   python scripts/run_wiki_crawler.py --target-records 100000 --batch-size 1000
+   ```
+3. **Chạy Lượng tử hóa SQ8 (int8) cho 2 nguồn:**
+   ```bash
+   python scripts/run_quantization.py
+   python scripts/run_wiki_quantization.py
+   ```
+4. **Hợp nhất hai kho ngữ liệu (Corpus Federation):**
+   ```bash
+   python scripts/merge_quantized_corpora.py
+   ```
+5. **Sinh bộ đệm tìm kiếm và tính toán giảm chiều 3D PCA:**
+   ```bash
+   python dashboard/scripts/build_search_cache.py
+   python dashboard/scripts/dimension_reduction_3d.py
+   ```
+
+### Cách 3: Đối chuẩn với tập dữ liệu chuẩn quốc tế SIFT10K / SIFT1M
+```bash
+python scripts/download_standard_datasets.py --dataset sift10k
+python scripts/download_standard_datasets.py --dataset sift1m
+```
 
 ---
 
@@ -113,7 +157,7 @@ cd HNSW-Combined-Quantization
 # 2. Cài đặt các thư viện Python
 pip install numpy pyvi sentence-transformers datasketch beautifulsoup4 pytest python-docx
 
-# 3. Cài đặt các thư viện Dashboard (Tùy chọn)
+# 3. Cài đặt các thư viện Dashboard Web 3D
 cd dashboard
 npm install
 cd ..
@@ -123,7 +167,7 @@ cd ..
 
 ## 5. HƯỚNG DẪN CHẠY KIỂM THỬ VÀ THỰC NGHIỆM
 
-### 5.1. Chạy 71 bài kiểm thử tự động (Unit Tests)
+### 5.1. Chạy 91 bài kiểm thử tự động (Unit Tests)
 ```bash
 pytest
 ```

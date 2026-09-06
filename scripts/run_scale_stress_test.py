@@ -20,12 +20,14 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..",
 from ann_index.benchmark import BenchmarkRunner
 from ann_index.hnsw import StandardHNSWIndex
 from ann_index.two_tier_hnsw import TwoTierQuantizedHNSW
+from ann_data.loaders.benchmark_loader import BenchmarkDatasetLoader
 from ann_data.utils import get_logger
 
 
 def run_scale_experiment(
     scales: List[int],
-    dim: int = 64,
+    dataset_name: str = "sift10k",
+    dim: int = 128,
     num_queries: int = 30,
     output_dir: str = "data/experiments",
 ) -> Dict[str, Any]:
@@ -34,7 +36,8 @@ def run_scale_experiment(
 
     Tham số:
         scales: Danh sách các mốc quy mô tập dữ liệu N (ví dụ: [1000, 2500, 5000]).
-        dim: Số chiều không gian vector.
+        dataset_name: Tên tập dữ liệu ('sift10k', 'sift1m', 'random').
+        dim: Số chiều không gian vector (nếu dùng random).
         num_queries: Số lượng câu truy vấn kiểm thử.
         output_dir: Thư mục lưu trữ tệp kết quả JSON và Markdown.
 
@@ -47,13 +50,27 @@ def run_scale_experiment(
     experiment_records = []
     np.random.seed(42)
 
-    logger.info("Bắt đầu thử nghiệm áp lực quy mô lớn trên các mốc: %s (Chiều: %d, Truy vấn: %d)", scales, dim, num_queries)
+    full_base = None
+    all_queries = None
+    if dataset_name in ["sift10k", "sift1m"]:
+        loader = BenchmarkDatasetLoader()
+        loaded = loader.load_dataset(dataset_name)
+        full_base = loaded["base"]
+        all_queries = loaded["query"][:num_queries]
+        dim = full_base.shape[1]
+        logger.info("Nạp thành công tập %s với %d vector base, %d chiều", dataset_name, len(full_base), dim)
+
+    logger.info("Bắt đầu thử nghiệm áp lực quy mô lớn trên các mốc: %s (Nguồn: %s, Chiều: %d, Truy vấn: %d)", scales, dataset_name, dim, num_queries)
 
     for n in scales:
         logger.info("-" * 60)
         logger.info("Đang đánh giá mốc quy mô tập dữ liệu N = %d ...", n)
-        dataset = np.random.randn(n, dim).astype(np.float32)
-        queries = np.random.randn(num_queries, dim).astype(np.float32)
+        if full_base is not None:
+            dataset = full_base[:min(n, len(full_base))]
+            queries = all_queries
+        else:
+            dataset = np.random.randn(n, dim).astype(np.float32)
+            queries = np.random.randn(num_queries, dim).astype(np.float32)
 
         runner = BenchmarkRunner(dataset=dataset, queries=queries, metric="l2", ground_truth_k=50)
 
@@ -159,14 +176,16 @@ def generate_markdown_report(records: List[Dict[str, Any]]) -> str:
 def main():
     """Hàm chạy chính từ dòng lệnh."""
     parser = argparse.ArgumentParser(description="Chạy kiểm thử áp lực quy mô lớn so sánh các biến thể HNSW.")
+    parser.add_argument("--dataset-name", type=str, default="sift10k", choices=["sift10k", "sift1m", "random"], help="Tên tập dữ liệu")
     parser.add_argument("--scales", type=int, nargs="+", default=[1000, 2500, 5000], help="Danh sách các mốc quy mô N")
-    parser.add_argument("--dim", type=int, default=64, help="Số chiều không gian vector")
+    parser.add_argument("--dim", type=int, default=128, help="Số chiều không gian vector (chỉ dùng cho random)")
     parser.add_argument("--queries", type=int, default=30, help="Số lượng câu truy vấn kiểm thử")
     parser.add_argument("--output-dir", type=str, default="data/experiments", help="Thư mục xuất báo cáo")
     args = parser.parse_args()
 
     results = run_scale_experiment(
         scales=args.scales,
+        dataset_name=args.dataset_name,
         dim=args.dim,
         num_queries=args.queries,
         output_dir=args.output_dir,

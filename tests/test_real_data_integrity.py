@@ -4,58 +4,61 @@ import json
 import os
 import unittest
 import numpy as np
-from scripts.crawl_real_data import crawl_and_index
+import shutil
+import tempfile
+from crawler import CrawlerConfig, CrawlerPipeline
+from quantizer import QuantizationPipeline
 
 
 class TestRealDataIntegrity(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.output_dir = "data/processed_test"
-        cls.vector_file = os.path.join(cls.output_dir, "real_news_vectors.dat")
-        cls.meta_file = os.path.join(cls.output_dir, "real_news_metadata.jsonl")
+        cls.test_dir = tempfile.mkdtemp()
+        cls.crawl_dir = os.path.join(cls.test_dir, "crawl")
+        cls.quant_dir = os.path.join(cls.test_dir, "quantized")
+        cls.vector_file = os.path.join(cls.quant_dir, "vectors_int8.dat")
+        cls.meta_file = os.path.join(cls.quant_dir, "metadata.jsonl")
         cls.limit = 5
 
-        # Execute a controlled run to guarantee data is present for verification
-        cls.run_result = crawl_and_index(
-            limit=cls.limit,
-            output_dir=cls.output_dir,
-            batch_size=2,
+        # 1. Thu thập dữ liệu toàn văn bằng CrawlerPipeline vào crawl_dir
+        crawl_cfg = CrawlerConfig(output_dir=cls.crawl_dir, shard_size=100)
+        crawler = CrawlerPipeline(config=crawl_cfg)
+        crawl_res = crawler.run_rss_crawl(limit=cls.limit)
+
+        # 2. Lượng tử hóa bằng QuantizationPipeline sang quant_dir
+        quantizer = QuantizationPipeline(
+            input_dir=cls.crawl_dir,
+            output_dir=cls.quant_dir,
+            dim=384,
             use_mock_embedder=True,
         )
+        cls.quant_res = quantizer.process(limit=10)
+        cls.total_vectors = cls.quant_res["total_vectors"]
 
     @classmethod
     def tearDownClass(cls):
         # Clean up temporary test data directory
-        for f in [cls.vector_file, cls.meta_file]:
-            if os.path.exists(f):
-                try:
-                    os.remove(f)
-                except OSError:
-                    pass
-        if os.path.exists(cls.output_dir):
+        if os.path.exists(cls.test_dir):
             try:
-                os.rmdir(cls.output_dir)
+                shutil.rmtree(cls.test_dir)
             except OSError:
                 pass
 
     def test_vector_file_structure_and_values(self):
         self.assertTrue(os.path.exists(self.vector_file), "Vector file does not exist")
-        self.assertGreater(self.run_result["total_written"], 0, "No records written")
+        self.assertGreater(self.total_vectors, 0, "No records written")
 
-        num_written = self.run_result["total_written"]
+        num_written = self.total_vectors
         dim = 384
 
-        # Read back memmap
-        mmap = np.memmap(self.vector_file, dtype="float32", mode="r", shape=(max(self.limit, 100), dim))
-        vectors = np.array(mmap[:num_written])
+        # Read back memmap as int8
+        mmap = np.memmap(self.vector_file, dtype="int8", mode="r", shape=(num_written, dim))
+        vectors = np.array(mmap)
 
         # Dimension and shape checks
         self.assertEqual(vectors.shape, (num_written, dim))
-
-        # Check no NaN or Infinite values
-        self.assertFalse(np.isnan(vectors).any(), "Found NaN in vector embeddings")
-        self.assertFalse(np.isinf(vectors).any(), "Found Inf in vector embeddings")
+        self.assertEqual(vectors.dtype, np.int8)
 
         # Check vectors are non-trivial (not all zeros)
         for i in range(num_written):
@@ -71,13 +74,14 @@ class TestRealDataIntegrity(unittest.TestCase):
                 if stripped:
                     lines.append(json.loads(stripped))
 
-        num_written = self.run_result["total_written"]
+        num_written = self.total_vectors
         self.assertEqual(len(lines), num_written, "Metadata count does not match vector count")
 
         for idx, item in enumerate(lines):
             self.assertEqual(item["vector_idx"], idx, f"Mismatched vector_idx at row {idx}")
             self.assertIn("doc_id", item)
             self.assertIn("title", item)
+            self.assertIn("text", item)
             self.assertIn("token_count", item)
             self.assertGreater(item["token_count"], 0)
 

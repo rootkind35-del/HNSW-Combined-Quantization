@@ -11,12 +11,13 @@ class BaseEmbedder(ABC):
     """Giao diện trừu tượng cho các mô hình sinh vector đặc trưng văn bản."""
 
     @abstractmethod
-    def encode(self, texts: List[str]) -> np.ndarray:
+    def encode(self, texts: List[str], **kwargs) -> np.ndarray:
         """
         Mã hóa danh sách các chuỗi văn bản thành mảng vector numpy kích thước (len(texts), dim).
 
         Tham số:
             texts: Danh sách chuỗi văn bản đầu vào.
+            **kwargs: Tham số bổ sung như batch_size.
 
         Trả về:
             Mảng numpy 2 chiều kiểu float32 chứa các vector nhúng.
@@ -48,7 +49,7 @@ class MockEmbedder(BaseEmbedder):
     def dim(self) -> int:
         return self._dim
 
-    def encode(self, texts: List[str]) -> np.ndarray:
+    def encode(self, texts: List[str], **kwargs) -> np.ndarray:
         """Sinh các vector chuẩn hóa độ dài đơn vị L2 một cách nhanh chóng."""
         count = len(texts)
         if count == 0:
@@ -81,7 +82,9 @@ class SentenceTransformerEmbedder(BaseEmbedder):
         """Nạp mô hình Transformer với cơ chế tự động chuyển sang MockEmbedder nếu môi trường thiếu thư viện/mạng."""
         try:
             from sentence_transformers import SentenceTransformer
-            self._model = SentenceTransformer(self.model_name)
+            import torch
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+            self._model = SentenceTransformer(self.model_name, device=device)
         except Exception as e:
             self._logger.warning(
                 "Không thể nạp sentence_transformers (%s). Tự động kích hoạt cơ chế dự phòng MockEmbedder.",
@@ -93,12 +96,13 @@ class SentenceTransformerEmbedder(BaseEmbedder):
     def dim(self) -> int:
         return self._dim
 
-    def encode(self, texts: List[str]) -> np.ndarray:
+    def encode(self, texts: List[str], batch_size: int = 512) -> np.ndarray:
         """
         Mã hóa ngữ nghĩa danh sách văn bản thành các dense vector 384 chiều.
 
         Tham số:
             texts: Danh sách chuỗi văn bản cần nhúng.
+            batch_size: Kích thước lô xử lý trên GPU (mặc định 512).
 
         Trả về:
             Mảng numpy float32 chứa các vector nhúng ngữ nghĩa.
@@ -107,7 +111,12 @@ class SentenceTransformerEmbedder(BaseEmbedder):
             return np.empty((0, self._dim), dtype=np.float32)
 
         if self._model is not None:
-            embeddings = self._model.encode(texts, convert_to_numpy=True, show_progress_bar=False)
+            embeddings = self._model.encode(
+                texts,
+                batch_size=batch_size,
+                convert_to_numpy=True,
+                show_progress_bar=False,
+            )
             return embeddings.astype(np.float32)
         elif self._fallback_mock is not None:
             return self._fallback_mock.encode(texts)

@@ -33,7 +33,11 @@ def run_live_benchmark(num_queries: int = 50, algorithm: str = "two_tier", top_k
     4. Tái xếp hạng chính xác và sắp xếp kết quả (Re-ranking Sort).
     """
 
-    vectors, metadata, dataset_source = load_dataset_and_metadata()
+    res = load_dataset_and_metadata()
+    if len(res) == 5:
+        vectors, metadata, coords_3d, global_indices, dataset_source = res
+    else:
+        vectors, metadata, dataset_source = res[:3]
     num_vectors, dim = vectors.shape
 
     # Pre-generate query vectors to measure isolated search phases accurately

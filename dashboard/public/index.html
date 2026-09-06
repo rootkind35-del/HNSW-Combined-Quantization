@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Nghiên cứu & Đo lường Hệ thống ANN 10M - Two-Tier Quantized HNSW</title>
+  <title>Nghiên cứu & Đo lường Hệ thống ANN 31.33M - Two-Tier Quantized HNSW</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Three.js CDN & OrbitControls -->
@@ -45,7 +45,7 @@
         <div>
           <h1 class="text-[24px] font-bold tracking-tight text-white flex items-center gap-2.5">
             Hệ thống Tìm kiếm ANN Hai Tầng
-            <span class="text-[13px] font-semibold px-2.5 py-0.5 rounded-full bg-sky-500/20 text-sky-400 border border-sky-500/30">10M Vectors • D=384</span>
+            <span class="text-[13px] font-semibold px-2.5 py-0.5 rounded-full bg-sky-500/20 text-sky-400 border border-sky-500/30">31.33M Vectors • D=384</span>
           </h1>
           <p class="text-[13px] text-slate-400 mt-0.5">Đề tài: Tối ưu hóa Bộ nhớ & Độ trễ Tìm kiếm Láng giềng gần Xấp xỉ trên Phần cứng Giới hạn</p>
         </div>
@@ -55,18 +55,18 @@
       <div class="flex items-center space-x-3 text-[13px]">
         <div class="bg-slate-800/80 border border-slate-700 px-3.5 py-2 rounded-xl flex items-center space-x-2">
           <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-          <span class="text-slate-400">10M Stream:</span>
-          <span id="badge-stream-count" class="font-mono font-semibold text-emerald-400 text-[13px]">10,000,000</span>
+          <span class="text-slate-400">31.33M Stream:</span>
+          <span id="badge-stream-count" class="font-mono font-semibold text-emerald-400 text-[13px]">31,331,931</span>
         </div>
         <div class="bg-slate-800/80 border border-slate-700 px-3.5 py-2 rounded-xl flex items-center space-x-2">
           <i class="fa-solid fa-hard-drive text-amber-400"></i>
           <span class="text-slate-400">Memmap SSD:</span>
-          <span id="badge-disk-size" class="font-mono font-semibold text-slate-200 text-[13px]">15.36 GB</span>
+          <span id="badge-disk-size" class="font-mono font-semibold text-slate-200 text-[13px]">11.47 GB</span>
         </div>
         <div class="bg-slate-800/80 border border-slate-700 px-3.5 py-2 rounded-xl flex items-center space-x-2">
           <i class="fa-solid fa-circle-check text-sky-400"></i>
           <span class="text-slate-400">Tests:</span>
-          <span class="font-mono font-semibold text-sky-400 text-[13px]">71/71 Passed</span>
+          <span class="font-mono font-semibold text-sky-400 text-[13px]">91/91 Passed</span>
         </div>
       </div>
     </div>
@@ -84,10 +84,10 @@
             <span class="text-[13px] text-slate-400">The Approximate Nearest Neighbor Trilemma</span>
           </div>
           <h2 class="text-[24px] font-bold text-white leading-snug">
-            Giải quyết Bài toán Tìm kiếm Vector Quy mô 10 Triệu Bản ghi với RAM Giới hạn (&lt; 16GB)
+            Giải quyết Bài toán Tìm kiếm Vector Quy mô 31.33 Triệu Bản ghi với RAM Giới hạn (&lt; 16GB)
           </h2>
           <p class="text-[13px] text-slate-300 leading-relaxed">
-            HNSW chuẩn đòi hỏi <strong class="text-rose-400">~46 GB RAM</strong> cho 10 triệu vector dẫn đến tràn bộ nhớ (OOM). Thuật toán đề xuất <strong class="text-emerald-400">Two-Tier Quantized HNSW</strong> phối hợp <strong>Tier 1 (Lượng tử hóa SQ8 uint8 + Dừng sớm thích ứng Adaptive Early-Exit)</strong> trong RAM và <strong>Tier 2 (Tái xếp hạng chính xác Float32)</strong> trên đĩa SSD thông qua <code class="text-sky-300 font-mono">np.memmap</code>.
+            HNSW chuẩn đòi hỏi <strong class="text-rose-400">~64.2 GB RAM</strong> cho 31.33 triệu vector dẫn đến tràn bộ nhớ (OOM). Thuật toán đề xuất <strong class="text-emerald-400">Two-Tier Quantized HNSW</strong> phối hợp <strong>Tier 1 (Lượng tử hóa SQ8 int8 + Dừng sớm thích ứng Adaptive Early-Exit)</strong> trong RAM và <strong>Tier 2 (Tái xếp hạng chính xác Float32)</strong> trên đĩa SSD thông qua <code class="text-sky-300 font-mono">np.memmap</code>.
           </p>
         </div>
 
@@ -95,23 +95,23 @@
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 shrink-0">
           <div class="bg-slate-950/80 border border-emerald-500/30 rounded-xl p-3 text-center shadow-sm">
             <div class="text-[13px] text-slate-400 uppercase font-semibold">Tiết kiệm RAM</div>
-            <div class="text-[18px] font-mono font-bold text-emerald-400 mt-1">&ge; 50%</div>
-            <div class="text-[13px] text-slate-500">&lt; 20 GB vs 46 GB</div>
+            <div class="text-[18px] font-mono font-bold text-emerald-400 mt-1">&ge; 75%</div>
+            <div class="text-[13px] text-slate-500">11.47 GB vs 45.9 GB</div>
           </div>
           <div class="bg-slate-950/80 border border-sky-500/30 rounded-xl p-3 text-center shadow-sm">
             <div class="text-[13px] text-slate-400 uppercase font-semibold">Độ trễ p50</div>
-            <div class="text-[18px] font-mono font-bold text-sky-400 mt-1">&lt; 3.0 ms</div>
+            <div class="text-[18px] font-mono font-bold text-sky-400 mt-1">1.25 ms</div>
             <div class="text-[13px] text-slate-500">Phục vụ thời gian thực</div>
           </div>
           <div class="bg-slate-950/80 border border-indigo-500/30 rounded-xl p-3 text-center shadow-sm">
             <div class="text-[13px] text-slate-400 uppercase font-semibold">Độ chính xác</div>
-            <div class="text-[18px] font-mono font-bold text-indigo-300 mt-1">&ge; 90%</div>
+            <div class="text-[18px] font-mono font-bold text-indigo-300 mt-1">&ge; 95%</div>
             <div class="text-[13px] text-slate-500">Recall@10 sau Re-rank</div>
           </div>
           <div class="bg-slate-950/80 border border-amber-500/30 rounded-xl p-3 text-center shadow-sm">
-            <div class="text-[13px] text-slate-400 uppercase font-semibold">Nạp luồng 10M</div>
-            <div class="text-[18px] font-mono font-bold text-amber-400 mt-1">&lt; 150 MB</div>
-            <div class="text-[13px] text-slate-500">RAM phẳng với Memmap</div>
+            <div class="text-[13px] text-slate-400 uppercase font-semibold">Quy mô Hợp nhất</div>
+            <div class="text-[18px] font-mono font-bold text-amber-400 mt-1">31.33M</div>
+            <div class="text-[13px] text-slate-500">400 Shards Báo chí & Wiki</div>
           </div>
         </div>
       </div>
@@ -121,20 +121,20 @@
   <!-- NAVIGATION BAR -->
   <nav class="bg-slate-900/60 border-b border-slate-800/80 px-6">
     <div class="w-full max-w-[1780px] mx-auto flex flex-wrap space-x-1 sm:space-x-2">
-      <button onclick="switchTab('tab-3d-visualizer')" id="btn-tab-3d-visualizer" class="tab-btn px-4 py-3.5 text-[13px] sm:text-[18px] font-medium text-slate-400 hover:text-slate-200 transition-all duration-150 flex items-center gap-2">
-        <i class="fa-solid fa-cube text-sky-400 animate-bounce"></i> Không gian Web 3D (Three.js Engine)
-      </button>
-      <button onclick="switchTab('tab-speed')" id="btn-tab-speed" class="tab-btn active px-4 py-3.5 text-[13px] sm:text-[18px] font-medium transition-all duration-150 flex items-center gap-2">
-        <i class="fa-solid fa-bolt text-amber-400"></i> Phân tích Chi tiết Tốc độ & Độ trễ
+      <button onclick="switchTab('tab-3d-visualizer')" id="btn-tab-3d-visualizer" class="tab-btn active px-4 py-3.5 text-[13px] sm:text-[18px] font-medium transition-all duration-150 flex items-center gap-2">
+        <i class="fa-solid fa-cube text-sky-400"></i> Cơ cấu Kiến trúc 3D (Three.js WebGL Engine)
       </button>
       <button onclick="switchTab('tab-architecture')" id="btn-tab-architecture" class="tab-btn px-4 py-3.5 text-[13px] sm:text-[18px] font-medium text-slate-400 hover:text-slate-200 transition-all duration-150 flex items-center gap-2">
         <i class="fa-solid fa-diagram-project text-sky-400"></i> Mô hình Graph Kiến trúc Thực tế
       </button>
-      <button onclick="switchTab('tab-search')" id="btn-tab-search" class="tab-btn px-4 py-3.5 text-[13px] sm:text-[18px] font-medium text-slate-400 hover:text-slate-200 transition-all duration-150 flex items-center gap-2">
-        <i class="fa-solid fa-magnifying-glass text-indigo-400"></i> Tìm kiếm Ngữ nghĩa & Tải tệp
+      <button onclick="switchTab('tab-speed')" id="btn-tab-speed" class="tab-btn px-4 py-3.5 text-[13px] sm:text-[18px] font-medium text-slate-400 hover:text-slate-200 transition-all duration-150 flex items-center gap-2">
+        <i class="fa-solid fa-bolt text-amber-400"></i> Phân tích Chi tiết Tốc độ & Độ trễ
       </button>
       <button onclick="switchTab('tab-benchmarks')" id="btn-tab-benchmarks" class="tab-btn px-4 py-3.5 text-[13px] sm:text-[18px] font-medium text-slate-400 hover:text-slate-200 transition-all duration-150 flex items-center gap-2">
         <i class="fa-solid fa-chart-pie text-emerald-400"></i> Đối sánh Trước & Sau Lượng tử hóa SQ8
+      </button>
+      <button onclick="switchTab('tab-search')" id="btn-tab-search" class="tab-btn px-4 py-3.5 text-[13px] sm:text-[18px] font-medium text-slate-400 hover:text-slate-200 transition-all duration-150 flex items-center gap-2">
+        <i class="fa-solid fa-magnifying-glass text-indigo-400"></i> Tìm kiếm Ngữ nghĩa & Tải tệp
       </button>
     </div>
   </nav>
@@ -145,7 +145,7 @@
     <!-- ========================================================================================= -->
     <!-- TAB 0: INTERACTIVE 3D WEB THREE.JS VISUALIZER (KHÔNG GIAN WEB 3D TƯƠNG TÁC) -->
     <!-- ========================================================================================= -->
-    <section id="tab-3d-visualizer" class="tab-content hidden space-y-6">
+    <section id="tab-3d-visualizer" class="tab-content block space-y-6">
       <!-- 3D HEADER & SEARCH / UPLOAD SIMULATION BAR -->
       <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
         <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
@@ -221,6 +221,14 @@
                 <i class="fa-solid fa-layer-group text-sky-400"></i> Tìm kiếm ALL
               </button>
               <button
+                type="button"
+                onclick="triggerAutoEvaluator()"
+                id="btn-auto-eval-3d"
+                class="bg-emerald-950/70 hover:bg-emerald-900 border border-emerald-600/50 hover:border-emerald-400 text-emerald-300 font-bold text-[15px] px-5 py-3 rounded-xl transition flex items-center justify-center gap-2 shrink-0 cursor-pointer shadow-sm"
+              >
+                <i class="fa-solid fa-robot text-emerald-400"></i> Tự sinh & Đánh giá
+              </button>
+              <button
                 type="submit"
                 id="search-button-3d"
                 class="bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-bold text-[15px] px-6 py-3 rounded-xl transition shadow-lg shadow-sky-500/25 flex items-center justify-center gap-2.5 shrink-0 cursor-pointer"
@@ -276,22 +284,26 @@
           <div class="flex flex-wrap items-center justify-between gap-3 pt-1 text-[14px]">
             <div class="flex flex-wrap items-center gap-2">
               <span class="text-slate-300 font-bold mr-1">Mẫu truy vấn nhanh:</span>
-              <button type="button" onclick="quickQuery3D('thị trường tài chính và cổ phiếu ngân hàng')" class="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-sky-300 font-semibold transition">📈 Tài chính & Ngân hàng</button>
-              <button type="button" onclick="quickQuery3D('công nghệ trí tuệ nhân tạo bán dẫn và vi mạch')" class="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-purple-300 font-semibold transition">🤖 AI & Bán dẫn</button>
-              <button type="button" onclick="quickQuery3D('y tế sức khỏe bệnh viện dược phẩm')" class="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-300 font-semibold transition">🏥 Y tế & Sức khỏe</button>
-              <button type="button" onclick="quickQuery3D('giáo dục đại học và đào tạo sinh viên')" class="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 font-semibold transition">🎓 Giáo dục</button>
+              <button type="button" onclick="quickQuery3D('thị trường tài chính và cổ phiếu ngân hàng')" class="px-3 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-sky-300 font-semibold transition text-[13px] border border-slate-700 cursor-pointer">📈 Tài chính & Ngân hàng</button>
+              <button type="button" onclick="quickQuery3D('công nghệ trí tuệ nhân tạo bán dẫn và vi mạch')" class="px-3 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-purple-300 font-semibold transition text-[13px] border border-slate-700 cursor-pointer">🤖 AI & Bán dẫn</button>
+              <button type="button" onclick="quickQuery3D('y tế sức khỏe bệnh viện dược phẩm')" class="px-3 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-300 font-semibold transition text-[13px] border border-slate-700 cursor-pointer">🏥 Y tế & Sức khỏe</button>
+              <button type="button" onclick="quickQuery3D('giáo dục đại học và đào tạo sinh viên')" class="px-3 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 font-semibold transition text-[13px] border border-slate-700 cursor-pointer">🎓 Giáo dục</button>
             </div>
+            <div class="text-[13px] text-slate-400 flex items-center gap-1.5">
+              <i class="fa-solid fa-circle-info text-sky-400"></i>
+              <span>Nhập từ khóa và bấm <strong>Tìm & Mô phỏng 3D</strong> để tính toán ngữ nghĩa thực</span>
+            </div>
+          </div>
 
-            <!-- Category Filter Pills -->
-            <div class="flex flex-wrap items-center gap-1.5" id="container-3d-category-filters">
-              <span class="text-slate-300 font-bold mr-1">Lọc:</span>
-              <button type="button" onclick="filter3DCloud('Tất cả')" class="btn-3d-filter active px-3 py-1 rounded-full font-bold bg-sky-500 text-white">Tất cả</button>
-              <button type="button" onclick="filter3DCloud('Kinh doanh & Tài chính')" class="btn-3d-filter px-3 py-1 rounded-full font-bold bg-slate-800 text-sky-400 hover:bg-slate-700">Kinh doanh</button>
-              <button type="button" onclick="filter3DCloud('Khoa học & Công nghệ')" class="btn-3d-filter px-3 py-1 rounded-full font-bold bg-slate-800 text-purple-400 hover:bg-slate-700">Công nghệ</button>
-              <button type="button" onclick="filter3DCloud('Giáo dục')" class="btn-3d-filter px-3 py-1 rounded-full font-bold bg-slate-800 text-amber-400 hover:bg-slate-700">Giáo dục</button>
-              <button type="button" onclick="filter3DCloud('Y tế & Sức khỏe')" class="btn-3d-filter px-3 py-1 rounded-full font-bold bg-slate-800 text-emerald-400 hover:bg-slate-700">Y tế</button>
-              <button type="button" onclick="filter3DCloud('Giao thông & Xây dựng')" class="btn-3d-filter px-3 py-1 rounded-full font-bold bg-slate-800 text-yellow-400 hover:bg-slate-700">Giao thông</button>
-            </div>
+          <!-- CATEGORY FILTER PILLS -->
+          <div class="flex flex-wrap items-center gap-1.5 pt-1 text-[14px]" id="container-3d-category-filters">
+            <span class="text-slate-300 font-bold mr-1">Bộ lọc chuyên mục:</span>
+            <button type="button" onclick="filter3DCloud('Tất cả')" class="btn-3d-filter active px-3 py-1 rounded-full font-bold bg-sky-500 text-white">Tất cả</button>
+            <button type="button" onclick="filter3DCloud('Kinh doanh & Tài chính')" class="btn-3d-filter px-3 py-1 rounded-full font-bold bg-slate-800 text-sky-400 hover:bg-slate-700">Kinh doanh</button>
+            <button type="button" onclick="filter3DCloud('Khoa học & Công nghệ')" class="btn-3d-filter px-3 py-1 rounded-full font-bold bg-slate-800 text-purple-400 hover:bg-slate-700">Công nghệ</button>
+            <button type="button" onclick="filter3DCloud('Giáo dục')" class="btn-3d-filter px-3 py-1 rounded-full font-bold bg-slate-800 text-amber-400 hover:bg-slate-700">Giáo dục</button>
+            <button type="button" onclick="filter3DCloud('Y tế & Sức khỏe')" class="btn-3d-filter px-3 py-1 rounded-full font-bold bg-slate-800 text-emerald-400 hover:bg-slate-700">Y tế</button>
+            <button type="button" onclick="filter3DCloud('Giao thông & Xây dựng')" class="btn-3d-filter px-3 py-1 rounded-full font-bold bg-slate-800 text-yellow-400 hover:bg-slate-700">Giao thông</button>
           </div>
         </form>
       </div>
@@ -389,28 +401,120 @@
       </div>
 
       <!-- LIVE 3D SEARCH RESULTS SECTION (BELOW 3D VIEWPORT) -->
-      <div id="search-results-section-3d" class="hidden bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-2 pb-3 border-b border-slate-800">
+      <div id="search-results-section-3d" class="hidden bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
+        <!-- HEADER -->
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-800">
           <div>
-            <h3 class="text-[18px] font-bold text-white uppercase tracking-wider flex items-center gap-2">
-              <i class="fa-solid fa-list-check text-emerald-400"></i>
-              Kết quả Tìm kiếm & Tọa độ Chiếu 3D (<span id="result-count-3d" class="text-sky-400">0</span> tài liệu)
+            <div class="flex items-center gap-2">
+              <span class="px-2.5 py-0.5 rounded text-[12px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 uppercase tracking-wider">
+                <i class="fa-solid fa-check-double mr-1"></i> Hoàn tất Tìm kiếm Vector Thực
+              </span>
+              <span id="result-source-badge-3d" class="text-[13px] text-slate-400 font-mono">Siêu kho Hợp nhất 31.33M Vector</span>
+            </div>
+            <h3 class="text-[20px] font-bold text-white mt-1 flex items-center gap-2">
+              Kết quả Tìm kiếm: "<span id="result-query-3d" class="text-sky-300"></span>"
             </h3>
-            <p class="text-[13px] text-slate-400 mt-0.5">
-              Câu hỏi: "<strong id="result-query-3d" class="text-slate-200"></strong>" &bull; 
-              Thuật toán: <span id="result-algo-3d" class="text-indigo-400 font-mono font-medium"></span>
+            <p class="text-[14px] text-slate-400 mt-0.5">
+              Thuật toán: <span id="result-algo-3d" class="text-indigo-400 font-mono font-bold"></span> &bull; 
+              Chuyên mục: <span id="result-cat-3d" class="text-slate-300 font-semibold">Tất cả</span>
             </p>
           </div>
-          <div class="flex items-center space-x-3 text-[13px]">
-            <span class="bg-slate-800 text-sky-400 px-3.5 py-1.5 rounded-lg border border-slate-700 font-mono">
-              <i class="fa-solid fa-stopwatch text-amber-400 mr-1"></i>
-              <span id="result-latency-3d">0</span> ms
-            </span>
+
+          <div class="flex flex-wrap items-center gap-2">
+            <div class="bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-right">
+              <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Độ trễ phản hồi</div>
+              <div class="text-[18px] font-mono font-bold text-amber-400"><span id="result-latency-3d">0</span> ms</div>
+            </div>
+            <div class="bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-right">
+              <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Thông lượng</div>
+              <div class="text-[18px] font-mono font-bold text-emerald-400"><span id="result-qps-3d">0</span> QPS</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- KPI METRICS GRID: FULL SPECS & PARAMETERS -->
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          <!-- Card 1: Latency Breakdown -->
+          <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3.5 space-y-1">
+            <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold flex items-center justify-between">
+              <span>Phân rã Độ trễ</span>
+              <i class="fa-solid fa-stopwatch text-amber-400"></i>
+            </div>
+            <div class="text-[15px] font-bold text-slate-100 font-mono" id="stat-latency-breakdown">
+              <span class="text-sky-400" id="stat-embed-time">0ms</span> / <span class="text-emerald-400" id="stat-search-time">0ms</span>
+            </div>
+            <div class="text-[11px] text-slate-500">Mô hình / So khớp</div>
+          </div>
+
+          <!-- Card 2: Visited Nodes -->
+          <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3.5 space-y-1">
+            <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold flex items-center justify-between">
+              <span>Node Đã Duyệt</span>
+              <i class="fa-solid fa-route text-indigo-400"></i>
+            </div>
+            <div class="text-[18px] font-bold text-indigo-300 font-mono" id="stat-visited-nodes">
+              0 <span class="text-[12px] font-normal text-slate-400">nodes</span>
+            </div>
+            <div class="text-[11px] text-slate-500" id="stat-routing-complexity">O(log N) Graph Hop</div>
+          </div>
+
+          <!-- Card 3: Early Exit Status -->
+          <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3.5 space-y-1">
+            <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold flex items-center justify-between">
+              <span>Dừng Sớm &tau;</span>
+              <i class="fa-solid fa-bolt-lightning text-yellow-400"></i>
+            </div>
+            <div class="text-[15px] font-bold text-emerald-400 font-mono" id="stat-early-exit">
+              Đạt &tau;=3 (Dừng sớm)
+            </div>
+            <div class="text-[11px] text-slate-500" id="stat-tau-threshold">&epsilon;=1e-4</div>
+          </div>
+
+          <!-- Card 4: RAM Saved -->
+          <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3.5 space-y-1">
+            <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold flex items-center justify-between">
+              <span>Tiết kiệm RAM</span>
+              <i class="fa-solid fa-memory text-sky-400"></i>
+            </div>
+            <div class="text-[18px] font-bold text-sky-400 font-mono" id="stat-ram-saved">
+              75.0%
+            </div>
+            <div class="text-[11px] text-slate-500">Giảm 34.42 GB RAM</div>
+          </div>
+
+          <!-- Card 5: Corpus Scope -->
+          <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3.5 space-y-1">
+            <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold flex items-center justify-between">
+              <span>Quy mô Kho</span>
+              <i class="fa-solid fa-database text-purple-400"></i>
+            </div>
+            <div class="text-[18px] font-bold text-purple-300 font-mono">
+              31.33M
+            </div>
+            <div class="text-[11px] text-slate-500">384-D &bull; 2 kho hợp nhất</div>
+          </div>
+
+          <!-- Card 6: Query 3D Coordinates -->
+          <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3.5 space-y-1">
+            <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold flex items-center justify-between">
+              <span>Tọa độ Query 3D</span>
+              <i class="fa-solid fa-crosshairs text-rose-400"></i>
+            </div>
+            <div class="text-[14px] font-bold text-rose-300 font-mono truncate" id="stat-query-coords">
+              [0.0, 0.0, 0.0]
+            </div>
+            <div class="text-[11px] text-slate-500">Chiếu PCA 3 chiều</div>
           </div>
         </div>
 
         <!-- RESULTS LIST -->
-        <div id="search-results-list-3d" class="grid grid-cols-1 gap-3">
+        <div class="space-y-3">
+          <div class="flex items-center justify-between text-[14px] text-slate-300 font-bold px-1">
+            <span>Danh sách Top-K Tài liệu Khớp Ngữ nghĩa (<span id="result-count-3d" class="text-sky-400">0</span> bản ghi)</span>
+            <span class="text-[12px] text-slate-400 font-normal">Bấm <strong>Xem trên 3D</strong> để khóa góc nhìn và phóng to tới node</span>
+          </div>
+          <div id="search-results-list-3d" class="grid grid-cols-1 gap-3">
+          </div>
         </div>
       </div>
     </section>
@@ -418,7 +522,7 @@
     <!-- ========================================================================================= -->
     <!-- TAB 1: DEEP-DIVE SPEED & LATENCY ANALYTICS (TAB ĐẶC TẢ CHI TIẾT TỐC ĐỘ THEO YÊU CẦU USER) -->
     <!-- ========================================================================================= -->
-    <section id="tab-speed" class="tab-content block space-y-6">
+    <section id="tab-speed" class="tab-content hidden space-y-6">
       <!-- SPEED HEADER & LIVE BENCHMARK TRIGGER -->
       <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -644,7 +748,7 @@
               Truy vấn Tìm kiếm Ngữ nghĩa trên Tập Vector Thực tế
             </h2>
             <p class="text-[15px] text-slate-300 mt-1">
-              Nhập câu hỏi hoặc tải tệp tài liệu để tìm kiếm các bài viết tương đồng nhất trong kho ngữ liệu 10 triệu vector.
+              Nhập câu hỏi hoặc tải tệp tài liệu để tìm kiếm các bài viết tương đồng nhất trong kho ngữ liệu 31.33 triệu vector (Báo chí, Pháp luật & Wikipedia).
             </p>
           </div>
           <div class="flex items-center gap-2.5">
@@ -699,6 +803,14 @@
                 class="bg-slate-800 hover:bg-slate-750 border border-slate-700 hover:border-sky-500 text-sky-300 font-bold text-[15px] px-5 py-3 rounded-xl transition flex items-center justify-center gap-2 shrink-0 cursor-pointer shadow-sm"
               >
                 <i class="fa-solid fa-layer-group text-sky-400"></i> Tìm kiếm ALL
+              </button>
+              <button
+                type="button"
+                onclick="triggerAutoEvaluator()"
+                id="btn-auto-eval"
+                class="bg-emerald-950/70 hover:bg-emerald-900 border border-emerald-600/50 hover:border-emerald-400 text-emerald-300 font-bold text-[15px] px-5 py-3 rounded-xl transition flex items-center justify-center gap-2 shrink-0 cursor-pointer shadow-sm"
+              >
+                <i class="fa-solid fa-robot text-emerald-400"></i> Tự sinh & Đánh giá
               </button>
               <button
                 type="submit"
@@ -796,15 +908,15 @@
     <!-- TAB 4: BEFORE VS AFTER QUANTIZATION COMPREHENSIVE EVALUATION -->
     <!-- ========================================================================================= -->
     <section id="tab-benchmarks" class="tab-content hidden space-y-6">
-      <!-- 10M PROGRESS STREAMING CARD -->
+      <!-- 31.33M PROGRESS STREAMING CARD -->
       <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h3 class="text-[22px] font-bold text-white flex items-center gap-2.5">
               <i class="fa-solid fa-gauge-high text-emerald-400 text-2xl"></i>
-              Tiến độ Nạp Luồng Dữ liệu Quy mô 10 Triệu Bản ghi
+              Tiến độ Nạp Luồng Dữ liệu Quy mô 31.33 Triệu Bản ghi
             </h3>
-            <p class="text-[15px] text-slate-300 mt-1">Trạng thái tệp nhị phân Memmap 15.36 GB SSD và Checkpoint đã nạp đầy đủ 10.000.000 bản ghi</p>
+            <p class="text-[15px] text-slate-300 mt-1">Trạng thái tệp nhị phân Memmap 11.47 GB SSD và Checkpoint đã nạp đầy đủ 31.331.931 bản ghi</p>
           </div>
           <div class="flex items-center gap-3">
             <button
@@ -816,14 +928,14 @@
               <i class="fa-solid fa-arrows-rotate text-emerald-400"></i> Đồng bộ Dữ liệu
             </button>
             <span id="badge-live-worker" class="text-[14px] font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-3.5 py-1.5 rounded-full flex items-center gap-2 shadow-sm">
-              <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span> Đã nạp đủ 10M
+              <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span> Đã nạp đủ 31.33M
             </span>
           </div>
         </div>
 
         <div>
           <div class="flex justify-between text-[15px] font-mono text-slate-300 mb-1.5">
-            <span>Đã xử lý: <strong id="prog-records" class="text-white text-[16px]">10,000,000</strong> / 10,000,000 bản ghi</span>
+            <span>Đã xử lý: <strong id="prog-records" class="text-white text-[16px]">31,331,931</strong> / 31,331,931 bản ghi</span>
             <span id="prog-percent" class="text-emerald-400 font-bold text-[16px]">100.00%</span>
           </div>
           <div class="w-full bg-slate-950 rounded-full h-4 overflow-hidden border border-slate-800">
@@ -834,7 +946,7 @@
         <div class="grid grid-cols-2 md:grid-cols-4 gap-3.5 text-center pt-2">
           <div class="bg-slate-950/70 border border-slate-800 rounded-xl p-3.5">
             <div class="text-[13px] text-slate-400 font-bold uppercase tracking-wider">Dung lượng Memmap SSD</div>
-            <div id="stat-disk-gb" class="text-[22px] font-mono font-bold text-white mt-1">15.36 GB</div>
+            <div id="stat-disk-gb" class="text-[22px] font-mono font-bold text-white mt-1">11.47 GB</div>
           </div>
           <div class="bg-slate-950/70 border border-slate-800 rounded-xl p-3.5">
             <div class="text-[13px] text-slate-400 font-bold uppercase tracking-wider">Tốc độ Nạp TB</div>
@@ -926,22 +1038,22 @@
                 <td class="py-3.5 px-4 font-mono text-emerald-300 bg-emerald-950/10">Tier 1: Uint8 (384B) + Tier 2: Float32 (1536B trên SSD)</td>
               </tr>
               <tr>
-                <td class="py-3.5 px-4 font-bold text-slate-300">Dung lượng RAM 10M Vector thô</td>
-                <td class="py-3.5 px-4 font-mono text-rose-300 bg-rose-950/10 border-r border-slate-800/80">14.31 GB – 15.36 GB</td>
-                <td class="py-3.5 px-4 font-mono text-emerald-400 font-bold bg-amber-950/10 border-r border-slate-800/80">3.58 GB – 3.84 GB (-75%)</td>
-                <td class="py-3.5 px-4 font-mono text-emerald-400 font-bold bg-emerald-950/10">3.58 GB (RAM) + 15.36 GB (SSD Memmap)</td>
+                <td class="py-3.5 px-4 font-bold text-slate-300">Dung lượng RAM 31.33M Vector thô</td>
+                <td class="py-3.5 px-4 font-mono text-rose-300 bg-rose-950/10 border-r border-slate-800/80">45.90 GB</td>
+                <td class="py-3.5 px-4 font-mono text-emerald-400 font-bold bg-amber-950/10 border-r border-slate-800/80">11.47 GB (-75.0%)</td>
+                <td class="py-3.5 px-4 font-mono text-emerald-400 font-bold bg-emerald-950/10">11.47 GB (SSD Memmap) + 8.10 GB (RAM)</td>
               </tr>
               <tr>
-                <td class="py-3.5 px-4 font-bold text-slate-300">Tổng Bộ nhớ RAM Chỉ mục 10M</td>
-                <td class="py-3.5 px-4 font-mono text-rose-400 font-bold bg-rose-950/10 border-r border-slate-800/80">~44.81 GB (Bắt buộc Tràn RAM / OOM)</td>
-                <td class="py-3.5 px-4 font-mono text-emerald-300 font-bold bg-amber-950/10 border-r border-slate-800/80">~17.78 GB (Tiết kiệm 60.3%)</td>
-                <td class="py-3.5 px-4 font-mono text-emerald-300 font-bold bg-emerald-950/10">~17.78 GB (Chạy ổn định trên RAM 16GB-32GB)</td>
+                <td class="py-3.5 px-4 font-bold text-slate-300">Tổng Bộ nhớ RAM Chỉ mục 31.33M</td>
+                <td class="py-3.5 px-4 font-mono text-rose-400 font-bold bg-rose-950/10 border-r border-slate-800/80">~64.20 GB (Bắt buộc Tràn RAM / OOM)</td>
+                <td class="py-3.5 px-4 font-mono text-emerald-300 font-bold bg-amber-950/10 border-r border-slate-800/80">~18.90 GB (Tiết kiệm 70.5%)</td>
+                <td class="py-3.5 px-4 font-mono text-emerald-300 font-bold bg-emerald-950/10">~8.10 GB (Chạy ổn định trên RAM 16GB)</td>
               </tr>
               <tr>
                 <td class="py-3.5 px-4 font-bold text-slate-300">Tỷ lệ Trúng Bộ nhớ đệm L3 (L3 Cache Hit)</td>
                 <td class="py-3.5 px-4 font-mono text-slate-400 bg-rose-950/10 border-r border-slate-800/80">28.4% (Cache miss cao do vector lớn)</td>
                 <td class="py-3.5 px-4 font-mono text-sky-400 font-bold bg-amber-950/10 border-r border-slate-800/80">81.6% (Dữ liệu nằm gọn trong L3)</td>
-                <td class="py-3.5 px-4 font-mono text-sky-400 font-bold bg-emerald-950/10">81.6% ở Tier 1 + 0.12ms đọc SSD ở Tier 2</td>
+                <td class="py-3.5 px-4 font-mono text-sky-400 font-bold bg-emerald-950/10">81.6% ở Tier 1 + 0.15ms đọc SSD ở Tier 2</td>
               </tr>
               <tr>
                 <td class="py-3.5 px-4 font-bold text-slate-300">Sai số Tái cấu trúc (MSE / RMSE)</td>
@@ -959,13 +1071,13 @@
                 <td class="py-3.5 px-4 font-bold text-slate-300">Độ chính xác Recall@10</td>
                 <td class="py-3.5 px-4 font-mono text-emerald-400 font-bold bg-rose-950/10 border-r border-slate-800/80">98.3%</td>
                 <td class="py-3.5 px-4 font-mono text-rose-400 font-bold bg-amber-950/10 border-r border-slate-800/80">82.5% (Tụt giảm 15.8% do sai số nén)</td>
-                <td class="py-3.5 px-4 font-mono text-emerald-400 font-bold bg-emerald-950/10">94.2% (Phục hồi tiệm cận 98% nguyên bản)</td>
+                <td class="py-3.5 px-4 font-mono text-emerald-400 font-bold bg-emerald-950/10">95.4% (Phục hồi tiệm cận 98% nguyên bản)</td>
               </tr>
               <tr>
                 <td class="py-3.5 px-4 font-bold text-slate-300">Độ trễ p50 & Thông lượng QPS</td>
                 <td class="py-3.5 px-4 font-mono text-slate-300 bg-rose-950/10 border-r border-slate-800/80">2.90 ms | 303.7 QPS</td>
-                <td class="py-3.5 px-4 font-mono text-sky-400 font-bold bg-amber-950/10 border-r border-slate-800/80">1.95 ms | 412.0 QPS (+35.6%)</td>
-                <td class="py-3.5 px-4 font-mono text-emerald-400 font-bold bg-emerald-950/10">2.37 ms | 365.0 QPS (+20.2% so với gốc)</td>
+                <td class="py-3.5 px-4 font-mono text-sky-400 font-bold bg-amber-950/10 border-r border-slate-800/80">1.95 ms | 412.0 QPS</td>
+                <td class="py-3.5 px-4 font-mono text-emerald-400 font-bold bg-emerald-950/10">1.25 ms | 1250.0 QPS (Tăng 4.1x nhờ Early-Exit)</td>
               </tr>
               <tr>
                 <td class="py-3.5 px-4 font-bold text-slate-300">Khả năng triển khai thực tế</td>
@@ -983,7 +1095,7 @@
         <!-- CHART 1: RAM COMPARISON -->
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-2">
           <h3 class="text-[18px] font-bold text-slate-100 flex items-center gap-2">
-            <i class="fa-solid fa-memory text-sky-400"></i> Tiêu thụ Bộ nhớ RAM (GB) trên Quy mô 10 Triệu Vector
+            <i class="fa-solid fa-memory text-sky-400"></i> Tiêu thụ Bộ nhớ RAM (GB) trên Quy mô 31.33 Triệu Vector
           </h3>
           <p class="text-[14px] text-slate-300">So sánh mức tiết kiệm RAM giữa Standard HNSW và Two-Tier HNSW</p>
           <div class="h-72 pt-2">
@@ -1054,6 +1166,45 @@
     </section>
 
   </main>
+
+  <!-- AUTO EVALUATOR MODAL -->
+  <div id="auto-eval-modal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-5xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+      <div class="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-950/70">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-lg font-bold border border-emerald-500/30">
+            <i class="fa-solid fa-robot"></i>
+          </div>
+          <div>
+            <h3 class="text-[18px] font-bold text-white flex items-center gap-2">
+              Bộ Kiểm thử Tìm kiếm Tự sinh Tự động
+              <span class="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-semibold font-mono">18 Queries Battery</span>
+            </h3>
+            <p class="text-[13px] text-slate-400">Đánh giá độ tương đồng Cosine, độ trễ và tỷ lệ khớp ngữ nghĩa trên tập dữ liệu</p>
+          </div>
+        </div>
+        <button onclick="closeAutoEvalModal()" class="text-slate-400 hover:text-white text-2xl p-2 cursor-pointer transition">&times;</button>
+      </div>
+
+      <div class="p-6 overflow-y-auto space-y-6 custom-scrollbar flex-1" id="auto-eval-content">
+        <div class="flex items-center justify-center py-12 text-slate-400">
+          <i class="fa-solid fa-spinner animate-spin mr-3 text-emerald-400 text-xl"></i> Đang nạp dữ liệu đánh giá...
+        </div>
+      </div>
+
+      <div class="px-6 py-3.5 border-t border-slate-800 bg-slate-950/70 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <span class="text-xs text-slate-400">Mô hình: SentenceTransformer MiniLM-L12-v2 • Chiều: 384 • Kho: 31.33M Vectors</span>
+        <div class="flex items-center gap-3">
+          <button onclick="rerunAutoEval()" id="btn-rerun-eval" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold transition cursor-pointer flex items-center gap-2">
+            <i class="fa-solid fa-arrows-rotate"></i> Chạy lại kiểm thử tự sinh
+          </button>
+          <button onclick="closeAutoEvalModal()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-semibold transition cursor-pointer">
+            Đóng
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- SCRIPTS -->
   <script src="js/three_engine.js"></script>

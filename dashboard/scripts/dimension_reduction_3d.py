@@ -36,14 +36,69 @@ def assign_category(text: str) -> str:
     return "Văn hóa & Đời sống"
 
 
-def load_dataset():
-    """Loads vectors and metadata."""
+def load_dataset(max_samples: int = 3000):
+    """Nạp mẫu vector và metadata từ bộ đệm chỉ mục thực tế hoặc Kho Hợp nhất 31.33M vector."""
+    # 1. Ưu tiên nạp từ search_index_cache.npz để đồng bộ 100% tọa độ 3D với bộ tìm kiếm thực tế
+    npz_path = os.path.join(BASE_DIR, "data", "processed", "search_index_cache.npz")
+    meta_path = os.path.join(BASE_DIR, "data", "processed", "search_index_metadata.json")
+
+    if os.path.exists(npz_path) and os.path.exists(meta_path):
+        try:
+            npz_data = np.load(npz_path)
+            all_vecs = npz_data["vectors"].astype(np.float32)
+            with open(meta_path, "r", encoding="utf-8") as f:
+                all_meta = json.load(f)
+
+            n = min(len(all_vecs), max_samples)
+            vectors = all_vecs[:n]
+            metadata = all_meta[:n]
+            return vectors, metadata, f"data/processed/search_index_cache.npz ({len(all_vecs):,} vectors)", all_vecs, all_meta
+        except Exception as e:
+            print(f"[3D Pipeline] Lỗi nạp từ search_index_cache: {e}")
+
+    # 2. Fallback nạp từ Kho Hợp nhất 31.33M
+    combined_dir = os.path.join(BASE_DIR, "data", "quantized_combined")
+    map_file = os.path.join(combined_dir, "corpus_offset_map.json")
+
+    if os.path.exists(map_file):
+        try:
+            from quantizer.unified_corpus import UnifiedQuantizedCorpus
+            corpus = UnifiedQuantizedCorpus(combined_dir)
+            total = len(corpus)
+            half = max_samples // 2
+            idx1 = [i * 20 for i in range(half)]
+            idx2 = [16459486 + i * 20 for i in range(half)]
+            sample_indices = idx1 + idx2
+
+            vecs_int8 = corpus.get_vectors(sample_indices)
+            vectors = vecs_int8.astype(np.float32)
+            meta_dict = corpus.get_metadata_batch(sample_indices)
+            corpus.close()
+
+            metadata = []
+            for g_idx in sample_indices:
+                m = meta_dict.get(g_idx, {})
+                title_text = m.get("title", "") + " " + (m.get("text") or m.get("summary", ""))
+                cat = assign_category(title_text)
+                metadata.append({
+                    "doc_id": m.get("doc_id", f"doc_{g_idx}"),
+                    "title": m.get("title", f"Tài liệu {g_idx}"),
+                    "preview": (m.get("text") or m.get("summary", ""))[:150],
+                    "category": cat,
+                    "corpus_source": m.get("corpus_source", "combined"),
+                    "token_count": len((m.get("text") or "").split())
+                })
+            return vectors, metadata, f"data/quantized_combined ({total:,} vectors, 2 nguồn)", None
+        except Exception as e:
+            print(f"[3D Pipeline] Lỗi nạp từ kho hợp nhất: {e}")
+
+    # 3. Fallback kiểm tra các kho con đơn lẻ
     candidates = [
-        ("data/processed/hf_large_vectors.dat", "data/processed/hf_large_metadata.jsonl", 384),
-        ("data/processed/real_news_vectors.dat", "data/processed/real_news_metadata.jsonl", 384),
+        ("data/quantized/vectors_int8.dat", "data/quantized/metadata.jsonl", 384, "int8"),
+        ("data/quantized_wiki/vectors_int8.dat", "data/quantized_wiki/metadata.jsonl", 384, "int8"),
     ]
 
-    for v_rel, m_rel, dim in candidates:
+    for v_rel, m_rel, dim, dtype in candidates:
         v_path = os.path.join(BASE_DIR, v_rel)
         m_path = os.path.join(BASE_DIR, m_rel)
         if os.path.exists(v_path) and os.path.exists(m_path):
@@ -54,17 +109,19 @@ def load_dataset():
                     if line:
                         try:
                             meta_obj = json.loads(line)
-                            title_text = meta_obj.get("title", "") + " " + meta_obj.get("preview", "")
+                            title_text = meta_obj.get("title", "") + " " + meta_obj.get("text", meta_obj.get("preview", ""))
                             meta_obj["category"] = assign_category(title_text)
                             metadata.append(meta_obj)
+                            if len(metadata) >= max_samples:
+                                break
                         except Exception:
                             pass
             count = len(metadata)
             if count > 0:
-                mmap = np.memmap(v_path, dtype="float32", mode="r", shape=(count, dim))
-                vectors = np.array(mmap)
+                mmap = np.memmap(v_path, dtype=dtype, mode="r", shape=(count, dim))
+                vectors = np.array(mmap, dtype=np.float32)
                 del mmap
-                return vectors, metadata, v_rel
+                return vectors, metadata, v_rel, None
 
     # Fallback synthetic
     np.random.seed(42)
@@ -81,7 +138,7 @@ def load_dataset():
         }
         for i in range(count)
     ]
-    return vectors, metadata, "synthetic"
+    return vectors, metadata, "synthetic", None
 
 
 def compute_pca_3d(vectors: np.ndarray, n_components: int = 3):
@@ -109,17 +166,16 @@ def compute_pca_3d(vectors: np.ndarray, n_components: int = 3):
 
 def generate_hnsw_3d_topology(coords_3d: np.ndarray, metadata: list):
     """
-    Generates a structured 3D multi-layer HNSW graph for visualization.
-    - Layer 2 (Top): Sparsest (5-8 nodes), fast skip links.
-    - Layer 1 (Middle): Medium (20-30 nodes).
-    - Layer 0 (Bottom): Dense base layer.
+    Tạo cấu trúc đồ thị phân tầng HNSW đa tầng quy mô lớn:
+    - Layer 2 (Top Navigation): ~50 nút, kết nối thưa điều hướng nhanh.
+    - Layer 1 (Mid Express Routing): ~240 nút, liên kết nhảy cóc tầm trung.
+    - Layer 0 (Base Dense Layer): ~1.200 nút, mạng lưới đồ thị dày đặc cơ sở.
     """
-    n = min(len(coords_3d), 300)
+    n = min(len(coords_3d), 1200)
     sample_indices = np.linspace(0, len(coords_3d) - 1, n, dtype=int)
 
-    layer_heights = {2: 26.0, 1: 0.0, 0: -26.0}
+    layer_heights = {2: 28.0, 1: 0.0, 0: -28.0}
 
-    # Assign layers probabilistically (HNSW exponential decay)
     l2_nodes = []
     l1_nodes = []
     l0_nodes = []
@@ -129,9 +185,9 @@ def generate_hnsw_3d_topology(coords_3d: np.ndarray, metadata: list):
         meta = metadata[idx]
         node_id = meta.get("doc_id", f"node_{idx}")
         title = meta.get("title", f"Document {idx}")
-        category = meta.get("category", "Chung")
+        category = meta.get("category", "Văn hóa & Đời sống")
 
-        # Layer 0 contains all sampled nodes
+        # Layer 0 chứa toàn bộ các nút trong mẫu (1.200 nút)
         node_l0 = {
             "id": f"l0_{node_id}",
             "doc_id": node_id,
@@ -145,7 +201,7 @@ def generate_hnsw_3d_topology(coords_3d: np.ndarray, metadata: list):
         }
         l0_nodes.append(node_l0)
 
-        # Layer 1 gets ~20% of nodes
+        # Layer 1 lấy ~20% số nút (~240 nút)
         if idx % 5 == 0:
             node_l1 = {
                 "id": f"l1_{node_id}",
@@ -160,8 +216,8 @@ def generate_hnsw_3d_topology(coords_3d: np.ndarray, metadata: list):
             }
             l1_nodes.append(node_l1)
 
-            # Layer 2 gets ~4% of nodes (entry tier)
-            if idx % 25 == 0 or len(l2_nodes) < 6:
+            # Layer 2 lấy ~4% số nút (~48-50 nút)
+            if idx % 25 == 0 or len(l2_nodes) < 8:
                 node_l2 = {
                     "id": f"l2_{node_id}",
                     "doc_id": node_id,
@@ -175,17 +231,17 @@ def generate_hnsw_3d_topology(coords_3d: np.ndarray, metadata: list):
                 }
                 l2_nodes.append(node_l2)
 
-    # Build intra-layer nearest edges
+    # Xây dựng liên kết cùng tầng (Intra-layer edges)
     edges = []
 
-    def connect_layer(nodes_list, max_neighbors=3):
+    def connect_layer(nodes_list, max_neighbors=4):
         n_nodes = len(nodes_list)
         if n_nodes < 2:
             return
         pts = np.array([[n["x"], n["z"]] for n in nodes_list])
         for i in range(n_nodes):
             dists = np.sum((pts - pts[i]) ** 2, axis=1)
-            nearest = np.argsort(dists)[1 : max_neighbors + 1]
+            nearest = np.argsort(dists)[1 : min(max_neighbors + 1, n_nodes)]
             for j in nearest:
                 edges.append({
                     "from": nodes_list[i]["id"],
@@ -194,22 +250,24 @@ def generate_hnsw_3d_topology(coords_3d: np.ndarray, metadata: list):
                     "type": "intra"
                 })
 
-    connect_layer(l2_nodes, max_neighbors=2)
-    connect_layer(l1_nodes, max_neighbors=3)
-    connect_layer(l0_nodes, max_neighbors=3)
+    connect_layer(l2_nodes, max_neighbors=3)
+    connect_layer(l1_nodes, max_neighbors=4)
+    connect_layer(l0_nodes, max_neighbors=4)
 
-    # Inter-layer links (vertical transitions)
+    # Xây dựng liên kết chuyển tầng dọc (Inter-layer links)
     inter_links = []
     for l2_n in l2_nodes:
         for l1_n in l1_nodes:
             if l2_n["doc_id"] == l1_n["doc_id"]:
                 inter_links.append({"from": l2_n["id"], "to": l1_n["id"], "type": "inter"})
+                break
     for l1_n in l1_nodes:
         for l0_n in l0_nodes:
             if l1_n["doc_id"] == l0_n["doc_id"]:
                 inter_links.append({"from": l1_n["id"], "to": l0_n["id"], "type": "inter"})
+                break
 
-    # Entry point is the first node on layer 2
+    # Điểm thâm nhập (Entry point) tại Tầng 2
     entry_point_id = l2_nodes[0]["id"] if l2_nodes else (l1_nodes[0]["id"] if l1_nodes else l0_nodes[0]["id"])
 
     return {
@@ -231,14 +289,54 @@ def generate_hnsw_3d_topology(coords_3d: np.ndarray, metadata: list):
 
 
 def main():
-    print("[3D Pipeline] Loading vector embeddings and metadata...")
-    vectors, metadata, source_file = load_dataset()
-    print(f"[3D Pipeline] Loaded {len(vectors)} vectors from {source_file}")
+    print("[3D Pipeline] Nạp dữ liệu vector đặc trưng và metadata...")
+    loaded = load_dataset(max_samples=3000)
+    all_vecs = None
+    all_meta = None
+    if len(loaded) == 5:
+        vectors, metadata, source_file, all_vecs, all_meta = loaded
+    elif len(loaded) == 4:
+        vectors, metadata, source_file, _ = loaded
+    else:
+        vectors, metadata, source_file = loaded[:3]
 
-    print("[3D Pipeline] Computing PCA 3D projection...")
-    coords_3d, mean_vec, components, scale_factor = compute_pca_3d(vectors, n_components=3)
+    print(f"[3D Pipeline] Đã nạp {len(vectors):,} vector từ: {source_file}")
 
-    # Prepare vector cloud payload
+    train_vecs = all_vecs if all_vecs is not None else vectors
+    print("[3D Pipeline] Tính toán phép chiếu PCA/SVD không gian 3 chiều chuẩn xác...")
+    scaled_coords_all, mean_vec, components, scale_factor = compute_pca_3d(train_vecs, n_components=3)
+
+    # Đồng bộ tọa độ 3D chuẩn hóa vào search_index_cache.npz và search_index_metadata.json
+    npz_path = os.path.join(BASE_DIR, "data", "processed", "search_index_cache.npz")
+    meta_path = os.path.join(BASE_DIR, "data", "processed", "search_index_metadata.json")
+    if all_vecs is not None and os.path.exists(npz_path):
+        try:
+            npz_data = np.load(npz_path)
+            np.savez_compressed(
+                npz_path,
+                vectors=all_vecs,
+                coords_3d=scaled_coords_all,
+                global_indices=npz_data["global_indices"]
+            )
+            print(f"[3D Pipeline] Đã cập nhật tọa độ chuẩn hóa 3D vào {npz_path}")
+        except Exception as e:
+            print(f"[3D Pipeline] Lỗi ghi lại npz: {e}")
+
+    if all_meta is not None and os.path.exists(meta_path):
+        try:
+            for i in range(len(all_meta)):
+                all_meta[i]["x"] = float(round(scaled_coords_all[i, 0], 3))
+                all_meta[i]["y"] = float(round(scaled_coords_all[i, 1], 3))
+                all_meta[i]["z"] = float(round(scaled_coords_all[i, 2], 3))
+            with open(meta_path, "w", encoding="utf-8") as f:
+                json.dump(all_meta, f, ensure_ascii=False, indent=2)
+            print(f"[3D Pipeline] Đã cập nhật metadata x,y,z vào {meta_path}")
+        except Exception as e:
+            print(f"[3D Pipeline] Lỗi ghi lại meta: {e}")
+
+    coords_3d = scaled_coords_all[:len(vectors)]
+
+    # Chuẩn bị 3.000 điểm cho Đám mây Vector 3D
     vector_cloud = []
     for i in range(len(vectors)):
         meta = metadata[i]
@@ -254,11 +352,10 @@ def main():
             "token_count": meta.get("token_count", 0)
         })
 
-    # Prepare HNSW 3D graph
-    print("[3D Pipeline] Generating HNSW 3D Multi-layer Graph...")
+    # Tạo đồ thị HNSW 3D đa tầng quy mô lớn (~1.500 nút, ~4.500 cạnh)
+    print("[3D Pipeline] Đang sinh Đồ thị HNSW Đa tầng 3D quy mô lớn...")
     hnsw_topology = generate_hnsw_3d_topology(coords_3d, metadata)
 
-    # Save outputs
     out_dir = os.path.join(BASE_DIR, "data", "processed")
     os.makedirs(out_dir, exist_ok=True)
 
@@ -281,7 +378,8 @@ def main():
             "scale_factor": float(scale_factor)
         }, f, ensure_ascii=False)
 
-    print(f"[3D Pipeline] Successfully generated:\n -> {cache_path}\n -> {pca_matrix_path}")
+    print(f"[3D Pipeline] Đã xuất thành công:\n -> {cache_path}\n -> {pca_matrix_path}")
+    print(f"[3D Pipeline] Thống kê: {len(vector_cloud):,} vector trong đám mây | HNSW: {hnsw_topology['stats']['total_nodes_l0']} nút L0, {hnsw_topology['stats']['total_nodes_l1']} nút L1, {hnsw_topology['stats']['total_nodes_l2']} nút L2 | Tổng cạnh: {hnsw_topology['stats']['total_edges']:,}")
 
 
 if __name__ == "__main__":

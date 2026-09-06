@@ -192,9 +192,9 @@ class ThreeEngine {
     }
   }
 
-  setMode(mode) {
+  setMode(mode, resetCamera = true) {
     this.currentMode = mode;
-    console.log(`[ThreeEngine] Switched to 3D mode: ${mode}`);
+    console.log(`[ThreeEngine] Switched to 3D mode: ${mode}, resetCamera: ${resetCamera}`);
 
     if (this.vectorSpaceModule) this.vectorSpaceModule.setVisible(mode === 'universe' || mode === 'quantization');
     if (this.hnswModule) this.hnswModule.setVisible(mode === 'hnsw');
@@ -202,18 +202,18 @@ class ThreeEngine {
 
     if (mode === 'hnsw') {
       this.gridHelper.position.y = -35;
-      this.setCameraPreset('hnsw');
+      if (resetCamera) this.setCameraPreset('hnsw');
     } else if (mode === 'pipeline') {
       this.gridHelper.position.y = -10;
-      this.setCameraPreset('pipeline');
+      if (resetCamera) this.setCameraPreset('pipeline');
     } else if (mode === 'quantization') {
       this.gridHelper.position.y = -35;
       if (this.vectorSpaceModule) this.vectorSpaceModule.toggleQuantizationGrid(true);
-      this.setCameraPreset('universe');
+      if (resetCamera) this.setCameraPreset('universe');
     } else {
       this.gridHelper.position.y = -35;
       if (this.vectorSpaceModule) this.vectorSpaceModule.toggleQuantizationGrid(false);
-      this.setCameraPreset('universe');
+      if (resetCamera) this.setCameraPreset('universe');
     }
   }
 
@@ -252,26 +252,54 @@ class ThreeEngine {
   }
 
   animateCameraTo(pos, lookAt, duration = 1.0) {
+    // 1. Dừng tự động xoay nếu đang bật
+    if (this.isAutoRotating) {
+      this.isAutoRotating = false;
+      this.controls.autoRotate = false;
+      const autoBtn = document.getElementById('btn-3d-autorotate');
+      if (autoBtn) autoBtn.classList.remove('bg-sky-500', 'text-white');
+    }
+
     if (typeof gsap !== 'undefined') {
+      // 2. Huỷ các tween trước đó trên camera và controls để chống giật / reset góc nhìn
+      gsap.killTweensOf(this.camera.position);
+      gsap.killTweensOf(this.controls.target);
+
+      // 3. Tạm ngắt damping trong khi camera đang zoom lướt
+      const prevDamping = this.controls.enableDamping;
+      this.controls.enableDamping = false;
+
       gsap.to(this.camera.position, {
         x: pos.x,
         y: pos.y,
         z: pos.z,
         duration: duration,
         ease: 'power2.out',
-        onUpdate: () => this.camera.lookAt(lookAt.x, lookAt.y, lookAt.z)
+        overwrite: 'all',
+        onUpdate: () => {
+          this.camera.lookAt(this.controls.target.x, this.controls.target.y, this.controls.target.z);
+        },
+        onComplete: () => {
+          this.controls.target.set(lookAt.x, lookAt.y, lookAt.z);
+          this.camera.lookAt(lookAt.x, lookAt.y, lookAt.z);
+          this.controls.update();
+          this.controls.enableDamping = prevDamping;
+        }
       });
+
       gsap.to(this.controls.target, {
         x: lookAt.x,
         y: lookAt.y,
         z: lookAt.z,
         duration: duration,
-        ease: 'power2.out'
+        ease: 'power2.out',
+        overwrite: 'all'
       });
     } else {
       this.camera.position.set(pos.x, pos.y, pos.z);
       this.controls.target.set(lookAt.x, lookAt.y, lookAt.z);
       this.camera.lookAt(lookAt.x, lookAt.y, lookAt.z);
+      this.controls.update();
     }
   }
 

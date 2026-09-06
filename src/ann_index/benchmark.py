@@ -1,7 +1,7 @@
 """Khung thử nghiệm đối chuẩn (Benchmarking Framework) đánh giá các thuật toán ANN so với Ground Truth."""
 
 import time
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 import numpy as np
 from ann_index.base import BaseIndex
 from ann_index.flat import FlatIndex
@@ -22,6 +22,7 @@ class BenchmarkRunner:
         queries: np.ndarray,
         metric: str = "l2",
         ground_truth_k: int = 50,
+        ground_truth_indices: Optional[np.ndarray] = None,
     ):
         """
         Khởi tạo bộ chạy thực nghiệm đối chuẩn.
@@ -31,6 +32,7 @@ class BenchmarkRunner:
             queries: Mảng vector truy vấn float32 (num_queries, D).
             metric: Độ đo khoảng cách ('l2' hoặc 'cosine').
             ground_truth_k: Số lượng láng giềng mốc chuẩn cần tính trước bằng FlatIndex.
+            ground_truth_indices: Mốc chuẩn tính sẵn (nếu có, ví dụ từ tập dữ liệu SIFT).
         """
         self.dataset = np.ascontiguousarray(dataset, dtype=np.float32)
         self.queries = np.ascontiguousarray(queries, dtype=np.float32)
@@ -49,13 +51,18 @@ class BenchmarkRunner:
             self.dim,
         )
 
-        # Xây dựng mốc chuẩn Ground Truth bằng thuật toán vét cạn chính xác FlatIndex
-        self.flat_index = FlatIndex(metric=self.metric)
-        self.flat_index.build(self.dataset)
-        self.ground_truth_indices = self.flat_index.generate_ground_truth(
-            self.queries, top_k=self.ground_truth_k
-        )
-        self.logger.info("Đã sinh xong mốc chuẩn Ground Truth cho %d câu truy vấn", self.num_queries)
+        if ground_truth_indices is not None:
+            self.ground_truth_indices = ground_truth_indices
+            self.flat_index = None
+            self.logger.info("Sử dụng mốc chuẩn Ground Truth có sẵn (%s)", ground_truth_indices.shape)
+        else:
+            # Xây dựng mốc chuẩn Ground Truth bằng thuật toán vét cạn chính xác FlatIndex
+            self.flat_index = FlatIndex(metric=self.metric)
+            self.flat_index.build(self.dataset)
+            self.ground_truth_indices = self.flat_index.generate_ground_truth(
+                self.queries, top_k=self.ground_truth_k
+            )
+            self.logger.info("Đã sinh xong mốc chuẩn Ground Truth cho %d câu truy vấn", self.num_queries)
 
     def evaluate_index(
         self,

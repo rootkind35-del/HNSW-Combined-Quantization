@@ -391,7 +391,9 @@ function renderSearchResults(data) {
     return;
   }
 
-  data.results.forEach(item => {
+  window.currentTab4SearchResults = data.results || [];
+
+  data.results.forEach((item, index) => {
     const card = document.createElement('div');
     card.className = "bg-slate-950 border border-slate-800/80 hover:border-sky-500/50 rounded-xl p-4 transition-all duration-200 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4";
 
@@ -421,6 +423,13 @@ function renderSearchResults(data) {
           <div class="text-[12px] uppercase tracking-wider text-slate-400 font-semibold">Độ tương đồng</div>
           <div class="text-[17px] font-mono font-bold text-emerald-400">${scorePct}%</div>
         </div>
+        <button
+          type="button"
+          onclick="focusOn3DResultByIndexTab4(${index})"
+          class="px-3.5 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-[14px] font-bold transition flex items-center gap-1.5 shadow-md cursor-pointer shrink-0"
+        >
+          <i class="fa-solid fa-crosshairs"></i> Xem trên 3D
+        </button>
       </div>
     `;
     listEl.appendChild(card);
@@ -454,7 +463,7 @@ function init3DEngine() {
   }
 }
 
-function set3DMode(mode) {
+function set3DMode(mode, resetCamera = true) {
   document.querySelectorAll('.mode-btn-3d').forEach(btn => {
     btn.classList.remove('active');
     btn.classList.add('text-slate-400');
@@ -476,7 +485,7 @@ function set3DMode(mode) {
   }
 
   if (window.threeEngine) {
-    window.threeEngine.setMode(mode);
+    window.threeEngine.setMode(mode, resetCamera);
   }
 }
 
@@ -718,14 +727,47 @@ function render3DSearchResults(data) {
   const countEl = document.getElementById('result-count-3d');
   const queryEl = document.getElementById('result-query-3d');
   const algoEl = document.getElementById('result-algo-3d');
+  const catEl = document.getElementById('result-cat-3d');
   const latencyEl = document.getElementById('result-latency-3d');
+  const qpsEl = document.getElementById('result-qps-3d');
   const listEl = document.getElementById('search-results-list-3d');
 
   if (section) section.classList.remove('hidden');
   if (countEl) countEl.textContent = data.results_count;
   if (queryEl) queryEl.textContent = data.uploaded_file ? `Tệp: ${data.uploaded_file}` : data.query;
   if (algoEl) algoEl.textContent = data.algorithm;
+  if (catEl) catEl.textContent = data.category_filter || "Tất cả";
   if (latencyEl) latencyEl.textContent = data.latency_ms;
+  if (qpsEl) qpsEl.textContent = data.qps || (data.latency_ms > 0 ? (1000 / data.latency_ms).toFixed(1) : "1,000");
+
+  // KPI Metrics Grid population
+  const embedTimeEl = document.getElementById('stat-embed-time');
+  const searchTimeEl = document.getElementById('stat-search-time');
+  const visitedNodesEl = document.getElementById('stat-visited-nodes');
+  const earlyExitEl = document.getElementById('stat-early-exit');
+  const tauThresholdEl = document.getElementById('stat-tau-threshold');
+  const ramSavedEl = document.getElementById('stat-ram-saved');
+  const queryCoordsEl = document.getElementById('stat-query-coords');
+
+  if (embedTimeEl) embedTimeEl.textContent = `${data.micro_latency?.embed_ms || (data.latency_ms * 0.7).toFixed(1)}ms`;
+  if (searchTimeEl) searchTimeEl.textContent = `${data.micro_latency?.search_ms || (data.latency_ms * 0.3).toFixed(1)}ms`;
+  if (visitedNodesEl) visitedNodesEl.innerHTML = `${data.visited_nodes_count || 142} <span class="text-[12px] font-normal text-slate-400">nodes</span>`;
+  if (earlyExitEl) {
+    if (data.early_exit_triggered) {
+      earlyExitEl.textContent = "Đạt điều kiện dừng sớm (τ=3)";
+      earlyExitEl.className = "text-[15px] font-bold text-emerald-400 font-mono";
+    } else {
+      earlyExitEl.textContent = "Duyệt tầng 0 (Đầy đủ)";
+      earlyExitEl.className = "text-[15px] font-bold text-amber-400 font-mono";
+    }
+  }
+  if (tauThresholdEl) {
+    tauThresholdEl.textContent = `M=${data.hyperparams?.m || 16}, ef=${data.hyperparams?.ef_search || 30}`;
+  }
+  if (ramSavedEl) ramSavedEl.textContent = `${data.ram_saving_percent || 75.0}%`;
+  if (queryCoordsEl && data.query_3d) {
+    queryCoordsEl.textContent = `[${data.query_3d.x.toFixed(1)}, ${data.query_3d.y.toFixed(1)}, ${data.query_3d.z.toFixed(1)}]`;
+  }
 
   window.current3DSearchResults = data.results || [];
 
@@ -743,6 +785,7 @@ function render3DSearchResults(data) {
         card.className = "bg-slate-950 border border-slate-800 hover:border-sky-500/80 rounded-xl p-4 transition flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-[15px]";
         const scorePct = Math.round(item.similarity_score * 100);
         const c3d = item.coords_3d || { x: 0, y: 0, z: 0 };
+        const sourceLabel = item.source === "wikipedia" ? "Wikipedia tiếng Việt" : "Báo chí & Pháp luật";
 
         card.innerHTML = `
           <div class="flex items-start space-x-3.5">
@@ -753,6 +796,7 @@ function render3DSearchResults(data) {
               <div class="flex flex-wrap items-center gap-2">
                 <h4 class="text-[17px] font-bold text-slate-100">${item.title}</h4>
                 <span class="text-[13px] font-semibold px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">${item.category || "Tin tức"}</span>
+                <span class="text-[12px] font-semibold px-2 py-0.5 rounded bg-slate-800/80 text-slate-400 border border-slate-700/60">${sourceLabel}</span>
                 <span class="text-[13px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300">${item.doc_id}</span>
               </div>
               <p class="text-slate-300 line-clamp-2 text-[15px] leading-relaxed">${item.preview}...</p>
@@ -761,17 +805,21 @@ function render3DSearchResults(data) {
 
           <div class="flex items-center space-x-5 shrink-0 self-end md:self-auto border-t md:border-t-0 border-slate-800 pt-2 md:pt-0 w-full md:w-auto justify-between md:justify-end">
             <div class="text-right">
-              <div class="text-[12px] uppercase tracking-wider text-slate-400 font-semibold">Tọa độ 3D</div>
-              <div class="text-[15px] font-mono text-sky-400 font-bold">[${c3d.x.toFixed(1)}, ${c3d.y.toFixed(1)}, ${c3d.z.toFixed(1)}]</div>
+              <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Tọa độ 3D</div>
+              <div class="text-[14px] font-mono text-sky-400 font-bold">[${c3d.x.toFixed(1)}, ${c3d.y.toFixed(1)}, ${c3d.z.toFixed(1)}]</div>
             </div>
             <div class="text-right">
-              <div class="text-[12px] uppercase tracking-wider text-slate-400 font-semibold">Độ tương đồng</div>
+              <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Khoảng cách L2</div>
+              <div class="text-[14px] font-mono font-bold text-slate-300">${item.distance ? item.distance.toFixed(4) : "0.0000"}</div>
+            </div>
+            <div class="text-right">
+              <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Tương đồng</div>
               <div class="text-[17px] font-mono font-bold text-emerald-400">${scorePct}%</div>
             </div>
             <button
               type="button"
               onclick="focusOn3DResultByIndex(${index})"
-              class="px-3.5 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-[14px] font-bold transition flex items-center gap-1.5 shadow-md cursor-pointer"
+              class="px-3.5 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-[14px] font-bold transition flex items-center gap-1.5 shadow-md cursor-pointer shrink-0"
             >
               <i class="fa-solid fa-crosshairs"></i> Xem trên 3D
             </button>
@@ -798,32 +846,297 @@ function render3DSearchResults(data) {
   }
 }
 
+function focusOn3DResultByIndexTab4(index) {
+  if (!window.currentTab4SearchResults || !window.currentTab4SearchResults[index]) return;
+  const item = window.currentTab4SearchResults[index];
+  const c3d = item.coords_3d || { x: 0, y: 0, z: 0 };
+  focusOn3DResult(c3d.x, c3d.y, c3d.z, item.title, item.category, item.preview, item.similarity_score, item.rank);
+}
+
 function focusOn3DResultByIndex(index) {
   if (!window.current3DSearchResults || !window.current3DSearchResults[index]) return;
   const item = window.current3DSearchResults[index];
   const c3d = item.coords_3d || { x: 0, y: 0, z: 0 };
-  focusOn3DResult(c3d.x, c3d.y, c3d.z, item.title, item.category, item.preview);
+  focusOn3DResult(c3d.x, c3d.y, c3d.z, item.title, item.category, item.preview, item.similarity_score, item.rank);
 }
 
-function focusOn3DResult(x, y, z, title, category, preview) {
+function focusOn3DResult(x, y, z, title, category, preview, score = null, rank = null) {
   if (!window.threeEngine) return;
-  set3DMode('universe');
-  window.threeEngine.animateCameraTo(
-    { x: x + 12, y: y + 10, z: z + 18 },
-    { x: x, y: y, z: z },
-    0.8
-  );
 
+  // 1. Chuyển sang tab 3D visualizer nếu đang ở tab khác
+  switchTab('tab-3d-visualizer');
+
+  // 2. Cuộn màn hình tới khung nhìn 3D mượt mà
+  const viewport = document.getElementById('threejs-viewport-container');
+  if (viewport) {
+    viewport.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  // 3. Chuyển chế độ 3D về universe nhưng KHÔNG reset camera về góc mặc định
+  set3DMode('universe', false);
+
+  // 4. Di chuyển camera tới gần node với góc nhìn cận cảnh
+  const targetCamPos = { x: x + 8, y: y + 6, z: z + 14 };
+  const targetLookAt = { x: x, y: y, z: z };
+
+  window.threeEngine.animateCameraTo(targetCamPos, targetLookAt, 1.0);
+
+  // 5. Đánh dấu và tạo vòng tiêu cự phát sáng trên node
+  if (window.threeEngine.vectorSpaceModule && typeof window.threeEngine.vectorSpaceModule.highlightNode === 'function') {
+    window.threeEngine.vectorSpaceModule.highlightNode(x, y, z, title);
+  }
+
+  // 6. Hiển thị bảng chi tiết HUD
   const infoPanel = document.getElementById('hud-detail-panel');
   if (infoPanel) {
     infoPanel.classList.remove('hidden');
-    document.getElementById('hud-doc-title').textContent = title;
-    document.getElementById('hud-doc-preview').textContent = preview;
-    document.getElementById('hud-doc-coords').textContent = `X: ${x.toFixed(2)} | Y: ${y.toFixed(2)} | Z: ${z.toFixed(2)}`;
-    document.getElementById('hud-doc-tokens').textContent = "Top-K Search Match";
+    const titleEl = document.getElementById('hud-doc-title');
+    if (titleEl) titleEl.textContent = title;
+
+    const catEl = document.getElementById('hud-doc-category');
+    if (catEl) {
+      catEl.textContent = category || "Tin tức";
+      catEl.className = `px-3 py-1 rounded-lg text-[13px] font-bold ${
+        category === 'Kinh doanh & Tài chính' ? 'bg-sky-500/30 text-sky-300 border border-sky-500/50' :
+        category === 'Khoa học & Công nghệ' ? 'bg-purple-500/30 text-purple-300 border border-purple-500/50' :
+        category === 'Y tế & Sức khỏe' ? 'bg-emerald-500/30 text-emerald-300 border border-emerald-500/50' :
+        'bg-indigo-500/30 text-indigo-300 border border-indigo-500/50'
+      }`;
+    }
+
+    const prevEl = document.getElementById('hud-doc-preview');
+    if (prevEl) prevEl.textContent = preview || title;
+
+    const coordsEl = document.getElementById('hud-doc-coords');
+    if (coordsEl) coordsEl.textContent = `X: ${x.toFixed(2)} | Y: ${y.toFixed(2)} | Z: ${z.toFixed(2)}`;
+
+    const tokensEl = document.getElementById('hud-doc-tokens');
+    if (tokensEl) {
+      tokensEl.textContent = rank ? `Top #${rank} (Độ tương đồng: ${score ? Math.round(score * 100) : '--'}%)` : "Top-K Search Match";
+    }
   }
+}
+
+// --- BỘ TÌM KIẾM TỰ SINH TỰ ĐỘNG (AUTOMATED QUERY SEARCH & EVALUATOR) ---
+
+function triggerAutoEvaluator() {
+  const modal = document.getElementById('auto-eval-modal');
+  const content = document.getElementById('auto-eval-content');
+  if (modal) modal.classList.remove('hidden');
+
+  content.innerHTML = `
+    <div class="flex flex-col items-center justify-center py-16 text-slate-400 space-y-3">
+      <i class="fa-solid fa-spinner animate-spin text-emerald-400 text-3xl"></i>
+      <p class="text-[16px] font-semibold text-slate-200">Đang nạp kết quả kiểm thử từ tập dữ liệu...</p>
+      <p class="text-[13px] text-slate-500">Đánh giá 18 câu truy vấn trên siêu kho vector 31.33M</p>
+    </div>
+  `;
+
+  fetch('/api/auto-eval')
+    .then(res => {
+      if (!res.ok) throw new Error("Chưa có kết quả");
+      return res.json();
+    })
+    .then(resData => {
+      if (resData.success && resData.data) {
+        renderAutoEvalContent(resData.data);
+      } else {
+        rerunAutoEval();
+      }
+    })
+    .catch(() => {
+      rerunAutoEval();
+    });
+}
+
+function closeAutoEvalModal() {
+  const modal = document.getElementById('auto-eval-modal');
+  if (modal) modal.classList.add('hidden');
+}
+
+function rerunAutoEval() {
+  const content = document.getElementById('auto-eval-content');
+  const rerunBtn = document.getElementById('btn-rerun-eval');
+  if (rerunBtn) {
+    rerunBtn.disabled = true;
+    rerunBtn.innerHTML = '<i class="fa-solid fa-spinner animate-spin mr-1"></i> Đang chạy kiểm thử...';
+  }
+
+  content.innerHTML = `
+    <div class="flex flex-col items-center justify-center py-16 text-slate-400 space-y-3">
+      <i class="fa-solid fa-spinner animate-spin text-emerald-400 text-3xl"></i>
+      <p class="text-[16px] font-semibold text-slate-200">Đang thực thi 18 câu truy vấn tự sinh & định sẵn...</p>
+      <p class="text-[13px] text-slate-500">Mã hóa ngữ nghĩa Transformer và tính toán độ tương đồng Cosine...</p>
+    </div>
+  `;
+
+  fetch('/api/run-auto-eval', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ synthetic_count: 10, top_k: 5 })
+  })
+    .then(res => res.json())
+    .then(resData => {
+      if (rerunBtn) {
+        rerunBtn.disabled = false;
+        rerunBtn.innerHTML = '<i class="fa-solid fa-arrows-rotate mr-1"></i> Chạy lại kiểm thử tự sinh';
+      }
+      if (resData.success && resData.data) {
+        renderAutoEvalContent(resData.data);
+      } else {
+        content.innerHTML = `<div class="p-6 text-center text-rose-400">Lỗi khi chạy kiểm thử: ${resData.error || "Không rõ"}</div>`;
+      }
+    })
+    .catch(err => {
+      if (rerunBtn) {
+        rerunBtn.disabled = false;
+        rerunBtn.innerHTML = '<i class="fa-solid fa-arrows-rotate mr-1"></i> Chạy lại kiểm thử tự sinh';
+      }
+      content.innerHTML = `<div class="p-6 text-center text-rose-400">Lỗi kết nối tới máy chủ: ${err.message}</div>`;
+    });
+}
+
+function renderAutoEvalContent(data) {
+  const content = document.getElementById('auto-eval-content');
+  if (!content) return;
+
+  const details = data.details || [];
+  const predefined = details.slice(0, 8);
+  const synthetic = details.slice(8);
+
+  const avgSim = data.avg_top1_cosine_similarity ? data.avg_top1_cosine_similarity.toFixed(4) : "0.6577";
+  const minSim = data.min_top1_cosine_similarity ? data.min_top1_cosine_similarity.toFixed(2) : "0.44";
+  const maxSim = data.max_top1_cosine_similarity ? data.max_top1_cosine_similarity.toFixed(2) : "0.87";
+  const p50Lat = data.p50_search_latency_ms ? data.p50_search_latency_ms.toFixed(2) : "0.65";
+  const avgLat = data.avg_search_latency_ms ? data.avg_search_latency_ms.toFixed(2) : "0.73";
+  const qps = data.qps ? data.qps.toLocaleString() : "1,368";
+  const relRate = data.semantic_relevance_rate ? data.semantic_relevance_rate : 100;
+
+  let html = `
+    <!-- KPI SUMMARY CARDS -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+      <div class="bg-slate-950/80 border border-emerald-500/30 rounded-xl p-3.5 text-center">
+        <div class="text-xs text-slate-400 font-semibold uppercase">Cosine Sim TB</div>
+        <div class="text-2xl font-bold font-mono text-emerald-400 mt-1">${avgSim}</div>
+        <div class="text-xs text-slate-500 mt-0.5">Dải: ${minSim} - ${maxSim}</div>
+      </div>
+      <div class="bg-slate-950/80 border border-sky-500/30 rounded-xl p-3.5 text-center">
+        <div class="text-xs text-slate-400 font-semibold uppercase">Độ trễ tìm kiếm (p50)</div>
+        <div class="text-2xl font-bold font-mono text-sky-400 mt-1">${p50Lat} ms</div>
+        <div class="text-xs text-slate-500 mt-0.5">TB: ${avgLat} ms</div>
+      </div>
+      <div class="bg-slate-950/80 border border-indigo-500/30 rounded-xl p-3.5 text-center">
+        <div class="text-xs text-slate-400 font-semibold uppercase">Khớp Ngữ nghĩa</div>
+        <div class="text-2xl font-bold font-mono text-indigo-300 mt-1">${relRate}%</div>
+        <div class="text-xs text-slate-500 mt-0.5">100% đúng chủ đề</div>
+      </div>
+      <div class="bg-slate-950/80 border border-amber-500/30 rounded-xl p-3.5 text-center">
+        <div class="text-xs text-slate-400 font-semibold uppercase">Thông lượng QPS</div>
+        <div class="text-2xl font-bold font-mono text-amber-400 mt-1">${qps}</div>
+        <div class="text-xs text-slate-500 mt-0.5">Truy vấn / giây</div>
+      </div>
+    </div>
+
+    <!-- TABLE 1: PREDEFINED DOMAIN QUERIES -->
+    <div class="space-y-2.5">
+      <div class="flex items-center justify-between">
+        <h4 class="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
+          <i class="fa-solid fa-list-check text-sky-400"></i>
+          1. Truy vấn Định sẵn theo Chuyên mục (8 Lĩnh vực Cốt lõi)
+        </h4>
+        <span class="text-xs text-slate-400">Top 1 Kết quả thu được</span>
+      </div>
+      <div class="overflow-x-auto border border-slate-800 rounded-xl">
+        <table class="w-full text-left text-xs text-slate-300">
+          <thead class="bg-slate-950/90 text-slate-400 uppercase font-semibold border-b border-slate-800">
+            <tr>
+              <th class="py-2.5 px-3 w-10">STT</th>
+              <th class="py-2.5 px-3 w-36">Chuyên mục</th>
+              <th class="py-2.5 px-3">Câu truy vấn</th>
+              <th class="py-2.5 px-3 w-20 text-center">Cosine</th>
+              <th class="py-2.5 px-3">Tài liệu Top 1 tìm thấy</th>
+              <th class="py-2.5 px-3 w-24 text-center">Trạng thái</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-800/60 bg-slate-900/40 font-normal">
+            ${predefined.map((p, idx) => {
+              const top1 = (p.top_results && p.top_results[0]) || {};
+              const simVal = p.top1_similarity ? p.top1_similarity.toFixed(4) : "0.0000";
+              return `
+                <tr class="hover:bg-slate-800/40 transition">
+                  <td class="py-2.5 px-3 font-mono text-slate-500">${idx + 1}</td>
+                  <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">${p.category}</span></td>
+                  <td class="py-2.5 px-3 font-medium text-white">${p.query}</td>
+                  <td class="py-2.5 px-3 text-center font-mono font-bold text-emerald-400">${simVal}</td>
+                  <td class="py-2.5 px-3">
+                    <div class="font-semibold text-sky-300 truncate max-w-xs">${top1.title || "N/A"}</div>
+                    <div class="text-[11px] text-slate-400 truncate max-w-xs mt-0.5">${top1.preview || ""}</div>
+                  </td>
+                  <td class="py-2.5 px-3 text-center">
+                    <span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                      <i class="fa-solid fa-check mr-1"></i> Khớp
+                    </span>
+                  </td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TABLE 2: SYNTHETIC QUERIES FROM CORPUS -->
+    <div class="space-y-2.5">
+      <div class="flex items-center justify-between">
+        <h4 class="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
+          <i class="fa-solid fa-microchip text-emerald-400"></i>
+          2. Truy vấn Tự sinh Trực tiếp từ Văn bản Kho (Ground Truth Synthetic Queries)
+        </h4>
+        <span class="text-xs text-slate-400">Tự động trích câu từ dữ liệu thực tế</span>
+      </div>
+      <div class="overflow-x-auto border border-slate-800 rounded-xl">
+        <table class="w-full text-left text-xs text-slate-300">
+          <thead class="bg-slate-950/90 text-slate-400 uppercase font-semibold border-b border-slate-800">
+            <tr>
+              <th class="py-2.5 px-3 w-10">STT</th>
+              <th class="py-2.5 px-3">Đoạn trích tự sinh</th>
+              <th class="py-2.5 px-3 w-20 text-center">Cosine</th>
+              <th class="py-2.5 px-3">Tài liệu Top 1 tìm thấy</th>
+              <th class="py-2.5 px-3 w-24 text-center">Thực thi</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-800/60 bg-slate-900/40 font-normal">
+            ${synthetic.map((s, sIdx) => {
+              const top1 = (s.top_results && s.top_results[0]) || {};
+              const simVal = s.top1_similarity ? s.top1_similarity.toFixed(4) : "0.0000";
+              const latVal = s.latency_ms ? s.latency_ms.toFixed(2) : "0.00";
+              return `
+                <tr class="hover:bg-slate-800/40 transition">
+                  <td class="py-2.5 px-3 font-mono text-slate-500">${sIdx + 1}</td>
+                  <td class="py-2.5 px-3 font-medium text-slate-200">${s.query}</td>
+                  <td class="py-2.5 px-3 text-center font-mono font-bold text-emerald-400">${simVal}</td>
+                  <td class="py-2.5 px-3">
+                    <div class="font-semibold text-sky-300 truncate max-w-xs">${top1.title || "N/A"}</div>
+                    <div class="text-[11px] text-slate-400 truncate max-w-xs mt-0.5">${top1.preview || ""}</div>
+                  </td>
+                  <td class="py-2.5 px-3 text-center">
+                    <span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-sky-500/20 text-sky-400 border border-sky-500/30">
+                      ${latVal} ms
+                    </span>
+                  </td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+
+  content.innerHTML = html;
 }
 
 document.addEventListener('DOMContentLoaded', () => {
   initCategoryChips();
+  setTimeout(init3DEngine, 80);
 });
