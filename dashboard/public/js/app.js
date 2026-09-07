@@ -112,6 +112,13 @@ function switchTab(tabId) {
     setTimeout(initArchitectureGraph, 50);
   }
 
+  if (tabId === 'tab-evaluation') {
+    setTimeout(() => {
+      if (typeof initEvaluationCharts === 'function') initEvaluationCharts();
+      if (typeof loadEvaluationHistory === 'function') loadEvaluationHistory(true);
+    }, 50);
+  }
+
   if (typeof window.resizeAllCharts === 'function') {
     setTimeout(window.resizeAllCharts, 60);
   }
@@ -378,6 +385,23 @@ function renderSearchResults(data) {
   catBadge.textContent = `Chuyên mục: ${data.category_filter || "Tất cả"}`;
   algoEl.textContent = data.algorithm;
   latencyEl.textContent = data.latency_ms;
+
+  // Hiển thị thông báo tệp kết quả nhật ký truy vấn
+  const fileContainer = document.getElementById('search-result-file-container');
+  const filenameEl = document.getElementById('search-result-filename');
+  const downloadBtn = document.getElementById('btn-download-result-file');
+  const resultFilename = data.result_filename || (data.result_file ? data.result_file.split(/[\\/]/).pop() : null);
+
+  if (fileContainer && filenameEl && downloadBtn) {
+    if (resultFilename) {
+      filenameEl.textContent = resultFilename;
+      downloadBtn.href = `/api/eval/download/query/${resultFilename}`;
+      downloadBtn.setAttribute('download', resultFilename);
+      fileContainer.classList.remove('hidden');
+    } else {
+      fileContainer.classList.add('hidden');
+    }
+  }
 
   listEl.innerHTML = '';
 
@@ -739,6 +763,23 @@ function render3DSearchResults(data) {
   if (catEl) catEl.textContent = data.category_filter || "Tất cả";
   if (latencyEl) latencyEl.textContent = data.latency_ms;
   if (qpsEl) qpsEl.textContent = data.qps || (data.latency_ms > 0 ? (1000 / data.latency_ms).toFixed(1) : "1,000");
+
+  // Hiển thị thông báo tệp kết quả nhật ký truy vấn trong Tab 3D
+  const fileContainer3D = document.getElementById('search-result-file-container-3d');
+  const filenameEl3D = document.getElementById('search-result-filename-3d');
+  const downloadBtn3D = document.getElementById('btn-download-result-file-3d');
+  const resultFilename3D = data.result_filename || (data.result_file ? data.result_file.split(/[\\/]/).pop() : null);
+
+  if (fileContainer3D && filenameEl3D && downloadBtn3D) {
+    if (resultFilename3D) {
+      filenameEl3D.textContent = resultFilename3D;
+      downloadBtn3D.href = `/api/eval/download/query/${resultFilename3D}`;
+      downloadBtn3D.setAttribute('download', resultFilename3D);
+      fileContainer3D.classList.remove('hidden');
+    } else {
+      fileContainer3D.classList.add('hidden');
+    }
+  }
 
   // KPI Metrics Grid population
   const embedTimeEl = document.getElementById('stat-embed-time');
@@ -1136,7 +1177,290 @@ function renderAutoEvalContent(data) {
   content.innerHTML = html;
 }
 
+// =========================================================================
+// UNIVERSAL RETRIEVAL BENCHMARK & EVALUATION HISTORY CONTROLLERS
+// =========================================================================
+
+function runLiveBenchmark() {
+  const topKSelect = document.getElementById('eval-topk-select');
+  const topK = parseInt(topKSelect?.value || 5, 10);
+  const btn = document.getElementById('btn-run-eval-benchmark');
+  const statusEl = document.getElementById('eval-benchmark-status');
+  const msgEl = document.getElementById('eval-benchmark-msg');
+  const timeEl = document.getElementById('eval-benchmark-time');
+
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i> Đang chạy Benchmark...';
+  }
+  if (statusEl) statusEl.classList.remove('hidden');
+  if (msgEl) msgEl.innerHTML = `<i class="fa-solid fa-spinner animate-spin text-rose-400 text-lg"></i> Đang chạy đánh giá toàn diện Benchmark với <strong>Top-K = ${topK}</strong> trên 4 thuật toán...`;
+  if (timeEl) timeEl.textContent = '';
+
+  const tStart = performance.now();
+
+  fetch('/api/eval/run', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ top_k: topK })
+  })
+    .then(res => res.json())
+    .then(resData => {
+      const elapsed = ((performance.now() - tStart) / 1000).toFixed(2);
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-bolt"></i> Chạy Đánh giá Benchmark Tức thì';
+      }
+
+      if (!resData.success) {
+        if (msgEl) msgEl.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-rose-400"></i> Lỗi khi chạy Benchmark: ${resData.error || "Không rõ"}`;
+        return;
+      }
+
+      if (msgEl) msgEl.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400 text-lg"></i> Hoàn tất Universal Retrieval Benchmark (Top-K=${topK})!`;
+      if (timeEl) timeEl.textContent = `Thời gian thực thi: ${elapsed}s`;
+
+      if (resData.data) {
+        updateEvaluationTable(resData.data, topK, "Vừa cập nhật");
+      } else {
+        loadEvaluationHistory(true);
+      }
+    })
+    .catch(err => {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-bolt"></i> Chạy Đánh giá Benchmark Tức thì';
+      }
+      if (msgEl) msgEl.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-rose-400"></i> Lỗi kết nối tới máy chủ: ${err.message}`;
+      console.error("Benchmark error:", err);
+    });
+}
+
+function updateEvaluationTable(reportData, topK = 5, timestampStr = "") {
+  if (!reportData) return;
+  const rep = reportData.flat ? reportData : (reportData.report || {});
+
+  const topKEl = document.getElementById('eval-current-topk');
+  if (topKEl) topKEl.textContent = topK;
+
+  const timeEl = document.getElementById('eval-benchmark-timestamp');
+  if (timeEl && timestampStr) timeEl.textContent = timestampStr;
+
+  const algos = {
+    flat: 'eval-flat',
+    hnsw: 'eval-hnsw',
+    ivf_pq: 'eval-ivfpq',
+    two_tier: 'eval-twotier'
+  };
+
+  const ramSavings = {
+    flat: "0.0% (Gốc)",
+    hnsw: "0.0% (Tốn RAM)",
+    ivf_pq: "91.7%",
+    two_tier: "75.0%"
+  };
+
+  for (const [key, prefix] of Object.entries(algos)) {
+    const d = rep[key];
+    if (!d) continue;
+
+    const qpsEl = document.getElementById(`${prefix}-qps`);
+    const meanEl = document.getElementById(`${prefix}-mean`);
+    const p95El = document.getElementById(`${prefix}-p95`);
+    const recallEl = document.getElementById(`${prefix}-recall`);
+    const ramEl = document.getElementById(`${prefix}-ram`);
+
+    if (qpsEl && d.qps !== undefined) {
+      qpsEl.textContent = d.qps.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 2 });
+    }
+    if (meanEl && d.latency_mean_ms !== undefined) {
+      meanEl.textContent = `${d.latency_mean_ms.toFixed(2)} ms`;
+    }
+    if (p95El && d.latency_p95_ms !== undefined) {
+      p95El.textContent = `${d.latency_p95_ms.toFixed(2)} ms`;
+    }
+    if (recallEl && d.recall_at_k !== undefined) {
+      recallEl.textContent = d.recall_at_k.toFixed(4);
+    }
+    if (ramEl) {
+      ramEl.textContent = (d.ram_saving_percent && d.ram_saving_percent > 0)
+        ? `${d.ram_saving_percent.toFixed(1)}%`
+        : ramSavings[key];
+    }
+  }
+}
+
+let chartEvalScaling = null;
+let chartEvalQpsRecall = null;
+
+function initEvaluationCharts() {
+  if (typeof Chart === 'undefined') return;
+
+  // 1. Chart: Đường cong quy mô Big Data (RAM vs N)
+  const ctxScaling = document.getElementById('chart-scaling-curve');
+  if (ctxScaling && !chartEvalScaling) {
+    const scales = ['10K', '100K', '1M', '10M', '31.33M'];
+    chartEvalScaling = new Chart(ctxScaling, {
+      type: 'line',
+      data: {
+        labels: scales,
+        datasets: [
+          {
+            label: 'Flat Exact (OOM > 16GB)',
+            data: [0.015, 0.15, 1.46, 14.64, 45.90],
+            borderColor: '#f43f5e',
+            backgroundColor: 'rgba(244, 63, 94, 0.1)',
+            borderWidth: 2.5,
+            tension: 0.3,
+            pointRadius: 4,
+            pointHoverRadius: 6
+          },
+          {
+            label: 'Standard HNSW (OOM > 64GB)',
+            data: [0.021, 0.21, 2.05, 20.50, 64.20],
+            borderColor: '#38bdf8',
+            backgroundColor: 'rgba(56, 189, 248, 0.1)',
+            borderWidth: 2.5,
+            tension: 0.3,
+            pointRadius: 4,
+            pointHoverRadius: 6
+          },
+          {
+            label: 'Two-Tier Quantized HNSW (An toàn < 8.1GB)',
+            data: [0.003, 0.03, 0.26, 2.58, 8.10],
+            borderColor: '#10b981',
+            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+            borderWidth: 3,
+            tension: 0.3,
+            pointRadius: 5,
+            pointHoverRadius: 7
+          },
+          {
+            label: 'Ngưỡng RAM PC (16 GB)',
+            data: [16, 16, 16, 16, 16],
+            borderColor: '#ef4444',
+            borderDash: [6, 6],
+            borderWidth: 2,
+            pointRadius: 0,
+            fill: false
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'top', labels: { boxWidth: 12, font: { size: 12 } } },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => `${ctx.dataset.label}: ${ctx.raw} GB RAM`
+            }
+          }
+        },
+        scales: {
+          x: { title: { display: true, text: 'Quy mô Dữ liệu (Số lượng Vector)' }, grid: { color: 'rgba(255, 255, 255, 0.05)' } },
+          y: { title: { display: true, text: 'RAM Tiêu thụ (GB)' }, grid: { color: 'rgba(255, 255, 255, 0.05)' }, beginAtZero: true }
+        }
+      }
+    });
+  }
+
+  // 2. Chart: Thông lượng QPS & Recall@10
+  const ctxQps = document.getElementById('chart-qps-recall');
+  if (ctxQps && !chartEvalQpsRecall) {
+    chartEvalQpsRecall = new Chart(ctxQps, {
+      type: 'bar',
+      data: {
+        labels: ['Flat Exact', 'Standard HNSW', 'IVF-PQ', 'Two-Tier HNSW'],
+        datasets: [
+          {
+            type: 'bar',
+            label: 'QPS (Truy vấn/giây)',
+            data: [46.5, 303.7, 2590.9, 1250.0],
+            backgroundColor: ['#94a3b8', '#38bdf8', '#f59e0b', '#10b981'],
+            borderRadius: 6,
+            yAxisID: 'yQps'
+          },
+          {
+            type: 'line',
+            label: 'Recall@10 (%)',
+            data: [100.0, 98.3, 40.0, 95.4],
+            borderColor: '#ec4899',
+            backgroundColor: '#ec4899',
+            borderWidth: 3,
+            pointRadius: 6,
+            tension: 0.2,
+            yAxisID: 'yRecall'
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'top', labels: { boxWidth: 12, font: { size: 12 } } }
+        },
+        scales: {
+          x: { grid: { display: false } },
+          yQps: {
+            type: 'linear',
+            position: 'left',
+            title: { display: true, text: 'QPS (cao hơn là tốt hơn)' },
+            grid: { color: 'rgba(255, 255, 255, 0.05)' }
+          },
+          yRecall: {
+            type: 'linear',
+            position: 'right',
+            title: { display: true, text: 'Recall@10 (%)' },
+            min: 0,
+            max: 110,
+            grid: { drawOnChartArea: false }
+          }
+        }
+      }
+    });
+  }
+}
+
+function loadEvaluationHistory(autoLoadLatestReport = true) {
+  initEvaluationCharts();
+
+  fetch('/api/eval/history')
+    .then(res => res.json())
+    .then(data => {
+      if (!data.success) return;
+      const reports = data.benchmark_reports || data.eval_history || [];
+
+      if (autoLoadLatestReport && reports.length > 0) {
+        const latestJson = reports.find(f => f.endsWith('.json'));
+        if (latestJson) {
+          fetch(`/api/eval/download/report/${latestJson}`)
+            .then(r => r.json())
+            .then(reportData => {
+              let timeStr = "";
+              const match = latestJson.match(/benchmark_report_(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})/);
+              if (match) {
+                timeStr = `${match[1]}-${match[2]}-${match[3]} ${match[4]}:${match[5]}:${match[6]}`;
+              } else {
+                timeStr = latestJson;
+              }
+              const currentTopK = parseInt(document.getElementById('eval-topk-select')?.value || 5, 10);
+              updateEvaluationTable(reportData, currentTopK, timeStr);
+            })
+            .catch(e => console.error("Error reading latest benchmark report:", e));
+        }
+      }
+    })
+    .catch(err => {
+      console.error("Error loading evaluation history:", err);
+    });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   initCategoryChips();
   setTimeout(init3DEngine, 80);
+  setTimeout(() => {
+    initEvaluationCharts();
+    loadEvaluationHistory(true);
+  }, 200);
 });

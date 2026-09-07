@@ -594,6 +594,79 @@ app.post('/api/run-auto-eval', (req, res) => {
   });
 });
 
+// 10. API: Chạy Universal Retrieval Benchmark
+app.post('/api/eval/run', (req, res) => {
+  const { top_k = 5 } = req.body;
+  const scriptPath = path.join(ROOT_DIR, 'scripts', 'run_retrieval_evaluation.py');
+  
+  execFile('python', [scriptPath, '--top-k', String(top_k)], { cwd: ROOT_DIR, env: { ...process.env, PYTHONIOENCODING: 'utf-8' } }, (error, stdout, stderr) => {
+    if (error) {
+      return res.status(500).json({ success: false, error: stderr || error.message });
+    }
+    const evalDir = path.join(ROOT_DIR, 'data', 'processed', 'evaluation_results');
+    let latestReport = null;
+    if (fs.existsSync(evalDir)) {
+      const jsonFiles = fs.readdirSync(evalDir).filter(f => f.startsWith('benchmark_report_') && f.endsWith('.json')).sort().reverse();
+      if (jsonFiles.length > 0) {
+        try {
+          latestReport = JSON.parse(fs.readFileSync(path.join(evalDir, jsonFiles[0]), 'utf8'));
+        } catch (e) {}
+      }
+    }
+    res.json({ success: true, message: "Đã hoàn thành chạy Universal Retrieval Benchmark.", data: latestReport, raw_output: stdout });
+  });
+});
+
+// 11. API: Lịch sử Benchmark và Lịch sử Truy vấn
+app.get('/api/eval/history', (req, res) => {
+  const evalDir = path.join(ROOT_DIR, 'data', 'processed', 'evaluation_results');
+  const queryLogDir = path.join(ROOT_DIR, 'data', 'processed', 'query_logs');
+  
+  let evalFiles = [];
+  let logFiles = [];
+  
+  try {
+    if (fs.existsSync(evalDir)) {
+      evalFiles = fs.readdirSync(evalDir)
+        .filter(f => f.endsWith('.json') || f.endsWith('.md'))
+        .map(f => ({ name: f, path: path.join(evalDir, f), time: fs.statSync(path.join(evalDir, f)).mtime.getTime() }))
+        .sort((a, b) => b.time - a.time)
+        .map(f => f.name);
+    }
+    if (fs.existsSync(queryLogDir)) {
+      logFiles = fs.readdirSync(queryLogDir)
+        .filter(f => f.endsWith('.json'))
+        .map(f => ({ name: f, path: path.join(queryLogDir, f), time: fs.statSync(path.join(queryLogDir, f)).mtime.getTime() }))
+        .sort((a, b) => b.time - a.time)
+        .map(f => f.name);
+    }
+    res.json({ success: true, eval_history: evalFiles, benchmark_reports: evalFiles, query_logs: logFiles });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 12. API: Tải tệp Benchmark / Log
+app.get('/api/eval/download/:type/:filename', (req, res) => {
+  const { type, filename } = req.params;
+  let dirPath = '';
+  
+  if (type === 'eval' || type === 'report') {
+    dirPath = path.join(ROOT_DIR, 'data', 'processed', 'evaluation_results');
+  } else if (type === 'log' || type === 'query') {
+    dirPath = path.join(ROOT_DIR, 'data', 'processed', 'query_logs');
+  } else {
+    return res.status(400).send("Loại tệp không hợp lệ");
+  }
+  
+  const filePath = path.join(dirPath, filename);
+  if (!filePath.startsWith(dirPath) || !fs.existsSync(filePath)) {
+    return res.status(404).send("Tệp không tồn tại");
+  }
+  
+  res.download(filePath);
+});
+
 // Tự động khởi chạy tiến trình tìm kiếm ngầm trong RAM
 function ensureSearchService() {
   const checkReq = http.get('http://127.0.0.1:5005/health', (res) => {

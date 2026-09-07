@@ -246,6 +246,20 @@ def main():
         "results": results,
     }
 
+    # Lưu log truy vấn
+    import hashlib
+    from datetime import datetime
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    short_hash = hashlib.md5(args.query.encode("utf-8")).hexdigest()[:8]
+    filename = f"query_{timestamp}_{short_hash}.json"
+    result_file = os.path.join(BASE_DIR, "data", "processed", "query_logs", filename)
+    os.makedirs(os.path.dirname(result_file), exist_ok=True)
+    with open(result_file, "w", encoding="utf-8") as f:
+        json.dump(output, f, ensure_ascii=False, indent=2)
+
+    output["result_file"] = result_file
+    output["result_filename"] = filename
+
     print(json.dumps(output, ensure_ascii=False))
 
 

@@ -1,6 +1,8 @@
-"""Kịch bản xây dựng tệp bộ đệm chỉ mục tìm kiếm ngữ nghĩa tốc độ cao (Search Index Cache Builder).
-Trích xuất 2.500 văn bản Báo chí tiếng Việt và 2.500 văn bản Wikipedia tiếng Việt,
-giải lượng tử hóa SQ8, chuẩn hóa L2, tính toán tọa độ 3D PCA và cập nhật bộ đệm data/processed/.
+"""Kịch bản xây dựng bộ đệm chỉ mục tìm kiếm sạch không chứa dữ liệu Hugging Face.
+
+Trích xuất 2.500 văn bản Báo chí tiếng Việt (news_...) và 2.500 văn bản
+Wikipedia tiếng Việt (wiki_...), giải lượng tử hóa SQ8 sang float32,
+chuẩn hóa L2, tính toán PCA 3D và ghi đè các tệp bộ đệm tại data/processed/.
 """
 
 import json
@@ -17,7 +19,7 @@ if hasattr(sys.stdout, "reconfigure"):
     except Exception:
         pass
 
-BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.join(BASE_DIR, "src"))
 
 from quantizer.sq8 import ScalarQuantizer8
@@ -209,7 +211,7 @@ def generate_hnsw_3d_topology(coords_3d: np.ndarray, metadata: List[Dict]) -> Di
     }
 
 
-def main():
+def build_cache():
     start_time = time.time()
     n_sample = 2500
 
@@ -224,7 +226,7 @@ def main():
     out_dir = os.path.join(BASE_DIR, "data", "processed")
     os.makedirs(out_dir, exist_ok=True)
 
-    print("[1] Đọc và lọc dữ liệu Báo chí tiếng Việt (chỉ lấy news_)...")
+    print("[1/7] Đọc và lọc dữ liệu Báo chí tiếng Việt (chỉ lấy news_)...")
     news_rows, news_metadata = load_clean_corpus_subset(
         meta_path=news_meta_file,
         prefix="news_",
@@ -232,9 +234,9 @@ def main():
         global_offset=0,
         target_count=n_sample
     )
-    print(f"    -> Thu thập {len(news_metadata)} bản ghi news (dòng {news_rows[0]} đến {news_rows[-1]}).")
+    print(f"      -> Thu thập {len(news_metadata)} bản ghi news (dòng {news_rows[0]} đến {news_rows[-1]}).")
 
-    print("[2] Đọc và lọc dữ liệu Wikipedia tiếng Việt (chỉ lấy wiki_)...")
+    print("[2/7] Đọc và lọc dữ liệu Wikipedia tiếng Việt (chỉ lấy wiki_)...")
     wiki_rows, wiki_metadata = load_clean_corpus_subset(
         meta_path=wiki_meta_file,
         prefix="wiki_",
@@ -242,9 +244,9 @@ def main():
         global_offset=16459486,
         target_count=n_sample
     )
-    print(f"    -> Thu thập {len(wiki_metadata)} bản ghi wiki (dòng {wiki_rows[0]} đến {wiki_rows[-1]}).")
+    print(f"      -> Thu thập {len(wiki_metadata)} bản ghi wiki (dòng {wiki_rows[0]} đến {wiki_rows[-1]}).")
 
-    print("[3] Nạp vector int8 từ đĩa và giải lượng tử hóa SQ8 sang float32...")
+    print("[3/7] Nạp vector int8 từ đĩa và giải lượng tử hóa SQ8 sang float32...")
     mmap_news = np.memmap(news_dat_file, dtype=np.int8, mode="r", shape=(16459486, 384))
     raw_news_int8 = np.array(mmap_news[news_rows], dtype=np.int8)
     del mmap_news
@@ -263,7 +265,7 @@ def main():
         sq8_wiki.load_params(json.load(f))
     vecs_wiki_float = sq8_wiki.dequantize(raw_wiki_int8)
 
-    print("[4] Ghép nối và chuẩn hóa L2 vector...")
+    print("[4/7] Ghép nối và chuẩn hóa L2 vector...")
     all_vectors = np.vstack([vecs_news_float, vecs_wiki_float]).astype(np.float32)
     norms = np.linalg.norm(all_vectors, axis=1, keepdims=True)
     all_vectors_norm = (all_vectors / np.maximum(norms, 1e-12)).astype(np.float32)
@@ -272,7 +274,7 @@ def main():
     assert len(all_metadata) == 5000, f"Tổng số bản ghi không khớp 5000: {len(all_metadata)}"
     assert all(not m["doc_id"].startswith("hf_") for m in all_metadata), "Phát hiện bản ghi hf_!"
 
-    print("[5] Tính toán phép chiếu PCA 3D và lưu tham số mô hình...")
+    print("[5/7] Tính toán phép chiếu PCA 3D và lưu tham số mô hình...")
     coords_3d, mean_vec, components, scale_factor = compute_pca_3d(all_vectors_norm, n_components=3)
 
     pca_file = os.path.join(out_dir, "pca_3d_projection.json")
@@ -282,9 +284,9 @@ def main():
             "components": components.tolist(),
             "scale_factor": float(scale_factor)
         }, f, ensure_ascii=False)
-    print(f"    -> Lưu tham số PCA: {pca_file}")
+    print(f"      -> Lưu tham số PCA: {pca_file}")
 
-    print("[6] Cập nhật tọa độ 3D vào metadata và ghi search_index_cache.npz...")
+    print("[6/7] Cập nhật tọa độ 3D vào metadata và ghi search_index_cache.npz...")
     cleaned_metadata = []
     for i, m in enumerate(all_metadata):
         cleaned_m = {
@@ -303,7 +305,7 @@ def main():
     meta_file = os.path.join(out_dir, "search_index_metadata.json")
     with open(meta_file, "w", encoding="utf-8") as f:
         json.dump(cleaned_metadata, f, ensure_ascii=False, indent=2)
-    print(f"    -> Lưu metadata ({len(cleaned_metadata)} bản ghi): {meta_file}")
+    print(f"      -> Lưu metadata ({len(cleaned_metadata)} bản ghi): {meta_file}")
 
     npz_file = os.path.join(out_dir, "search_index_cache.npz")
     global_indices = np.array([m["global_idx"] for m in cleaned_metadata], dtype=np.int32)
@@ -313,9 +315,9 @@ def main():
         coords_3d=coords_3d,
         global_indices=global_indices
     )
-    print(f"    -> Lưu search_index_cache.npz: {npz_file}")
+    print(f"      -> Lưu search_index_cache.npz: {npz_file}")
 
-    print("[7] Sinh cấu trúc đồ thị HNSW 3D và lưu vectors_3d_cache.json...")
+    print("[7/7] Sinh cấu trúc đồ thị HNSW 3D và lưu vectors_3d_cache.json...")
     vector_cloud = []
     for i, m in enumerate(cleaned_metadata):
         vector_cloud.append({
@@ -341,11 +343,11 @@ def main():
             "vectors": vector_cloud,
             "hnsw_topology": hnsw_topology
         }, f, ensure_ascii=False)
-    print(f"    -> Lưu vectors_3d_cache.json: {v3d_file}")
+    print(f"      -> Lưu vectors_3d_cache.json: {v3d_file}")
 
     elapsed = time.time() - start_time
     print(f"Xử lý thành công trong {elapsed:.2f} giây.")
 
 
 if __name__ == "__main__":
-    main()
+    build_cache()
