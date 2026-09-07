@@ -30,4 +30,4 @@
 2. **Bảo toàn Góc Không gian 384 Chiều:** Nhờ hiện tượng tập trung độ đo, sai số lượng tử hóa SQ8 triệt tiêu lẫn nhau, thứ tự láng giềng bảo toàn > 98%.
 3. **Cắt tỉa Bình nguyên Hội tụ:** Dừng sớm thích ứng loại bỏ 60-70% số bước nhảy dư thừa khi khoảng cách chạm cực tiểu.
 4. **Tái xếp hạng Tầng 2 trên SSD:** Đọc 30 vector trong 0.2 ms khôi phục Recall@10 lên > 95%.
-5. **Quy mô 32,5 Triệu Vector:** Hoạt động ổn định trên PC phổ thông với < 8 GB RAM, trong khi Standard HNSW đòi hỏi > 65 GB RAM.
+5. **Quy mô Siêu kho 31.33 Triệu Vector (31.331.931 vector):** Hoạt động ổn định trên PC phổ thông với 8.1 GB RAM (-75%), trong khi Standard HNSW đòi hỏi > 64.2 GB RAM (gây lỗi Out-Of-Memory).

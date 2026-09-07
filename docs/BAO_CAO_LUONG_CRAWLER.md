@@ -196,15 +196,15 @@ Nhận từng bản ghi dữ liệu đã làm sạch và ghi tuần tự vào c�
 ```text
 ANN/
 ├── data/
-│   ├── crawl/                                # Dữ liệu báo chí & pháp luật (10.000.000 bản ghi)
+│   ├── crawl/                                # Dữ liệu Báo chí & Pháp luật (16.459.486 bản ghi)
 │   │   ├── CRAWL_MANIFEST.json               # Kê khai 200 shards, 20.45 GB
-│   │   ├── shard_00000.jsonl                 # 50.000 bản ghi toàn văn
+│   │   ├── shard_00000.jsonl                 # Phân đoạn bản ghi toàn văn
 │   │   └── ... (shard_00001 -> shard_00199)
 │   │
-│   └── crawl_wiki/                           # Dữ liệu Wikipedia tiếng Việt (10.000.000 bản ghi)
+│   └── crawl_wiki/                           # Dữ liệu Wikipedia tiếng Việt (14.872.445 phân đoạn)
 │       ├── CRAWL_MANIFEST.json               # Kê khai 200 shards Wikipedia
 │       ├── crawl_checkpoint.json             # Lưu vết tiến độ thu thập
-│       ├── shard_00000.jsonl                 # 50.000 phân đoạn bách khoa toàn thư
+│       ├── shard_00000.jsonl                 # Phân đoạn bách khoa toàn thư
 │       └── ... (shard_00001 -> shard_00199)
 │
 ├── src/crawler/                              # Thư viện crawler dùng chung

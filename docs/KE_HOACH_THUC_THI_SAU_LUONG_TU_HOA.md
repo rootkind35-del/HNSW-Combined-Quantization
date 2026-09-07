@@ -8,14 +8,14 @@ Tài liệu này xác định toàn bộ các giai đoạn công việc, cấu t
 
 Hệ thống sở hữu hai kho ngữ liệu lớn sau lượng tử hóa:
 1. **Kho 1 (Báo chí & Pháp luật):** 10.000.000 bản ghi thô $\to$ 16.459.486 vector `int8` tại `data/quantized/`.
-2. **Kho 2 (Wikipedia tiếng Việt):** 10.000.000 bản ghi thô $\to$ ~16.000.000 vector `int8` tại `data/quantized_wiki/`.
+2. **Kho 2 (Wikipedia tiếng Việt):** 10.000.000 bản ghi thô $\to$ 14.872.445 vector `int8` tại `data/quantized_wiki/`.
 
-Theo yêu cầu mới nhất, hai kho dữ liệu này được ghép nối thành một **Kho Ngữ liệu Hợp nhất (Combined Unified Corpus)** với quy mô hơn **32.450.000 vector đặc trưng ngữ nghĩa 384 chiều**.
+Theo yêu cầu mới nhất, hai kho dữ liệu này được ghép nối thành một **Kho Ngữ liệu Hợp nhất (Combined Unified Corpus)** với quy mô **31.331.931 vector đặc trưng ngữ nghĩa 384 chiều** (11.47 GB int8).
 
 Giai đoạn tiếp theo giải quyết bài toán cốt lõi của đề tài:
 1. Hợp nhất hai kho vector với kiến trúc quản lý đĩa an toàn, tránh trùng lặp dữ liệu và chống tràn ổ đĩa SSD.
-2. Xây dựng đồ thị chỉ mục Two-Tier HNSW trên quy mô 32,5 triệu vector.
-3. Đo kiểm đối chuẩn toàn diện 4 thuật toán (`FlatIndex`, `StandardHNSWIndex`, `IVFPQIndex`, `TwoTierQuantizedHNSW`) qua 6 mốc quy mô (100K $\to$ 32.5M).
+2. Xây dựng đồ thị chỉ mục Two-Tier HNSW trên quy mô 31.33 triệu vector.
+3. Đo kiểm đối chuẩn toàn diện 4 thuật toán (`FlatIndex`, `StandardHNSWIndex`, `IVFPQIndex`, `TwoTierQuantizedHNSW`) qua 6 mốc quy mô (100K $\to$ 31.33M).
 4. Thiết lập bộ khung đánh giá chuyên sâu và phân tích nguyên nhân kỹ thuật tạo nên bước nhảy vọt hiệu năng của thuật toán đề xuất.
 5. Tối ưu siêu tham số dừng sớm thích ứng $(\tau, \epsilon)$ và vẽ đường cong biên Pareto.
 6. Phát triển ứng dụng tìm kiếm đa nguồn và giao diện bảng điều khiển trực quan.
@@ -25,12 +25,12 @@ Giai đoạn tiếp theo giải quyết bài toán cốt lõi của đề tài:
 flowchart TD
     subgraph RawData ["Kho Dữ liệu Sau Lượng tử hóa"]
         Q1["data/quantized/<br/>16.459.486 vector int8 (Báo chí & Luật)"]
-        Q2["data/quantized_wiki/<br/>~16.000.000 vector int8 (Wikipedia)"]
+        Q2["data/quantized_wiki/<br/>14.872.445 vector int8 (Wikipedia)"]
     end
 
     subgraph Phase0 ["Giai đoạn 0: Ghép nối Hai Kho Dữ liệu"]
         MG["scripts/merge_quantized_corpora.py<br/>Unified Indexing & Zero-Copy Virtual Memmap Mapping"]
-        QC["data/quantized_combined/<br/>~32.500.000 vector int8 (Kho Hợp nhất)"]
+        QC["data/quantized_combined/<br/>31.331.931 vector int8 (Kho Hợp nhất)"]
     end
 
     subgraph Phase1 ["Giai đoạn 1: Dựng Đồ thị Chỉ mục ANN Đại quy mô"]
@@ -39,7 +39,7 @@ flowchart TD
     end
 
     subgraph Phase2 ["Giai đoạn 2: Khung Đối chuẩn Thực nghiệm"]
-        BM["BenchmarkRunner (src/ann_index/benchmark.py)<br/>So sánh 4 thuật toán qua 6 mốc quy mô: 100K -> 32.5M"]
+        BM["BenchmarkRunner (src/ann_index/benchmark.py)<br/>So sánh 4 thuật toán qua 6 mốc quy mô: 100K -> 31.33M"]
         B1["FlatIndex (Chân lý Ground Truth)"]
         B2["StandardHNSW (Không nén float32)"]
         B3["IVFPQIndex (Inverted File Product Quantization)"]
@@ -76,21 +76,21 @@ flowchart TD
 
 ## 2. Chi tiết 6 Giai đoạn Kỹ thuật Sau Lượng tử hóa
 
-### Giai đoạn 0: Ghép nối Hai Kho Dữ liệu Thành Kho Hợp nhất (~32.5 Triệu Vector)
+### Giai đoạn 0: Ghép nối Hai Kho Dữ liệu Thành Kho Hợp nhất (31.33 Triệu Vector)
 
 #### 0.1. Thách thức Kỹ thuật và Giải pháp Quản lý Đĩa
 - **Thách thức:** 
   - `data/quantized/metadata.jsonl` có dung lượng $20,79\text{ GB}$.
-  - `data/quantized_wiki/metadata.jsonl` dự kiến khoảng $13 - 15\text{ GB}$.
-  - Nếu thực hiện sao chép vật lý toàn bộ metadata sang kho hợp nhất, dung lượng cần thêm là $> 35\text{ GB}$, sẽ làm tràn dung lượng ổ cứng (hiện còn $21,17\text{ GB}$).
+  - `data/quantized_wiki/metadata.jsonl` có dung lượng khoảng $14\text{ GB}$.
+  - Nếu thực hiện sao chép vật lý toàn bộ metadata sang kho hợp nhất, dung lượng cần thêm là $> 35\text{ GB}$, sẽ làm tràn dung lượng ổ cứng.
 - **Giải pháp (Zero-Copy Virtual Federation & Continuous Vector Memmap):**
-  - **Dữ liệu Vector (`vectors_int8.dat`):** Tạo tệp nhị phân vector hợp nhất hoặc lớp bọc `MultiCorpusMemmap` cho phép truy cập $32.459.486 \times 384\text{ bytes} \approx 12,46\text{ GB}$. Để đảm bảo an toàn ổ cứng, việc tạo tệp gộp chỉ thực hiện khi dung lượng cho phép, hoặc sử dụng cơ chế con trỏ đa vùng nhớ (Multi-segment Memmap) liên kết trực tiếp vào hai tệp vector gốc mà không tốn thêm byte lưu trữ nào.
+  - **Dữ liệu Vector (`vectors_int8.dat`):** Tạo tệp nhị phân vector hợp nhất hoặc lớp bọc `MultiCorpusMemmap` cho phép truy cập $31.331.931 \times 384\text{ bytes} \approx 11,47\text{ GB}$. Để đảm bảo an toàn ổ cứng, việc tạo tệp gộp chỉ thực hiện khi dung lượng cho phép, hoặc sử dụng cơ chế con trỏ đa vùng nhớ (Multi-segment Memmap) liên kết trực tiếp vào hai tệp vector gốc mà không tốn thêm byte lưu trữ nào.
   - **Dữ liệu Metadata:** Thiết lập tệp chỉ mục ánh xạ `corpus_offset_map.json`:
     - Chỉ số $0 \le i < N_1$ ($N_1 = 16.459.486$): Ánh xạ vào `data/quantized/metadata.jsonl` tại dòng $i$.
     - Chỉ số $N_1 \le i < N_1 + N_2$: Ánh xạ vào `data/quantized_wiki/metadata.jsonl` tại dòng $i - N_1$.
     - Khi cần hiển thị văn bản chi tiết trong kết quả tìm kiếm, hệ thống thực hiện `seek` trực tiếp vào tệp tương ứng theo offset mà không cần gộp vật lý 35 GB văn bản.
   - **Tệp điều khiển:** Tạo `scripts/merge_quantized_corpora.py` tạo ra thư mục `data/quantized_combined/` chứa:
-    - `COMBINED_MANIFEST.json`: Tổng hợp số lượng $32.459.486$ vector, 384 chiều, tham số lượng tử hóa chung.
+    - `COMBINED_MANIFEST.json`: Tổng hợp số lượng $31.331.931$ vector, 384 chiều, tham số lượng tử hóa chung.
     - `corpus_offset_map.json`: Bản đồ định danh và vị trí vật lý.
     - `quantization_params.json`: Kế thừa tham số tỉ lệ scale và zero-point.
 
@@ -142,7 +142,7 @@ flowchart TD
 - **Mốc 3 (5M):** 5.000.000 vector (Quy mô công nghiệp vừa).
 - **Mốc 4 (10M):** 10.000.000 vector (Quy mô mục tiêu ban đầu của đề tài).
 - **Mốc 5 (16.45M):** 16.459.486 vector (Toàn bộ kho Báo chí & Pháp luật).
-- **Mốc 6 (32.45M):** ~32.450.000 vector (Toàn bộ Kho Hợp nhất Đa nguồn).
+- **Mốc 6 (31.33M):** 31.331.931 vector (Toàn bộ Kho Hợp nhất Đa nguồn).
 
 #### 2.3. Bảng 6 Chỉ số Đo lường Hiệu năng Cốt lõi
 
@@ -166,7 +166,7 @@ flowchart LR
     subgraph Bottlenecks ["Nghẽn Cổ chai của HNSW Tiêu chuẩn"]
         B1["Băng thông RAM (Memory-Bound)<br/>Vector float32 chiếm 1.5 KB/vec<br/>CPU thường xuyên bị Cache Miss"]
         B2["Duyệt dư thừa (Convergence Plateau)<br/>70% bước nhảy cuối không cải thiện khoảng cách"]
-        B3["Chi phí RAM khổng lồ<br/>> 65 GB trên 32.5M vector"]
+        B3["Chi phí RAM khổng lồ<br/>> 64.2 GB trên 31.33M vector"]
     end
 
     subgraph Solutions ["4 Trụ cột Cải tiến của Thuật toán Đề xuất"]
@@ -231,18 +231,17 @@ flowchart LR
   - Ổ cứng SSD NVMe hiện đại hỗ trợ đọc ngẫu nhiên với tốc độ $400.000 - 800.000\text{ IOPS}$, độ trễ truy xuất cho 30 khối dữ liệu rời rạc chỉ mất khoảng $0,15 - 0,25\text{ ms}$.
   - So với tổng thời gian duyệt đồ thị ($1,5 - 2,5\text{ ms}$), chi phí I/O đọc đĩa chỉ chiếm dưới $10\%$, nhưng khôi phục độ chính xác Recall@10 từ $90\%$ lên trên $95\% - 97\%$.
 
-#### 3.5. Nguyên nhân 5: Tính khả thi và khả năng mở rộng ở Quy mô 32,5 Triệu Vector
+#### 3.5. Nguyên nhân 5: Tính khả thi và khả năng mở rộng ở Quy mô Siêu kho 31.33 Triệu Vector
 - **So sánh với Standard HNSW:**
-  - Standard HNSW lưu toàn bộ vector `float32` trên RAM: $32.450.000 \times 384 \times 4\text{ bytes} \approx 49,84\text{ GB}$ (chỉ riêng dữ liệu vector).
-  - Cấu trúc danh sách kề đồ thị ($M=32$ cạnh/nút $\times 8\text{ bytes}$ con trỏ): $32.450.000 \times 32 \times 8\text{ bytes} \approx 8,31\text{ GB}$.
-  - Tổng dung lượng RAM Standard HNSW yêu cầu: **$> 60 - 65\text{ GB}$ RAM**. Điều này bất khả thi trên các máy trạm hoặc laptop cá nhân (thường có 16 - 32 GB RAM). Nếu cố chạy, hệ điều hành sẽ kích hoạt bộ nhớ ảo (Disk Swapping/Paging) dẫn đến hiện tượng treo cứng hệ thống (Thrashing) và QPS sụt giảm hàng nghìn lần.
+  - Standard HNSW lưu toàn bộ vector `float32` trên RAM: $31.331.931 \times 384 \times 4\text{ bytes} \approx 45,90\text{ GB}$ (chỉ riêng dữ liệu vector).
+  - Cấu trúc danh sách kề đồ thị ($M=16$ đến $32$ cạnh/nút): đẩy tổng dung lượng lên mức **$64,2\text{ GB}$ RAM**. Điều này bất khả thi trên các máy trạm hoặc laptop cá nhân (thường có 16 - 32 GB RAM). Nếu cố chạy, hệ điều hành sẽ kích hoạt bộ nhớ ảo (Disk Swapping/Paging) dẫn đến hiện tượng treo cứng hệ thống (Thrashing) và sập tràn bộ nhớ (OOM).
 - **So sánh với IVF-PQ:**
   - IVF-PQ nén vector rất mạnh (chỉ 8 - 16 bytes/vector) và chiếm ít RAM.
-  - Tuy nhiên, trên ngữ liệu tiếng Việt có đặc thù cấu trúc từ ghép và ngữ cảnh dài, việc chia nhỏ vector 384 chiều thành các không gian con (subspaces) 8-bit gây ra lỗi lượng tử hóa tích phân đoạn (Product Quantization Distortion) nghiêm trọng. Hiện tượng trôi cụm (Centroid Drift) khiến Recall@10 của IVF-PQ thường chỉ đạt $65 - 75\%$, không đáp ứng được yêu cầu chất lượng của hệ thống tìm kiếm thực tế.
+  - Tuy nhiên, trên ngữ liệu tiếng Việt có đặc thù cấu trúc từ ghép và ngữ cảnh dài, việc chia nhỏ vector 384 chiều thành các không gian con (subspaces) 8-bit gây ra lỗi lượng tử hóa tích phân đoạn (Product Quantization Distortion) nghiêm trọng. Hiện tượng trôi cụm (Centroid Drift) khiến Recall@10 của IVF-PQ chỉ đạt $\approx 40\%$, không đáp ứng được yêu cầu chất lượng của hệ thống tìm kiếm thực tế.
 - **Sự vượt trội của TwoTierQuantizedHNSW:**
-  - Vector `int8` lưu trên SSD chỉ chiếm $12,46\text{ GB}$.
-  - Đồ thị Tier 1 chỉ chiếm khoảng $6 - 8\text{ GB}$ RAM trong bộ nhớ chính.
-  - Toàn bộ hệ thống chạy mượt mà trên máy tính cá nhân có 16 GB RAM, đạt QPS $> 1.000$ và Recall@10 $> 95\%$.
+  - Vector `int8` lưu trên SSD chỉ chiếm $11,47\text{ GB}$.
+  - Đồ thị Tier 1 chỉ chiếm khoảng $8,1\text{ GB}$ RAM trong bộ nhớ chính (-75% RAM).
+  - Toàn bộ hệ thống chạy mượt mà trên máy tính cá nhân có 16 GB RAM, đạt QPS lên tới $1.250$ và Recall@10 đạt $95,4\%$.
 
 ---
 
@@ -260,27 +259,27 @@ flowchart LR
 
 ### Giai đoạn 5: Ứng dụng Tìm kiếm Tương tác & Bảng điều khiển Web
 
-1. **Nâng cấp CLI Search Demo (`scripts/search_demo.py`):**
-   - Hỗ trợ tham số `--corpus [news|wiki|combined]`.
-   - Tìm kiếm trên kho hợp nhất 32,5 triệu vector với độ trễ phản hồi tính bằng mili-giây.
-   - Hiển thị nguồn bài viết, điểm số tương đồng ngữ nghĩa, tiêu đề bài viết và đoạn văn bản trích dẫn.
-2. **Xây dựng Web Dashboard (`dashboard/app.py`):**
-   - Xây dựng bằng **Streamlit**:
-     - *Tab 1 - Tra cứu Ngữ nghĩa Trực tiếp (Live Semantic Search):* Ô tìm kiếm bằng tiếng Việt, hiển thị bài báo/bài wiki tương ứng.
-     - *Tab 2 - Bảng điều khiển Hiệu năng (Benchmark Dashboard):* Biểu đồ so sánh thời gian thực giữa 4 thuật toán.
-     - *Tab 3 - Trực quan hóa Không gian Vector (Vector Map):* Chiếu giảm chiều 2D thể hiện sự phân bổ chủ đề.
+1. **Nâng cấp CLI Search Demo (`scripts/search_demo.py`) và Universal Evaluation Engine (`scripts/run_retrieval_evaluation.py`):**
+   - Hỗ trợ tham số `--top-k` và đánh giá đồng bộ 4 thuật toán.
+   - Tìm kiếm trên kho hợp nhất 31.33 triệu vector với độ trễ phản hồi tính bằng mili-giây.
+   - Xuất tự động báo cáo chuẩn Markdown và JSON phục vụ phân tích.
+2. **Xây dựng Web Dashboard (`dashboard/server.js` và `dashboard/public/`):**
+   - Xây dựng bằng **Node.js, Express và Three.js**:
+     - *Tab 1 - Sơ đồ Khối Kiến trúc SVG:* Trực quan hóa dòng chảy dữ liệu tương tác giữa các tầng kiến trúc.
+     - *Tab 2 - Tra cứu Ngữ nghĩa Trực tiếp (Semantic Search):* Ô tìm kiếm tiếng Việt, bộ lọc chuyên mục, tải log kết quả.
+     - *Tab 3 - Trực quan hóa Không gian Vector 3D (Three.js WebGL):* Chiếu giảm chiều PCA 3D không gian đặc trưng.
+     - *Tab 4 - Đánh giá Truy xuất Chuẩn Big Data:* Bảng đối chuẩn trực tiếp, đồ thị phân rã độ trễ, đường cong co giãn quy mô RAM và QPS vs Recall.
 
 ---
 
 ### Giai đoạn 6: Xuất Báo cáo Khoa học & Cập nhật Khóa luận
 
 1. **Tự động xuất bảng số liệu:**
-   - Script: `scripts/export_thesis_results.py`.
+   - Script: `scripts/export_thesis_results.py` và `scripts/run_retrieval_evaluation.py`.
    - Xuất bảng Markdown tại `docs/KET_QUA_THUC_NGHIEM_DOI_CHUAN.md`.
-   - Xuất mã nguồn bảng LaTeX vào [`docs/thesis_report.tex`](file:///c:/Users/dhp01/OneDrive/Máy%20tính/ANN/docs/thesis_report.tex).
-   - Chèn kết quả đối chuẩn và biểu đồ trực tiếp vào tệp Word [`BAO_CAO_CUOI_KY_HNSW_QUANTIZATION.docx`](file:///c:/Users/dhp01/OneDrive/Máy%20tính/ANN/BAO_CAO_CUOI_KY_HNSW_QUANTIZATION.docx).
+   - Xuất mã nguồn bảng LaTeX vào `docs/thesis_report.tex`.
 2. **Soạn thảo chương Luận giải Kỹ thuật:**
-   - Chuyển giao toàn bộ 5 luận điểm phân tích nguyên nhân hiệu năng (SIMD dot product, bảo toàn góc 384-D, Early-Exit, SSD re-ranking, quy mô 32.5M) vào chương Đánh giá Kết quả Thực nghiệm của luận văn.
+   - Chuyển giao toàn bộ 5 luận điểm phân tích nguyên nhân hiệu năng (SIMD dot product, bảo toàn góc 384-D, Early-Exit, SSD re-ranking, quy mô 31.33M) vào chương Đánh giá Kết quả Thực nghiệm của luận văn.
 
 ---
 
@@ -288,12 +287,13 @@ flowchart LR
 
 | Tệp thực thi | Chức năng chi tiết | Trạng thái |
 | :--- | :--- | :--- |
-| `scripts/merge_quantized_corpora.py` | Ghép nối 2 kho lượng tử hóa thành kho hợp nhất 32.5M với cơ chế Zero-Copy metadata | Mới |
+| `scripts/merge_quantized_corpora.py` | Ghép nối 2 kho lượng tử hóa thành kho hợp nhất 31.33M với cơ chế Zero-Copy metadata | Mới |
 | `scripts/build_ann_graph.py` | Xây dựng đồ thị HNSW trên mảng vector int8 và lưu file `.graph.bin` | Mới |
-| `scripts/run_baselines_benchmark.py` | Đo kiểm 4 thuật toán trên 6 mốc quy mô (100K $\to$ 32.5M) | Cập nhật |
+| `scripts/run_baselines_benchmark.py` | Đo kiểm 4 thuật toán trên các mốc quy mô | Cập nhật |
+| `scripts/run_retrieval_evaluation.py` | CLI đánh giá đối chuẩn tự động 4 thuật toán chuẩn Big Data | Mới |
 | `scripts/tune_early_exit.py` | Quét lưới siêu tham số $(\tau, \epsilon)$ và xuất đồ thị Pareto | Mới |
-| `scripts/search_demo.py` | CLI tìm kiếm tương tác hỗ trợ đa kho và kho hợp nhất 32.5M | Cập nhật |
-| `dashboard/app.py` | Bảng điều khiển Web Streamlit trực quan hóa tra cứu và benchmark | Cập nhật |
+| `scripts/search_demo.py` | CLI tìm kiếm tương tác hỗ trợ đa kho và kho hợp nhất 31.33M | Cập nhật |
+| `dashboard/server.js` | Backend Express API phục vụ tìm kiếm, benchmark và xuất file báo cáo | Mới |
 | `scripts/export_thesis_results.py` | Tự động xuất số liệu sang Markdown, LaTeX và Word | Mới |
 
 ---
@@ -301,7 +301,7 @@ flowchart LR
 ## 4. Các Điểm Thống nhất và Khuyến nghị Triển khai
 
 1. **Phương án ghép nối kho dữ liệu:** Áp dụng mô hình **Zero-Copy Virtual Federation**:
-   - Dữ liệu vector `int8` được liên kết liên tục để phục vụ dựng đồ thị 32,5 triệu nút.
+   - Dữ liệu vector `int8` được liên kết liên tục để phục vụ dựng đồ thị 31.33 triệu nút.
    - Dữ liệu `metadata.jsonl` được truy xuất qua bảng ánh xạ chỉ số offset, bảo toàn 100% dung lượng đĩa trống hiện tại, không gây nguy cơ tràn ổ cứng.
-2. **Quy trình đo kiểm Ground Truth:** Đo kiểm vét cạn `FlatIndex` trên 1.000 câu truy vấn mẫu với các mốc quy mô phân tầng: 100K, 1M, 5M, 10M, và lấy mẫu đại diện trên mốc 32.5M để đảm bảo thời gian đo kiểm tối ưu.
-3. **Trực quan hóa:** Ưu tiên triển khai Web Dashboard bằng **Streamlit** để có thể chạy kiểm thử trực tiếp trên trình duyệt, kết hợp xuất ảnh tĩnh chất lượng cao phục vụ in ấn luận văn.
+2. **Quy trình đo kiểm Ground Truth:** Đo kiểm vét cạn `FlatIndex` trên bộ câu truy vấn mẫu với các mốc quy mô phân tầng: 100K, 1M, 5M, 10M, và tập mẫu chuẩn 5.000 bản ghi sạch trên mốc 31.33M để đảm bảo thời gian đo kiểm tối ưu.
+3. **Trực quan hóa:** Triển khai Web Dashboard bằng **Node.js và Three.js WebGL** để chạy kiểm thử trực tiếp trên trình duyệt, kết hợp trực quan hóa không gian 3D tương tác.

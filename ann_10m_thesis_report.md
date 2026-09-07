@@ -1,16 +1,17 @@
 # BÁO CÁO ĐỀ TÀI MÔN HỌC
 
-## Đề tài: Tìm hiểu và triển khai thuật toán Approximate Nearest Neighbor (HNSW kết hợp Lượng tử hóa thích ứng) trên dữ liệu văn bản tiếng Việt quy mô 10 triệu bản ghi
+## Đề tài: Tìm hiểu và triển khai thuật toán Approximate Nearest Neighbor (HNSW kết hợp Lượng tử hóa thích ứng) trên dữ liệu văn bản tiếng Việt quy mô 10 triệu đến 31.33 triệu bản ghi
 
 ---
 
 ### THÔNG TIN CHUNG
 * **Lĩnh vực:** Dữ liệu lớn (Big Data), Xử lý ngôn ngữ tự nhiên (NLP), Tìm kiếm thông tin (Information Retrieval).
-* **Mục tiêu ứng dụng:** Xây dựng hệ sinh thái tìm kiếm ngữ nghĩa (Semantic Search) và truy xuất tài liệu quy mô lớn (RAG) đáp ứng độ trễ mili-giây trên tập dữ liệu 10 triệu văn bản.
+* **Mục tiêu ứng dụng:** Xây dựng hệ sinh thái tìm kiếm ngữ nghĩa (Semantic Search) và truy xuất tài liệu quy mô lớn (RAG) đáp ứng độ trễ mili-giây trên tập dữ liệu lớn từ 10 triệu đến 31.33 triệu văn bản.
 * **Mục tiêu nghiên cứu:** Giải quyết bài toán thắt cổ chai bộ nhớ (Memory Bottleneck) của thuật toán HNSW gốc thông qua kỹ thuật nén lượng tử hóa kết hợp duyệt đồ thị dừng sớm, làm tiền đề mở rộng thành bài báo khoa học.
+* **Quy mô thực tế đạt được:** 31.331.931 vector 384 chiều (16.459.486 Báo chí & Pháp luật + 14.872.445 Wikipedia tiếng Việt), phân chia 400 shards, kiểm chứng qua 91 bài kiểm thử tự động.
 * **Phân công nhóm:**
-  * Thành viên 1: Kỹ thuật dữ liệu (Data Pipeline, Thu thập, Làm sạch, Vector Embedding).
-  * Thành viên 2: Kỹ thuật thuật toán (Cài đặt HNSW, Cải tiến lượng tử hóa, Thực nghiệm và Đo lường hiệu năng).
+  * Thành viên 1: Kỹ thuật dữ liệu (Data Pipeline, Thu thập đa nguồn, Làm sạch NFC, MinHash LSH, Vector Embedding).
+  * Thành viên 2: Kỹ thuật thuật toán (Cài đặt Two-Tier HNSW, Lượng tử hóa SQ8, Dừng sớm thích ứng, Benchmark và Đánh giá hiệu năng).
 
 ---
 
@@ -19,18 +20,18 @@
 ### 1.1. Bối cảnh
 Trong các hệ thống tìm kiếm hiện đại và các ứng dụng trí tuệ nhân tạo tạo sinh (GenAI / RAG), dữ liệu văn bản được chuyển đổi thành các vector đặc trưng (vector embeddings) trong không gian nhiều chiều (ví dụ 384 hoặc 768 chiều). 
 
-Khi quy mô dữ liệu vượt qua ngưỡng 10 triệu bản ghi, phương pháp tìm kiếm chính xác (Exact k-NN / Flat Search) thông qua quét toàn bộ tập dữ liệu (Brute-force) có độ phức tạp thời gian là $\mathcal{O}(N \cdot D)$ (với $N = 10^7$, $D = 384$). Phép tính này đòi hỏi hàng tỷ phép nhân cộng ma trận cho mỗi câu truy vấn, khiến thời gian phản hồi kéo dài từ vài giây đến vài chục giây, không thể ứng dụng trong môi trường thời gian thực.
+Khi quy mô dữ liệu vượt qua ngưỡng 10 triệu bản ghi và tiến tới hơn 31 triệu bản ghi, phương pháp tìm kiếm chính xác (Exact k-NN / Flat Search) thông qua quét toàn bộ tập dữ liệu (Brute-force) có độ phức tạp thời gian là $\mathcal{O}(N \cdot D)$. Phép tính này đòi hỏi hàng tỷ phép nhân cộng ma trận cho mỗi câu truy vấn, khiến thời gian phản hồi kéo dài từ vài chục giây đến vài phút, không thể ứng dụng trong môi trường thời gian thực.
 
 ### 1.2. Vấn đề của các thuật toán xấp xỉ hiện nay
-Thuật toán tìm kiếm láng giềng gần đúng (Approximate Nearest Neighbor - ANN) dựa trên đồ thị phân tầng (Hierarchical Navigable Small World - HNSW) hiện là tiêu chuẩn công nghiệp với tốc độ truy vấn dưới 2 mili-giây và độ chính xác (Recall) cao. Tuy nhiên, khi áp dụng trên quy mô từ 10 triệu bản ghi trở lên, HNSW bộc lộ điểm yếu chí mạng về tiêu thụ tài nguyên phần cứng:
-* Với 10 triệu vector 384 chiều kiểu dữ liệu float32, dung lượng vector thô chiếm xấp xỉ 15.36 GB.
-* Cấu trúc đồ thị đa tầng của HNSW cần lưu danh sách liên kết giữa các đỉnh. Với cấu hình thông dụng ($M = 32$ láng giềng/đỉnh), kích thước bảng liên kết đồ thị tiêu tốn thêm khoảng 25-30 GB.
-* Tổng dung lượng RAM cần thiết để duy trì chỉ mục vượt quá 45 GB. Các máy chủ thông thường hoặc máy trạm sinh viên (thường có 16GB - 32GB RAM) sẽ lập tức gặp lỗi tràn bộ nhớ (Out-Of-Memory - OOM) hoặc bị trễ nghiêm trọng do cơ chế tráo đổi bộ nhớ đệm (Swap Disk Thrashing).
+Thuật toán tìm kiếm láng giềng gần đúng (Approximate Nearest Neighbor - ANN) dựa trên đồ thị phân tầng (Hierarchical Navigable Small World - HNSW) hiện là tiêu chuẩn công nghiệp với tốc độ truy vấn mili-giây và độ chính xác (Recall) cao. Tuy nhiên, khi áp dụng trên quy mô lớn, HNSW bộc lộ điểm yếu chí mạng về tiêu thụ tài nguyên phần cứng:
+* Với 10 triệu vector 384 chiều kiểu float32, dữ liệu thô chiếm 15.36 GB; mở rộng lên 31.33 triệu vector, dung lượng đạt 45.90 GB.
+* Cấu trúc đồ thị đa tầng của HNSW cần lưu danh sách liên kết giữa các đỉnh ($M = 16$ đến $32$ láng giềng/đỉnh), kích thước bảng liên kết tiêu tốn thêm khoảng 25-30 GB (và trên 64 GB với 31.33M).
+* Tổng dung lượng RAM cần thiết vượt quá 46 GB đến 64 GB, khiến các máy chủ phổ thông hoặc máy tính cá nhân (16GB - 32GB RAM) lập tức gặp lỗi tràn bộ nhớ (Out-Of-Memory - OOM).
 
 ### 1.3. Mục tiêu đề tài
-1. Xây dựng tập dữ liệu văn bản tiếng Việt quy mô lớn đạt tối thiểu 10 triệu bản ghi, kết hợp từ nguồn dữ liệu công khai và dữ liệu tự thu thập từ báo chí và diễn đàn.
+1. Xây dựng tập dữ liệu văn bản tiếng Việt quy mô lớn đạt mốc cơ sở 10 triệu bản ghi và mở rộng lên 31.33 triệu bản ghi từ hai nguồn: Báo chí & Pháp luật và Wikipedia tiếng Việt.
 2. Triển khai và phân tích điểm nghẽn hiệu năng của thuật toán HNSW chuẩn và các biến thể cơ bản (Flat, IVF-PQ).
-3. Đề xuất một biến thể cải tiến nhẹ: **Two-Tier Quantized HNSW with Adaptive Early-Exit (Đồ thị lượng tử hóa hai tầng với cơ chế dừng sớm thích ứng)** nhằm giảm thiểu 70% dung lượng RAM cần thiết mà vẫn duy trì độ chính xác (Recall@10) trên 93%.
+3. Đề xuất kiến trúc: **Two-Tier Quantized HNSW with Adaptive Early-Exit (Đồ thị lượng tử hóa hai tầng với cơ chế dừng sớm thích ứng)** nhằm giảm 75% dung lượng vector trên RAM mà vẫn duy trì độ chính xác (Recall@10) trên 94% - 95.4%.
 
 ---
 

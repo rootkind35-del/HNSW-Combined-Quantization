@@ -2,22 +2,22 @@
 
 **Tác giả:** Nhóm Nghiên cứu Kỹ thuật Hệ thống Tìm kiếm Vector  
 **Đơn vị:** Phòng Thí nghiệm Khoa học Máy tính & Trí tuệ Nhân tạo  
-**Dự án:** Approximate Nearest Neighbor (ANN) trên Quy mô 10 Triệu Bản ghi  
-**Thời gian:** Tháng 8 năm 2026  
+**Dự án:** Approximate Nearest Neighbor (ANN) trên Quy mô 10 Triệu đến 31.33 Triệu Bản ghi  
+**Thời gian:** Tháng 8 - Tháng 9 năm 2026  
 
 ---
 
 ## TÓM TẮT (ABSTRACT)
 
-Báo cáo này trình bày nghiên cứu, thiết kế kiến trúc và kết quả thực nghiệm của thuật toán tìm kiếm láng giềng gần xấp xỉ hai tầng (**Two-Tier Quantized HNSW**) trên tập dữ liệu văn bản tiếng Việt quy mô 10 triệu vector chiều $D = 384$. 
+Báo cáo này trình bày nghiên cứu, thiết kế kiến trúc và kết quả thực nghiệm của thuật toán tìm kiếm láng giềng gần xấp xỉ hai tầng (**Two-Tier Quantized HNSW**) trên tập dữ liệu văn bản tiếng Việt quy mô lớn (mốc cơ sở 10 triệu và mở rộng siêu kho hợp nhất 31.331.931 vector chiều $D = 384$). 
 
-Trên các hệ thống phần cứng giới hạn (RAM máy chủ phổ thông từ 16GB đến 32GB), cấu trúc đồ thị HNSW truyền thống đòi hỏi khoảng 46 GB RAM, vượt quá dung lượng vật lý và dẫn đến lỗi tràn bộ nhớ (Out-Of-Memory). Các phương pháp nén dữ liệu như IVF-PQ tiết kiệm bộ nhớ nhưng làm suy giảm độ chính xác Recall@10 xuống mức 35% - 40%. 
+Trên các hệ thống phần cứng giới hạn (RAM máy chủ phổ thông từ 16GB đến 32GB), cấu trúc đồ thị HNSW truyền thống đòi hỏi từ 46 GB đến 64.2 GB RAM, vượt quá dung lượng vật lý và dẫn đến lỗi tràn bộ nhớ (Out-Of-Memory). Các phương pháp nén dữ liệu như IVF-PQ tiết kiệm bộ nhớ nhưng làm suy giảm độ chính xác Recall@10 xuống mức 35% - 40%. 
 
 Để giải quyết tam giác đánh đổi giữa Bộ nhớ - Độ trễ - Độ chính xác (The ANN Trilemma), giải pháp đề xuất kết hợp:
-1. **Tier 1 (In-Memory)**: Lượng tử hóa vô hướng 8-bit (SQ8 uint8) giảm 75% kích thước vector trong RAM kết hợp bộ điều khiển dừng sớm thích ứng (**Adaptive Early-Exit Controller** với tham số $\tau = 3, \varepsilon = 10^{-4}$) loại bỏ 35% - 40% số bước duyệt đồ thị dư thừa.
-2. **Tier 2 (SSD Memmap)**: Lưu trữ mảng nhị phân `float32` nguyên bản trên đĩa SSD (dung lượng 15.36 GB cho 10 triệu vector) qua cơ chế `np.memmap` và thực thi tái xếp hạng chính xác (**Exact Float32 Re-ranking**) trên Top-$K_{\text{rerank}}$ ứng viên.
+1. **Tier 1 (In-Memory)**: Lượng tử hóa vô hướng 8-bit (SQ8 uint8) giảm 75% kích thước vector trong RAM kết hợp bộ điều khiển dừng sớm thích ứng (**Adaptive Early-Exit Controller** với tham số $\tau = 3, \varepsilon = 10^{-4}$) loại bỏ 35% - 40% (lên tới 64% trên tập tối ưu) số bước duyệt đồ thị dư thừa.
+2. **Tier 2 (SSD Memmap)**: Lưu trữ mảng nhị phân `float32` nguyên bản trên đĩa SSD (dung lượng 15.36 GB cho 10 triệu vector và 45.90 GB cho 31.33 triệu vector) qua cơ chế `np.memmap` và thực thi tái xếp hạng chính xác (**Exact Float32 Re-ranking**) trên Top-$K_{\text{rerank}}$ ứng viên.
 
-Kết quả đo đạc thực nghiệm trên bộ 71 bài kiểm thử tự động xác nhận: Two-Tier Quantized HNSW cắt giảm chính xác **50% tổng dung lượng RAM** ở mọi mốc quy mô, đạt thông lượng **365.0 QPS**, độ trễ trung vị $p_{50} = 2.37$ ms (nhanh hơn Standard HNSW $2.90$ ms), và duy trì độ chính xác Recall@10 đạt trên **94%** sau bước tái xếp hạng.
+Kết quả đo đạc thực nghiệm trên bộ 91 bài kiểm thử tự động xác nhận: Two-Tier Quantized HNSW cắt giảm chính xác **50% đến 75% tổng dung lượng RAM** ở mọi mốc quy mô, đạt thông lượng **365.0 QPS** (đạt tới 1.250 QPS với bộ đệm cân bằng), độ trễ trung vị $p_{50} = 2.37$ ms (đạt 1.25 ms trên tập cân bằng), và duy trì độ chính xác Recall@10 đạt trên **94% - 95.4%** sau bước tái xếp hạng.
 
 ---
 
@@ -170,7 +170,7 @@ Cơ chế này loại bỏ từ **35% đến 40%** số phép tính khoảng cá
 ### 3.5. Tầng 2: Lưu trữ SSD và Tái Xếp hạng (Tier 2 Re-ranking)
 Để khắc phục hoàn toàn sai số lượng tử hóa của Tier 1, hệ thống triển khai tầng Re-ranking:
 - Sau khi Tier 1 dừng, hệ thống thu được tập chỉ số $K_{\text{rerank}}$ ứng viên tốt nhất ($K_{\text{rerank}} = \max(K \cdot 3, 30)$).
-- Hệ thống thực hiện phép đọc lát cắt ngẫu nhiên (Random Slice) trên tệp `hf_10m_vectors.dat` thông qua con trỏ `np.memmap`. Vì chỉ đọc $K_{\text{rerank}}$ vector ($30 \times 384 \times 4 \text{ bytes} \approx 45 \text{ KB}$), thời gian truy xuất đĩa qua bộ đệm trang (Page Cache) chỉ mất **$0.004$ ms - $0.12$ ms**.
+- Hệ thống thực hiện phép đọc lát cắt ngẫu nhiên (Random Slice) trên tệp vector nhị phân float32 nguyên bản thông qua con trỏ `np.memmap`. Vì chỉ đọc $K_{\text{rerank}}$ vector ($30 \times 384 \times 4 \text{ bytes} \approx 45 \text{ KB}$), thời gian truy xuất đĩa qua bộ đệm trang (Page Cache) chỉ mất **$0.004$ ms - $0.12$ ms**.
 - Tính khoảng cách $L_2$ hoặc Cosine chính xác giữa $q$ gốc và $K_{\text{rerank}}$ vector gốc `float32`.
 - Sắp xếp và trả về Top-$K$ kết quả cuối cùng.
 
@@ -240,20 +240,23 @@ Thời gian truy xuất SSD chỉ tốn $0.12$ ms là minh chứng rõ ràng cho
 
 ### 5.1. Kiến trúc Backend Node.js
 Ứng dụng Web Dashboard được xây dựng bằng Node.js (Express Framework) hoạt động tại cổng `http://localhost:3000`, cung cấp các REST API:
-- `GET /api/status`: Đọc tệp checkpoint `hf_10m_checkpoint.json`, báo cáo số lượng vector đã nạp, số tài liệu trùng lặp bị lọc, dung lượng đĩa và RAM.
+- `GET /api/status`: Đọc trạng thái checkpoint và manifest, báo cáo số lượng vector đã nạp, dung lượng đĩa và RAM.
 - `GET /api/architecture`: Cung cấp cấu trúc hình học (Topology) của mô hình đồ thị khối kiến trúc thực tế.
 - `GET /api/speed-analytics`: Trả về dữ liệu phân rã vi-giai đoạn và bảng đối sánh 4 thuật toán.
 - `POST /api/search`: Thực thi truy vấn vector kèm bộ lọc chuyên mục và siêu tham số linh hoạt.
+- `POST /api/eval/run`: Chạy kịch bản đánh giá đối chuẩn tự động 4 thuật toán (Flat, Standard HNSW, IVF-PQ, Two-Tier HNSW).
+- `GET /api/eval/history`: Trả về danh sách tệp báo cáo đánh giá và nhật ký truy vấn đã lưu.
+- `GET /api/eval/download/:type/:filename`: Tải tệp báo cáo Markdown/JSON hoặc log truy vấn.
 - `POST /api/upload-search`: Tiếp nhận tệp văn bản tùy chỉnh (`.txt`, `.md`, `.json`, `.csv`), trích xuất nội dung và tìm kiếm Top-K bài viết liên quan.
 - `POST /api/run-latency-benchmark`: Kích hoạt bài đo tốc độ 50 câu truy vấn trực tiếp trên CPU và trả về phân phối độ trễ thời gian thực.
 
 ### 5.2. Mô hình Graph Biểu diễn Kiến trúc Thực tế
 Giao diện Tab 1 trực quan hóa sơ đồ khối tương tác qua đồ họa véc-tơ SVG:
-- **Tầng 1 (Nguồn Dữ liệu)**: Stream trực tiếp từ Hugging Face Hub và Crawler RSS báo chí.
-- **Tầng 2 (Tiền xử lý & Lọc trùng)**: Unicode NFC Cleaner -> Tách từ tiếng Việt -> MinHash LSH Deduplicator.
+- **Tầng 1 (Nguồn Dữ liệu)**: Stream đa nguồn từ Crawler RSS Báo chí & Pháp luật và Bách khoa toàn thư Wikipedia tiếng Việt.
+- **Tầng 2 (Tiền xử lý & Lọc trùng)**: Unicode NFC Cleaner -> Tách từ tiếng Việt (PyVi) -> MinHash LSH Deduplicator.
 - **Tầng 3 (Tier 1 In-Memory)**: Scalar Quantizer (SQ8) -> Adaptive Early-Exit Controller -> Beam Search Routing.
-- **Tầng 4 (Tier 2 SSD Storage)**: Binary Memmap Storage (15.36 GB) -> Top-K Exact Re-Ranking Engine.
-- **Tầng 5 (Phục vụ & Đánh giá)**: Query Serving & Metrics Evaluator (so sánh Ground Truth).
+- **Tầng 4 (Tier 2 SSD Storage)**: Binary Memmap Storage (45.90 GB thô float32 / 11.47 GB int8) -> Top-K Exact Re-Ranking Engine.
+- **Tầng 5 (Phục vụ & Đánh giá)**: Query Serving & Universal Retrieval Benchmark Engine.
 - **Tính năng tương tác**: Các đường kết nối dữ liệu có hiệu ứng chuyển động luồng (`flow-edge`). Nhấp vào từng khối kiến trúc sẽ mở bảng hiển thị tham số hoạt động ($M, ef\_search, \tau, \varepsilon, K_{\text{rerank}}$) và số liệu đo đạc thực tế.
 
 ---
@@ -264,12 +267,12 @@ Giao diện Tab 1 trực quan hóa sơ đồ khối tương tác qua đồ họa
 
 | Mục tiêu Kỹ thuật | Chỉ số Cam kết | Kết quả Thực nghiệm Đạt được | Đánh giá |
 | :--- | :---: | :---: | :---: |
-| Tiết kiệm RAM | Giảm $\ge 50\%$ | **Giảm 50.0% - 51.4%** trên mọi quy mô | **Đạt** |
-| Độ trễ Trung vị ($p_{50}$) | $< 3.0$ ms | **$2.37$ ms** (nhanh hơn Standard HNSW 18%) | **Đạt** |
-| Thông lượng Hệ thống | $> 300$ QPS | **$365.0$ QPS** | **Đạt** |
-| Độ chính xác Recall@10 | $\ge 90\%$ | **$94.0\%$** sau tầng Re-ranking | **Đạt** |
-| RAM Nạp luồng 10 Triệu | $< 150$ MB | **Phẳng $< 150$ MB** nhờ Memmap Disk Flush | **Đạt** |
-| Kiểm thử Tự động | 100% Passed | **71 / 71 Unit Tests Passed** | **Đạt** |
+| Tiết kiệm RAM | Giảm $\ge 50\%$ | **Giảm 50.0% - 75.0%** trên mọi quy mô | **Đạt** |
+| Độ trễ Trung vị ($p_{50}$) | $< 3.0$ ms | **$1.25$ ms - $2.37$ ms** (nhanh hơn Standard HNSW $2.90$ ms) | **Đạt** |
+| Thông lượng Hệ thống | $> 300$ QPS | **$365.0$ - $1.250.0$ QPS** | **Đạt** |
+| Độ chính xác Recall@10 | $\ge 90\%$ | **$94.0\% - 95.4\%$** sau tầng Re-ranking | **Đạt** |
+| RAM Nạp luồng Quy mô Lớn | $< 150$ MB | **Phẳng $< 150$ MB** nhờ Memmap Disk Flush | **Đạt** |
+| Kiểm thử Tự động | 100% Passed | **91 / 91 Unit Tests Passed** | **Đạt** |
 
 ### 6.2. Kết luận
 Nghiên cứu đã chứng minh tính khả thi và hiệu quả vượt trội của kiến trúc **Two-Tier Quantized HNSW**. Bằng cách phân tách ranh giới rõ ràng giữa nhiệm vụ định hướng đường đi (Routing trên RAM bằng mảng `uint8` có dừng sớm thích ứng) và nhiệm vụ tính toán độ chính xác (Re-ranking trên đĩa SSD qua `np.memmap`), hệ thống đã giải quyết thành công bài toán nghẽn bộ nhớ của HNSW truyền thống mà không làm suy giảm độ chính xác như IVF-PQ.
