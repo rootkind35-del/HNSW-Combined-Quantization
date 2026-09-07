@@ -343,10 +343,13 @@ Access the interface at [http://localhost:3000](http://localhost:3000).
 
 ```text
 Dashboard Architecture:
-├── Tab 1: System Architecture SVG Flow Graph (Interactive node metrics & parameters)
-├── Tab 2: Semantic Document Search (Live query execution, metadata filters, JSON export)
-├── Tab 3: Three.js 3D Vector Space (WebGL spatial point cloud with PCA 3D coordinates)
-└── Tab 4: Big Data Retrieval Evaluation (Benchmark runner, QPS vs Recall charts, query logs)
+├── Tab 1: Data Product Studio (Bảng điều khiển Data Product Designer: Real-time search, 4 Hero Metrics scorecards, 2D UMAP scatter plot với quỹ đạo HNSW laser hops, Layer toggle L0/L1/L2, Đồ thị Radar Trade-Off 5 trục, và Semantic Text Heatmap)
+├── Tab 2: Three.js 3D Vector Space (WebGL spatial point cloud với tọa độ PCA 3D & mô phỏng đồ thị HNSW đa tầng)
+├── Tab 3: Mô hình Graph Kiến trúc Thực tế (Interactive node metrics, parameters & luồng pipeline zero-copy)
+├── Tab 4: Phân tích Chi tiết Tốc độ & Độ trễ (Live latency stress-test benchmark & phân rã micro-stages)
+├── Tab 5: Đối sánh Trước & Sau Lượng tử hóa SQ8 (Before vs After quantization hardware comparison)
+├── Tab 6: Tìm kiếm Ngữ nghĩa & Tải tệp (Live query execution, metadata filters, custom text upload)
+└── Tab 7: Đánh giá Truy xuất Chuẩn Big Data (Universal benchmark runner, QPS vs Recall charts, query logs)
 ```
 
 ### Dashboard REST APIs

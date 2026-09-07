@@ -98,6 +98,12 @@ function switchTab(tabId) {
     activeBtn.classList.remove('text-slate-400');
   }
 
+  if (tabId === 'tab-data-product' && typeof DP_STUDIO !== 'undefined') {
+    setTimeout(() => {
+      if (typeof DP_STUDIO.resetView === 'function') DP_STUDIO.resetView();
+    }, 50);
+  }
+
   if (tabId === 'tab-3d-visualizer') {
     if (!window.threeEngine) {
       setTimeout(init3DEngine, 60);
