@@ -25,8 +25,8 @@ data/
 ├── quantized/                               # Mảng int8 memmap Báo chí (16.45M vector, vectors_int8.dat)
 ├── quantized_combined/                      # Siêu kho 16.45M vector (corpus_offset_map.json)
 └── experiments/                             # Kết quả thực nghiệm và báo cáo đối chuẩn
-    ├── baselines_benchmark_results.json     # Kết quả so sánh 4 thuật toán
-    └── scale_stress_results.json            # Kết quả đo đạc chịu tải
+    ├── scale_stress_results.json            # Kết quả đo đạc chịu tải
+    └── scale_stress_summary.md              # Báo cáo kết quả stress test
 ```
 
 ---
@@ -47,20 +47,13 @@ data/
 # 1. Thu thập dữ liệu Báo chí & Pháp luật
 python scripts/run_crawler.py --target-records 100000 --batch-size 1000
 
-
-# 3. Chạy lượng tử hóa SQ8 (int8)
+# 2. Chạy lượng tử hóa SQ8 (int8)
 python scripts/run_quantization.py
 
-# 4. Hợp nhất kho dữ liệu
+# 3. Hợp nhất kho dữ liệu
 python scripts/merge_quantized_corpora.py
 
-# 5. Khởi tạo bộ đệm tìm kiếm & giảm chiều 3D PCA
+# 4. Khởi tạo bộ đệm tìm kiếm & giảm chiều 3D PCA
 python dashboard/scripts/build_search_cache.py
 python dashboard/scripts/dimension_reduction_3d.py
-```
-
-### Lựa chọn 3: Tải bộ dữ liệu đối chuẩn quốc tế SIFT10K / SIFT1M
-```bash
-python scripts/download_standard_datasets.py --dataset sift10k
-python scripts/download_standard_datasets.py --dataset sift1m
 ```
