@@ -1,4 +1,4 @@
-"""Giao diện dòng lệnh tương tác tìm kiếm ngữ nghĩa (Interactive CLI Semantic Search Demo) trên dữ liệu bài báo và Wikipedia."""
+"""Giao diện dòng lệnh tương tác tìm kiếm ngữ nghĩa (Interactive CLI Semantic Search Demo) trên dữ liệu bài báo pháp luật."""
 
 import argparse
 import os
@@ -119,14 +119,14 @@ def search_unified_corpus(
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Chương trình demo tìm kiếm ngữ nghĩa tin tức & Wikipedia tiếng Việt.")
+    parser = argparse.ArgumentParser(description="Chương trình demo tìm kiếm ngữ nghĩa tin tức và Pháp luật.")
     parser.add_argument("--query", type=str, default=None, help="Câu truy vấn văn bản")
     parser.add_argument(
         "--corpus",
         type=str,
         default="combined",
-        choices=["news", "wiki", "combined"],
-        help="Kho dữ liệu tìm kiếm: 'news' (16.4M), 'wiki' (14.8M), hoặc 'combined' (31.3M)",
+        choices=["news", "combined"],
+        help="Kho dữ liệu tìm kiếm: 'news' (16.45M) hoặc 'combined'",
     )
     parser.add_argument("--top-k", type=int, default=5, help="Số lượng kết quả láng giềng k cần trích xuất")
     parser.add_argument("--dim", type=int, default=384, help="Số chiều vector đặc trưng")
@@ -136,8 +136,7 @@ def main():
 
     corpus_map = {
         "news": ("data/quantized/vectors_int8.dat", "data/quantized/metadata.jsonl"),
-        "wiki": ("data/quantized_wiki/vectors_int8.dat", "data/quantized_wiki/metadata.jsonl"),
-        "combined": "data/quantized_combined",
+                "combined": "data/quantized_combined",
     }
 
     if args.use_mock_embedder:

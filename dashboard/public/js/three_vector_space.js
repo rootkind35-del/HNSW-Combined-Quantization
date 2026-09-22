@@ -276,6 +276,29 @@ class VectorSpaceModule {
         this.hoverReticle.lookAt(this.engine.camera.position);
       }
 
+      let matchInfo = '';
+      if (this.currentQueryResults && this.currentQueryResults.length > 0) {
+        const found = this.currentQueryResults.find(r => 
+          (r.node_id !== undefined && r.node_id === data.index) ||
+          (r.index !== undefined && r.index === data.index) ||
+          (r.title && data.title && r.title.slice(0, 24) === data.title.slice(0, 24))
+        );
+        if (found) {
+          const score = Math.round((found.similarity_score || 0) * 100);
+          const reason = found.reason || `Khớp ngữ nghĩa cao với từ khóa "${this.currentQueryText || 'truy vấn'}" (Cosine: ${score}%). Thuộc Shard #${found.shard_id || 0}, hoàn tất qua cơ chế dừng sớm τ=3 và đọc trực tiếp từ SSD NVMe.`;
+          matchInfo = `
+            <div class="mt-2 pt-2 border-t border-slate-700">
+              <div class="text-[13px] font-bold text-amber-300 flex items-center gap-1.5 mb-1">
+                <i class="fa-solid fa-trophy text-amber-400"></i> Top #${found.rank || 1} Khớp Ngữ Nghĩa (${score}%)
+              </div>
+              <div class="text-[12px] text-emerald-200 bg-emerald-950/85 p-2 rounded-lg border border-emerald-700 leading-snug">
+                <span class="font-bold text-amber-300">💡 Lý do đứng Top:</span> ${reason}
+              </div>
+            </div>
+          `;
+        }
+      }
+
       if (tooltipEl) {
         tooltipEl.style.display = 'block';
         tooltipEl.style.left = `${(this.engine.mouse.x + 1) * 0.5 * this.engine.container.clientWidth + 15}px`;
@@ -288,6 +311,7 @@ class VectorSpaceModule {
           <div class="text-[13px] text-slate-300 font-mono mt-1.5 bg-slate-900/90 px-2.5 py-1 rounded-lg border border-slate-700 inline-block font-bold">
             Tọa độ 3D: [${data.x.toFixed(1)}, ${data.y.toFixed(1)}, ${data.z.toFixed(1)}]
           </div>
+          ${matchInfo}
         `;
       }
     } else {
@@ -327,10 +351,32 @@ class VectorSpaceModule {
     document.getElementById('hud-doc-preview').textContent = data.preview || data.title;
     document.getElementById('hud-doc-coords').textContent = `X: ${data.x.toFixed(2)} | Y: ${data.y.toFixed(2)} | Z: ${data.z.toFixed(2)}`;
     document.getElementById('hud-doc-tokens').textContent = `${data.token_count || 280} tokens`;
+
+    const reasonContainer = document.getElementById('hud-doc-reason-container');
+    const reasonEl = document.getElementById('hud-doc-reason');
+    if (reasonContainer && reasonEl) {
+      let matched = null;
+      if (this.currentQueryResults) {
+        matched = this.currentQueryResults.find(r => 
+          (r.node_id !== undefined && r.node_id === data.index) ||
+          (r.index !== undefined && r.index === data.index) ||
+          (r.title && data.title && r.title.slice(0, 24) === data.title.slice(0, 24))
+        );
+      }
+      if (matched && (matched.reason || matched.similarity_score)) {
+        const score = Math.round((matched.similarity_score || 0) * 100);
+        reasonEl.textContent = matched.reason || `Khớp ngữ nghĩa với truy vấn "${this.currentQueryText || ''}" (Cosine: ${score}%). Shard #${matched.shard_id || 0}.`;
+        reasonContainer.classList.remove('hidden');
+      } else {
+        reasonContainer.classList.add('hidden');
+      }
+    }
   }
 
   renderQueryResults(queryText, query3D, results) {
     this.clearQueryArtifacts();
+    this.currentQueryResults = Array.isArray(results) ? [...results] : [];
+    this.currentQueryText = queryText || '';
 
     if (!query3D) {
       query3D = { x: 0, y: 10, z: 0 };

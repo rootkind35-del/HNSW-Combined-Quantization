@@ -1,16 +1,16 @@
 # BÁO CÁO ĐỀ TÀI MÔN HỌC
 
-## Đề tài: Tìm hiểu và triển khai thuật toán Approximate Nearest Neighbor (HNSW kết hợp Lượng tử hóa thích ứng) trên dữ liệu văn bản tiếng Việt quy mô 10 triệu đến 31.33 triệu bản ghi
+## Đề tài: Tìm hiểu và triển khai thuật toán Approximate Nearest Neighbor (HNSW kết hợp Lượng tử hóa thích ứng) trên dữ liệu văn bản tiếng Việt quy mô 10 triệu đến 16.45 triệu bản ghi
 
 ---
 
 ### THÔNG TIN CHUNG
 * **Lĩnh vực:** Dữ liệu lớn (Big Data), Xử lý ngôn ngữ tự nhiên (NLP), Tìm kiếm thông tin (Information Retrieval).
-* **Mục tiêu ứng dụng:** Xây dựng hệ sinh thái tìm kiếm ngữ nghĩa (Semantic Search) và truy xuất tài liệu quy mô lớn (RAG) đáp ứng độ trễ mili-giây trên tập dữ liệu lớn từ 10 triệu đến 31.33 triệu văn bản.
+* **Mục tiêu ứng dụng:** Xây dựng hệ sinh thái tìm kiếm ngữ nghĩa (Semantic Search) và truy xuất tài liệu quy mô lớn (RAG) đáp ứng độ trễ mili-giây trên tập dữ liệu lớn từ 10 triệu đến 16.45 triệu văn bản.
 * **Mục tiêu nghiên cứu:** Giải quyết bài toán thắt cổ chai bộ nhớ (Memory Bottleneck) của thuật toán HNSW gốc thông qua kỹ thuật nén lượng tử hóa kết hợp duyệt đồ thị dừng sớm, làm tiền đề mở rộng thành bài báo khoa học.
-* **Quy mô thực tế đạt được:** 31.331.931 vector 384 chiều (16.459.486 Báo chí & Pháp luật + 14.872.445 Wikipedia tiếng Việt), phân chia 400 shards, kiểm chứng qua 91 bài kiểm thử tự động.
+* **Quy mô thực tế đạt được:** 16.459.486 vector 384 chiều (16.459.486 Báo chí & Pháp luật + 0), phân chia 400 shards, kiểm chứng qua 91 bài kiểm thử tự động.
 * **Phân công nhóm:**
-  * Thành viên 1: Kỹ thuật dữ liệu (Data Pipeline, Thu thập đa nguồn, Làm sạch NFC, MinHash LSH, Vector Embedding).
+  * Thành viên 1: Kỹ thuật dữ liệu (Data Pipeline, Thu thập Báo chí, Làm sạch NFC, MinHash LSH, Vector Embedding).
   * Thành viên 2: Kỹ thuật thuật toán (Cài đặt Two-Tier HNSW, Lượng tử hóa SQ8, Dừng sớm thích ứng, Benchmark và Đánh giá hiệu năng).
 
 ---
@@ -24,12 +24,12 @@ Khi quy mô dữ liệu vượt qua ngưỡng 10 triệu bản ghi và tiến t�
 
 ### 1.2. Vấn đề của các thuật toán xấp xỉ hiện nay
 Thuật toán tìm kiếm láng giềng gần đúng (Approximate Nearest Neighbor - ANN) dựa trên đồ thị phân tầng (Hierarchical Navigable Small World - HNSW) hiện là tiêu chuẩn công nghiệp với tốc độ truy vấn mili-giây và độ chính xác (Recall) cao. Tuy nhiên, khi áp dụng trên quy mô lớn, HNSW bộc lộ điểm yếu chí mạng về tiêu thụ tài nguyên phần cứng:
-* Với 10 triệu vector 384 chiều kiểu float32, dữ liệu thô chiếm 15.36 GB; mở rộng lên 31.33 triệu vector, dung lượng đạt 45.90 GB.
-* Cấu trúc đồ thị đa tầng của HNSW cần lưu danh sách liên kết giữa các đỉnh ($M = 16$ đến $32$ láng giềng/đỉnh), kích thước bảng liên kết tiêu tốn thêm khoảng 25-30 GB (và trên 64 GB với 31.33M).
-* Tổng dung lượng RAM cần thiết vượt quá 46 GB đến 64 GB, khiến các máy chủ phổ thông hoặc máy tính cá nhân (16GB - 32GB RAM) lập tức gặp lỗi tràn bộ nhớ (Out-Of-Memory - OOM).
+* Với 10 triệu vector 384 chiều kiểu float32, dữ liệu thô chiếm 15.36 GB; mở rộng lên 16.45 triệu vector, dung lượng đạt 24.11 GB.
+* Cấu trúc đồ thị đa tầng của HNSW cần lưu danh sách liên kết giữa các đỉnh ($M = 16$ đến $32$ láng giềng/đỉnh), kích thước bảng liên kết tiêu tốn thêm khoảng 25-30 GB (và trên 32 GB với 16.45M).
+* Tổng dung lượng RAM cần thiết vượt quá 46 GB đến 32 GB, khiến các máy chủ phổ thông hoặc máy tính cá nhân (16GB - 32GB RAM) lập tức gặp lỗi tràn bộ nhớ (Out-Of-Memory - OOM).
 
 ### 1.3. Mục tiêu đề tài
-1. Xây dựng tập dữ liệu văn bản tiếng Việt quy mô lớn đạt mốc cơ sở 10 triệu bản ghi và mở rộng lên 31.33 triệu bản ghi từ hai nguồn: Báo chí & Pháp luật và Wikipedia tiếng Việt.
+1. Xây dựng tập dữ liệu văn bản tiếng Việt quy mô lớn đạt mốc cơ sở 10 triệu bản ghi và mở rộng lên 16.45 triệu bản ghi từ hai nguồn: Báo chí & Pháp luật .
 2. Triển khai và phân tích điểm nghẽn hiệu năng của thuật toán HNSW chuẩn và các biến thể cơ bản (Flat, IVF-PQ).
 3. Đề xuất kiến trúc: **Two-Tier Quantized HNSW with Adaptive Early-Exit (Đồ thị lượng tử hóa hai tầng với cơ chế dừng sớm thích ứng)** nhằm giảm 75% dung lượng vector trên RAM mà vẫn duy trì độ chính xác (Recall@10) trên 94% - 95.4%.
 

@@ -5,14 +5,20 @@
 // Global Chart.js High-Legibility Typography Configuration
 if (typeof Chart !== 'undefined') {
   Chart.defaults.font.size = 14;
-  Chart.defaults.font.family = "'Inter', system-ui, -apple-system, sans-serif";
-  Chart.defaults.color = '#cbd5e1';
+  Chart.defaults.font.family = "'Be Vietnam Pro', 'Inter', system-ui, sans-serif";
+  Chart.defaults.color = '#334155';
+  Chart.defaults.borderColor = 'rgba(226, 232, 240, 0.8)';
   Chart.defaults.plugins.tooltip.titleFont = { size: 15, weight: 'bold' };
   Chart.defaults.plugins.tooltip.bodyFont = { size: 14 };
   Chart.defaults.plugins.tooltip.padding = 12;
   Chart.defaults.plugins.tooltip.cornerRadius = 8;
+  Chart.defaults.plugins.tooltip.backgroundColor = '#ffffff';
+  Chart.defaults.plugins.tooltip.borderColor = '#cbd5e1';
+  Chart.defaults.plugins.tooltip.borderWidth = 1;
+  Chart.defaults.plugins.tooltip.titleColor = '#0f172a';
+  Chart.defaults.plugins.tooltip.bodyColor = '#334155';
   Chart.defaults.plugins.legend.labels.font = { size: 14, weight: '600' };
-  Chart.defaults.plugins.legend.labels.color = '#e2e8f0';
+  Chart.defaults.plugins.legend.labels.color = '#1e293b';
 }
 
 let chartRam = null;
@@ -169,11 +175,11 @@ function renderQuantRamChart(comp) {
       scales: {
         y: {
           beginAtZero: true,
-          grid: { color: '#1e293b' },
-          ticks: { color: '#94a3b8' },
-          title: { display: true, text: 'Tổng Dung lượng RAM (GB)', color: '#94a3b8' }
+          grid: { color: 'rgba(226, 232, 240, 0.8)', drawBorder: false },
+          ticks: { color: '#475569', font: { family: 'JetBrains Mono, monospace' } },
+          title: { display: true, text: 'Tổng Dung lượng RAM (GB)', color: '#1e293b' }
         },
-        x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 12 } } }
+        x: { grid: { display: false }, ticks: { color: '#475569', font: { family: 'JetBrains Mono, monospace' }, font: { size: 12 } } }
       }
     }
   });
@@ -230,16 +236,16 @@ function renderQuantRecallQpsChart(comp) {
       },
       scales: {
         x: {
-          title: { display: true, text: 'Thông lượng (QPS) - Càng cao càng tốt', color: '#94a3b8' },
-          grid: { color: '#1e293b' },
-          ticks: { color: '#94a3b8' }
+          title: { display: true, text: 'Thông lượng (QPS) - Càng cao càng tốt', color: '#1e293b' },
+          grid: { color: 'rgba(226, 232, 240, 0.8)', drawBorder: false },
+          ticks: { color: '#475569', font: { family: 'JetBrains Mono, monospace' } }
         },
         y: {
-          title: { display: true, text: 'Recall@10 (%) - Càng cao càng tốt', color: '#94a3b8' },
+          title: { display: true, text: 'Recall@10 (%) - Càng cao càng tốt', color: '#1e293b' },
           min: 75,
           max: 102,
-          grid: { color: '#1e293b' },
-          ticks: { color: '#94a3b8' }
+          grid: { color: 'rgba(226, 232, 240, 0.8)', drawBorder: false },
+          ticks: { color: '#475569', font: { family: 'JetBrains Mono, monospace' } }
         }
       }
     }
@@ -270,8 +276,8 @@ function renderQuantErrorChart(errDist) {
         legend: { display: false }
       },
       scales: {
-        x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 10 } } },
-        y: { beginAtZero: true, grid: { color: '#1e293b' }, ticks: { color: '#94a3b8' }, title: { display: true, text: 'Số lượng phần tử', color: '#94a3b8' } }
+        x: { grid: { display: false }, ticks: { color: '#475569', font: { family: 'JetBrains Mono, monospace' }, font: { size: 10 } } },
+        y: { beginAtZero: true, grid: { color: 'rgba(226, 232, 240, 0.8)', drawBorder: false }, ticks: { color: '#475569', font: { family: 'JetBrains Mono, monospace' } }, title: { display: true, text: 'Số lượng phần tử', color: '#1e293b' } }
       }
     }
   });
@@ -303,8 +309,8 @@ function renderHardwareEfficiencyChart(perf) {
         legend: { display: false }
       },
       scales: {
-        x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 12 } } },
-        y: { beginAtZero: true, max: 100, grid: { color: '#1e293b' }, ticks: { color: '#94a3b8' }, title: { display: true, text: 'Tỷ lệ L3 Cache Hit (%)', color: '#94a3b8' } }
+        x: { grid: { display: false }, ticks: { color: '#475569', font: { family: 'JetBrains Mono, monospace' }, font: { size: 12 } } },
+        y: { beginAtZero: true, max: 100, grid: { color: 'rgba(226, 232, 240, 0.8)', drawBorder: false }, ticks: { color: '#475569', font: { family: 'JetBrains Mono, monospace' } }, title: { display: true, text: 'Tỷ lệ L3 Cache Hit (%)', color: '#1e293b' } }
       }
     }
   });
@@ -348,11 +354,11 @@ function renderStageBreakdownChart(items) {
       responsive: true,
       maintainAspectRatio: false,
       scales: {
-        x: { stacked: true, grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 10 } } },
-        y: { stacked: true, grid: { color: '#1e293b' }, ticks: { color: '#94a3b8' }, title: { display: true, text: 'Tổng Thời gian (ms)', color: '#94a3b8' } }
+        x: { stacked: true, grid: { display: false }, ticks: { color: '#475569', font: { family: 'JetBrains Mono, monospace' }, font: { size: 10 } } },
+        y: { stacked: true, grid: { color: 'rgba(226, 232, 240, 0.8)', drawBorder: false }, ticks: { color: '#475569', font: { family: 'JetBrains Mono, monospace' } }, title: { display: true, text: 'Tổng Thời gian (ms)', color: '#1e293b' } }
       },
       plugins: {
-        legend: { labels: { color: '#94a3b8', font: { size: 10 } } }
+        legend: { labels: { color: '#1e293b', font: { size: 10 } } }
       }
     }
   });
@@ -382,8 +388,8 @@ function renderHistogramChart(histData) {
         legend: { display: false }
       },
       scales: {
-        x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 10 } } },
-        y: { beginAtZero: true, grid: { color: '#1e293b' }, ticks: { color: '#94a3b8' }, title: { display: true, text: 'Tần suất (Queries)', color: '#94a3b8' } }
+        x: { grid: { display: false }, ticks: { color: '#475569', font: { family: 'JetBrains Mono, monospace' }, font: { size: 10 } } },
+        y: { beginAtZero: true, grid: { color: 'rgba(226, 232, 240, 0.8)', drawBorder: false }, ticks: { color: '#475569', font: { family: 'JetBrains Mono, monospace' } }, title: { display: true, text: 'Tần suất (Queries)', color: '#1e293b' } }
       }
     }
   });
@@ -425,11 +431,11 @@ function renderQpsEfChart(data) {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: { labels: { color: '#94a3b8', font: { size: 10 } } }
+        legend: { labels: { color: '#1e293b', font: { size: 10 } } }
       },
       scales: {
-        x: { grid: { color: '#1e293b' }, ticks: { color: '#94a3b8' } },
-        y: { grid: { color: '#1e293b' }, ticks: { color: '#94a3b8' }, title: { display: true, text: 'Thông lượng (QPS)', color: '#94a3b8' } }
+        x: { grid: { color: 'rgba(226, 232, 240, 0.8)', drawBorder: false }, ticks: { color: '#475569', font: { family: 'JetBrains Mono, monospace' } } },
+        y: { grid: { color: 'rgba(226, 232, 240, 0.8)', drawBorder: false }, ticks: { color: '#475569', font: { family: 'JetBrains Mono, monospace' } }, title: { display: true, text: 'Thông lượng (QPS)', color: '#1e293b' } }
       }
     }
   });
@@ -460,11 +466,11 @@ function renderPercentilesChart(matrix) {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: { labels: { color: '#94a3b8', font: { size: 10 } } }
+        legend: { labels: { color: '#1e293b', font: { size: 10 } } }
       },
       scales: {
-        x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 9 } } },
-        y: { beginAtZero: true, grid: { color: '#1e293b' }, ticks: { color: '#94a3b8' }, title: { display: true, text: 'Thời gian (ms)', color: '#94a3b8' } }
+        x: { grid: { display: false }, ticks: { color: '#475569', font: { family: 'JetBrains Mono, monospace' }, font: { size: 9 } } },
+        y: { beginAtZero: true, grid: { color: 'rgba(226, 232, 240, 0.8)', drawBorder: false }, ticks: { color: '#475569', font: { family: 'JetBrains Mono, monospace' } }, title: { display: true, text: 'Thời gian (ms)', color: '#1e293b' } }
       }
     }
   });
@@ -526,7 +532,7 @@ function pollStatus() {
 
       const badgeWorker = document.getElementById('badge-live-worker');
       if (badgeWorker) {
-        badgeWorker.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span> Đã nạp đủ 31.33M`;
+        badgeWorker.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span> Đã nạp đủ 16.45M`;
       }
     })
     .catch(err => console.error("Poll status error:", err));

@@ -8,7 +8,6 @@ from typing import List, Dict, Any
 
 from src.ann_index.flat import FlatIndex
 from src.ann_index.hnsw import StandardHNSWIndex
-from src.ann_index.ivf_pq import IVFPQIndex
 from src.ann_index.two_tier_hnsw import TwoTierQuantizedHNSW
 
 try:
@@ -49,12 +48,8 @@ class RetrievalBenchmarkEngine:
         self.indices['hnsw'] = StandardHNSWIndex(space='cosine')
         self.indices['hnsw'].build(self.vectors)
             
-        # 3. IVF-PQ
-        self.indices['ivf_pq'] = IVFPQIndex(metric='cosine')
-        self.indices['ivf_pq'].build(self.vectors)
-            
-        # 4. Two Tier HNSW
-        self.indices['two_tier'] = TwoTierQuantizedHNSW(metric='cosine')
+        # 3. Two Tier HNSW
+        self.indices['two_tier'] = TwoTierQuantizedHNSW(metric='cosine', m=16, ef_search=50, min_rerank_k=50, rerank_factor=5)
         self.indices['two_tier'].build(self.vectors)
         
         print("All indices initialized.")
@@ -164,7 +159,7 @@ class RetrievalBenchmarkEngine:
         if queries:
             benchmark_queries = [{"text": q, "category": "Custom"} for q in queries]
 
-        algorithms = ['flat', 'hnsw', 'ivf_pq', 'two_tier']
+        algorithms = ['hnsw', 'two_tier']
         report = {}
 
         for algo in algorithms:

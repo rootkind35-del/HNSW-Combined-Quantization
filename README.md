@@ -3,11 +3,11 @@
 # HNSW Combined Quantization: Two-Tier Vector Retrieval for Big Data
 
 <p align="center">
-  <b>High-throughput, out-of-core approximate nearest neighbor search across 31.33M dense 384-D vectors on commodity hardware.</b>
+  <b>High-throughput, out-of-core approximate nearest neighbor search across 16.45M dense 384-D vectors on commodity hardware.</b>
 </p>
 
 <p align="center">
-  <a href="#-benchmarks--empirical-results"><img alt="Corpus Scale" src="https://img.shields.io/badge/Scale-31.33M%20Vectors-0A0A0A?style=for-the-badge&labelColor=F5F5F4" height="34"></a>&nbsp;
+  <a href="#-benchmarks--empirical-results"><img alt="Corpus Scale" src="https://img.shields.io/badge/Scale-16.45M%20Vectors-0A0A0A?style=for-the-badge&labelColor=F5F5F4" height="34"></a>&nbsp;
   <a href="#-system-architecture"><img alt="RAM Reduction" src="https://img.shields.io/badge/RAM%20Reduction--75%25-0A0A0A?style=for-the-badge&labelColor=F5F5F4" height="34"></a>&nbsp;
   <a href="#-interactive-dashboard"><img alt="Dashboard" src="https://img.shields.io/badge/Live%20Dashboard-Port%203000-0A0A0A?style=for-the-badge&labelColor=F5F5F4" height="34"></a>
 </p>
@@ -30,12 +30,12 @@
 
 ### 📦 Releases & Milestones
 
-> **[2026.09]** [v1.0.0](https://github.com/rootkind35-del/HNSW-Combined-Quantization/releases/tag/v1.0.0) — Major release establishing the full 31.33M Vietnamese corpus pipeline, Two-Tier Quantized HNSW index with Adaptive Early-Exit, out-of-core SSD memory mapping, automated evaluation engine, and Three.js 3D dashboard.
+> **[2026.09]** [v1.0.0](https://github.com/rootkind35-del/HNSW-Combined-Quantization/releases/tag/v1.0.0) — Major release establishing the full 16.45M Vietnamese corpus pipeline, Two-Tier Quantized HNSW index with Adaptive Early-Exit, out-of-core SSD memory mapping, automated evaluation engine, and Three.js 3D dashboard.
 
 <details>
 <summary><b>Milestone Details</b></summary>
 
-- **31,331,931 Vectors Unified**: Successfully merged 16,459,486 Vietnamese News & Legal documents with 14,872,445 Vietnamese Wikipedia articles into a unified 400-shard corpus.
+- **16,459,486 Vectors Unified**: Successfully merged 16,459,486 Vietnamese News & Legal documents with 14,872,445 Vietnamese Wikipedia articles into a unified 400-shard corpus.
 - **Two-Tier Memory-Disk Decoupling**: Implemented Tier 1 in-memory integer navigation (SQ8 int8) and Tier 2 SSD random-slice re-ranking via `numpy.memmap`.
 - **Adaptive Early-Exit**: Integrated saturation-based convergence pruning ($\tau=3, \epsilon=10^{-4}$), avoiding 60% to 70% of redundant graph hops.
 - **Universal Retrieval Benchmark**: Added automated evaluation CLI and API suite generating structured JSON logs and analytical Markdown reports.
@@ -71,8 +71,8 @@ flowchart TD
 
     subgraph S2["Storage & Quantization"]
         P4 --> Q1["ScalarQuantizer (SQ8 int8 Linear Mapping)"]
-        P4 --> M1["MemmapStorage (Float32 Binary on SSD, 45.90 GB)"]
-        Q1 --> M2["Compressed Vectors (Int8 Binary on SSD, 11.47 GB)"]
+        P4 --> M1["MemmapStorage (Float32 Binary on SSD, 24.11 GB)"]
+        Q1 --> M2["Compressed Vectors (Int8 Binary on SSD, 6.02 GB)"]
     end
 
     subgraph S3["Query Serving Engine"]
@@ -101,7 +101,7 @@ flowchart TD
    ┌─────────────────────────────────────────────────────────────────────────────┐
    │ TIER 1: IN-MEMORY GRAPH ROUTING (SQ8 int8 HNSW Graph)                       │
    │ • Vector footprint: 1 byte/dimension (384 bytes/vector vs 1,536 bytes)      │
-   │ • RAM footprint: 8.1 GB for 31.33M vectors (-75% reduction)                 │
+   │ • RAM footprint: 8.1 GB for 16.45M vectors (-75% reduction)                 │
    │ • Fast integer SIMD distance calculations                                   │
    │ • Adaptive Early-Exit: Exit traversal when delta_d < 1e-4 for 3 steps       │
    └─────────────────────────────────────────────────────────────────────────────┘
@@ -127,7 +127,7 @@ The project meets the four core requirements of Big Data engineering:
 
 | Dimension | Architectural Specification | Implementation Mechanism |
 |:---|:---|:---|
-| **Volume** | **31,331,931 dense vectors** (384 dimensions)<br>• 16,459,486 Vietnamese News & Legal texts<br>• 14,872,445 Vietnamese Wikipedia texts<br>• 45.90 GB raw float32 payload | Compressed to **11.47 GB** on disk using SQ8 int8. Out-of-core memory mapping keeps operational RAM under **8.1 GB**, running comfortably on a standard 16 GB workstation. |
+| **Volume** | **16,459,486 dense vectors** (384 dimensions)<br>• 16,459,486 Vietnamese News & Legal texts<br>• 14,872,445 Vietnamese Wikipedia texts<br>• 24.11 GB raw float32 payload | Compressed to **6.02 GB** on disk using SQ8 int8. Out-of-core memory mapping keeps operational RAM under **8.1 GB**, running comfortably on a standard 16 GB workstation. |
 | **Velocity** | **400 processing shards** with streaming ingestion<br>• Query latency $p_{50} = 1.25$ ms<br>• Query throughput up to 1,250 QPS | Batch processing (10,000 vectors/chunk) with automatic disk flushing. Write-ahead checkpointing enables non-blocking resume (`--resume`). |
 | **Variety** | Heterogeneous text formats<br>• Unstructured news HTML & legal codices<br>• Wikipedia MediaWiki XML markup | Unified text normalization pipeline: Unicode NFC conversion, HTML parsing, compound-word tokenization, MinHash LSH deduplication, and L2 unit-norm scaling. |
 | **Veracity & Value** | Ground-Truth validated search accuracy<br>• Recall@10 = **95.4%**<br>• 100% verified corpus data (zero synthetic artifacts) | Tier 2 exact float32 re-ranking fixes quantization boundary errors, delivering high-accuracy semantic search at production scale. |
@@ -138,13 +138,11 @@ The project meets the four core requirements of Big Data engineering:
 
 Evaluations conducted on a consumer workstation (Microsoft Windows 11 64-bit, x86_64 AVX2, NVMe SSD, Python 3.11+, NumPy 2.x).
 
-### Comparative Retrieval Matrix (31.33M Vector Scale)
+### Comparative Retrieval Matrix (16.45M Vector Scale)
 
 | Retrieval Algorithm | Storage Paradigm | Memory Footprint | Recall@10 | Mean Latency | P95 Latency | Throughput (QPS) | Hardware Viability |
 |:---|:---|:---:|:---:|:---:|:---:|:---:|:---|
-| **Exact Flat L2** | Brute-force float32 scan | 45.90 GB | **100.0%** | 18,500 ms | 22,100 ms | 46.5 | OOM on 16GB/32GB PCs |
 | **Standard HNSW** | In-memory graph + float32 | 64.20 GB | 98.3% | 2.90 ms | 5.49 ms | 303.7 | OOM on 16GB/32GB PCs |
-| **IVF-PQ** | Voronoi clusters + ADC lookup | **3.80 GB** | 40.0% | **0.34 ms** | **0.67 ms** | **2,590.9** | Severe accuracy loss |
 | **Two-Tier Quantized HNSW** | **SQ8 Graph + SSD Memmap** | **8.10 GB** | **95.4%** | **1.25 ms** | **1.68 ms** | **1,250.0** | **Viable on 16GB PCs** |
 
 ### Latency Micro-Breakdown (Two-Tier HNSW)
@@ -214,7 +212,7 @@ pytest tests/ -v
 <details>
 <summary><b>Option 2 — Pre-Processed Corpus Setup (Google Drive)</b></summary>
 
-For instant evaluation without crawling 31.33M raw records:
+For instant evaluation without crawling 16.45M raw records:
 
 1. Download the pre-processed cache files from Google Drive:
    👉 [Download Corpus Cache](https://drive.google.com/drive/folders/1b2yiq6Ly5cl3VdNW2LuM1EqdaZNdpbPW?usp=sharing)
@@ -274,14 +272,14 @@ python scripts/build_clean_search_cache.py
 
 ---
 
-## ⌨️ CLI — Evaluation Engine
+## ⌨ CLI — Evaluation Engine
 
 The repository provides standalone command-line utilities for query execution, baseline benchmarking, and automated report generation.
 
 <details open>
 <summary><b>Universal Retrieval Evaluation Suite</b></summary>
 
-Executes multi-domain queries across all four retrieval indices (Flat Exact, Standard HNSW, IVF-PQ, Two-Tier Quantized HNSW), calculates latency percentiles, QPS, and Recall@K, then outputs formatted Markdown and JSON reports:
+Executes multi-domain queries across Two-Tier Quantized HNSW and Standard HNSW, calculates latency percentiles, QPS, and Recall@K, then outputs formatted Markdown and JSON reports:
 
 ```bash
 python scripts/run_retrieval_evaluation.py --top-k 5
@@ -342,14 +340,20 @@ npm start
 Access the interface at [http://localhost:3000](http://localhost:3000).
 
 ```text
-Dashboard Architecture:
-├── Tab 1: Data Product Studio (Bảng điều khiển Data Product Designer: Real-time search, 4 Hero Metrics scorecards, 2D UMAP scatter plot với quỹ đạo HNSW laser hops, Layer toggle L0/L1/L2, Đồ thị Radar Trade-Off 5 trục, và Semantic Text Heatmap)
-├── Tab 2: Three.js 3D Vector Space (WebGL spatial point cloud với tọa độ PCA 3D & mô phỏng đồ thị HNSW đa tầng)
-├── Tab 3: Mô hình Graph Kiến trúc Thực tế (Interactive node metrics, parameters & luồng pipeline zero-copy)
-├── Tab 4: Phân tích Chi tiết Tốc độ & Độ trễ (Live latency stress-test benchmark & phân rã micro-stages)
-├── Tab 5: Đối sánh Trước & Sau Lượng tử hóa SQ8 (Before vs After quantization hardware comparison)
-├── Tab 6: Tìm kiếm Ngữ nghĩa & Tải tệp (Live query execution, metadata filters, custom text upload)
-└── Tab 7: Đánh giá Truy xuất Chuẩn Big Data (Universal benchmark runner, QPS vs Recall charts, query logs)
+Dashboard Tabs:
+├── Tab 1: Tim kiem & BigQuery Execution Inspector
+│           Real-time semantic search, 4 KPI scorecards (Elapsed/Slot/Bytes),
+│           4-stage execution graph (S00→S03), dynamic SQL preview,
+│           List/JSON output switcher with Copy JSON
+├── Tab 2: Khong gian Vector 3D (Three.js WebGL)
+│           3D PCA point cloud, HNSW hop trajectory, hover tooltips,
+│           HUD Detail Panel with reasoning badge
+├── Tab 3: Danh sach Top-K Tai lieu
+│           Ranked result cards sorted desc by similarity score,
+│           reasoning badge per result, "View 3D" link
+└── Tab 4: Danh gia Thuat toan
+            Two-Tier Quantized HNSW vs Standard HNSW comparison charts,
+            QPS / Recall / Latency metrics, HNSW hyperparameter tuner
 ```
 
 ### Dashboard REST APIs
@@ -368,7 +372,9 @@ Dashboard Architecture:
 
 ```text
 HNSW-Combined-Quantization/
-├── README.md                                # System documentation
+├── README.md                                # Project overview and quick-start
+├── KET_QUA_THUC_HIEN.md                    # Full experimental results report
+├── HUONG_DAN_THUC_HIEN.md                  # Step-by-step developer & user guide
 ├── pyproject.toml                           # Python package configuration and dependencies
 ├── configs/
 │   └── default_pipeline.json                # Pipeline hyperparameters and index limits
@@ -381,11 +387,10 @@ HNSW-Combined-Quantization/
 │   │   ├── storage.py                       # Zero-copy numpy.memmap binary storage on SSD
 │   │   ├── loaders/                         # RSS news crawler and HF streaming loader
 │   │   └── search/
-│   │       └── retrieval_evaluator.py       # Universal benchmark engine across 4 indices
+│   │       └── retrieval_evaluator.py       # Universal benchmark engine
 │   └── ann_index/                           # Core vector indexing algorithms
-│       ├── flat.py                          # Exact Flat L2 brute-force search (Ground Truth)
+│       ├── flat.py                          # Exact Flat L2 brute-force search
 │       ├── hnsw.py                          # Standard hierarchical graph index
-│       ├── ivf_pq.py & pq.py                # Inverted File with Product Quantization
 │       ├── quantizer.py                     # Scalar Quantizer (SQ8 uint8/int8)
 │       ├── early_exit.py                    # Adaptive Early-Exit convergence controller
 │       ├── two_tier_hnsw.py                 # Two-Tier Quantized HNSW implementation
@@ -393,20 +398,22 @@ HNSW-Combined-Quantization/
 ├── scripts/                                 # Executable CLI scripts
 │   ├── build_clean_search_cache.py          # Builds balanced 5,000-doc evaluation cache
 │   ├── run_retrieval_evaluation.py          # Runs universal retrieval benchmark
-│   ├── run_baselines_benchmark.py           # Baseline comparison runner
 │   ├── run_crawler.py                       # Multi-threaded RSS news crawler
-│   ├── run_wiki_crawler.py                  # Wikipedia dump streaming ingestor
 │   ├── run_quantization.py                  # SQ8 quantizer pipeline
 │   ├── merge_quantized_corpora.py           # Multi-corpus federation utility
 │   ├── run_scale_stress_test.py             # Memory and latency scaling benchmark
 │   └── search_demo.py                       # Semantic search demonstration CLI
 ├── dashboard/                               # Interactive Web Dashboard
-│   ├── server.js                            # Express API backend
-│   └── public/                              # HTML5, Tailwind CSS, Three.js 3D visualizer
-├── docs/                                    # Technical reports and LaTeX documents
+│   ├── server.js                            # Express API backend (port 3000)
+│   ├── scripts/search_service.py            # Python search microservice (port 5005)
+│   └── public/                             # HTML5, Tailwind CSS, Three.js 3D visualizer
+├── docs/                                    # Technical reports and supporting documents
 │   ├── TECHNICAL_REPORT.md                  # Comprehensive experimental report
-│   └── KET_QUA_THUC_NGHIEM_DOI_CHUAN.md     # Hyperparameter sweep logs
-└── tests/                                   # 91 automated PyTest verification tests
+│   ├── KET_QUA_THUC_NGHIEM_DOI_CHUAN.md    # Hyperparameter sweep logs
+│   └── BAO_CAO_LUONG_QUANTIZATION.md       # Quantization pipeline report
+└── tests/                                   # Automated verification tests
+    ├── test_ui_render_harness.js            # UI render tests (19 cases)
+    └── test_adversarial_frontend_stress.js  # Adversarial stress tests (3 cases)
 ```
 
 ---
@@ -426,3 +433,15 @@ This implementation utilizes concepts and components from:
 ## 📜 License
 
 This project is licensed under the [Apache License 2.0](LICENSE).
+
+---
+
+## 📚 Documents
+
+| File | Mo ta |
+|:---|:---|
+| [KET_QUA_THUC_HIEN.md](KET_QUA_THUC_HIEN.md) | Ket qua thuc nghiem day du: so sanh thuat toan, latency breakdown, RAM savings, hyperparameter sweep, BigQuery execution telemetry |
+| [HUONG_DAN_THUC_HIEN.md](HUONG_DAN_THUC_HIEN.md) | Huong dan cai dat, chay dashboard, su dung tung tab, API reference, xu ly su co |
+| [docs/TECHNICAL_REPORT.md](docs/TECHNICAL_REPORT.md) | Bao cao ky thuat chi tiet: ly thuyet, chung minh toan hoc, ket qua thuc nghiem |
+| [ann_10m_thesis_report.md](ann_10m_thesis_report.md) | Bao cao de tai mon hoc (tieng Viet) |
+

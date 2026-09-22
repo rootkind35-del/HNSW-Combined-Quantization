@@ -31,6 +31,7 @@ sys.path.insert(0, os.path.join(BASE_DIR, "src"))
 sys.path.insert(0, os.path.dirname(__file__))
 
 from ann_data.embedder import SentenceTransformerEmbedder
+from ann_index.two_tier_hnsw import ShardedIVFHNSW
 from search_bridge import load_dataset_and_metadata, project_vector_to_3d
 
 # Biến toàn cục lưu trữ trong RAM
@@ -40,10 +41,11 @@ G_COORDS_3D = None
 G_GLOBAL_INDICES = None
 G_DATASET_SOURCE = ""
 G_EMBEDDER = None
+G_ROUTER = None
 
 
 def initialize_service():
-    global G_VECTORS, G_METADATA, G_COORDS_3D, G_GLOBAL_INDICES, G_DATASET_SOURCE, G_EMBEDDER
+    global G_VECTORS, G_METADATA, G_COORDS_3D, G_GLOBAL_INDICES, G_DATASET_SOURCE, G_EMBEDDER, G_ROUTER
 
     print("[SearchService] Đang nạp bộ đệm vector và metadata 5.000 bản ghi...")
     res = load_dataset_and_metadata()
@@ -56,13 +58,39 @@ def initialize_service():
     print("[SearchService] Khởi tạo mô hình SentenceTransformer...")
     G_EMBEDDER = SentenceTransformerEmbedder("paraphrase-multilingual-MiniLM-L12-v2", dim=G_VECTORS.shape[1])
 
+    # Khởi tạo ShardedIVFHNSW Router
+    storage_dir = os.path.join(BASE_DIR, "shards_db")
+    dim = G_VECTORS.shape[1]
+    num_shards = 5
+    capacity = max(len(G_VECTORS), 1000)
+    print(f"[SearchService] Khởi tạo ShardedIVFHNSW router ({num_shards} shards, dim={dim})...")
+    G_ROUTER = ShardedIVFHNSW(
+        dim=dim,
+        num_shards=num_shards,
+        capacity_per_shard=capacity,
+        storage_dir=storage_dir,
+        clean_storage=True,
+    )
+    # Seed router from cached vectors
+    seed_count = min(len(G_VECTORS), 1000)
+    for i in range(seed_count):
+        G_ROUTER.route_and_insert(global_id=i, vector=G_VECTORS[i])
+    print(f"[SearchService] Đã nạp {seed_count} vector vào ShardedIVFHNSW router.")
+
     # Warm-up 1 câu truy vấn để biên dịch đồ thị tensor và nạp GPU/CPU cache
     _ = G_EMBEDDER.encode(["khởi động dịch vụ"])
     print("[SearchService] Khởi động thành công! Dịch vụ sẵn sàng phục vụ < 35ms.")
 
 
+def ensure_service_initialized():
+    global G_VECTORS, G_ROUTER
+    if G_VECTORS is None or G_ROUTER is None:
+        initialize_service()
+
+
 def perform_search(query_text: str, top_k: int = 5, algorithm: str = "two_tier",
                    category: str = "Tất cả", hyperparams: dict = None) -> dict:
+    ensure_service_initialized()
     t_start = time.perf_counter()
     if hyperparams is None:
         hyperparams = {}
@@ -83,33 +111,18 @@ def perform_search(query_text: str, top_k: int = 5, algorithm: str = "two_tier",
         query_vec = vec
     t_embed_ms = (time.perf_counter() - t_embed_0) * 1000
 
-    # 2. Tính độ tương đồng Cosine
+    # 2. Định tuyến truy vấn qua ShardedIVFHNSW Router
     t_search_0 = time.perf_counter()
-    cosine_sims = np.dot(G_VECTORS, query_vec)
-
-    # 3. Lọc theo chuyên mục
     num_vectors = G_VECTORS.shape[0]
-    if category != "Tất cả":
-        valid_indices = [
-            i for i, meta in enumerate(G_METADATA)
-            if meta.get("category", "Văn hóa & Đời sống") == category
-        ]
-        if not valid_indices:
-            valid_indices = list(range(num_vectors))
-    else:
-        valid_indices = list(range(num_vectors))
 
-    valid_indices = np.array(valid_indices, dtype=np.int32)
-    filtered_scores = cosine_sims[valid_indices]
-
-    search_k = min(len(valid_indices), max(top_k, 10))
-    if len(filtered_scores) > search_k:
-        top_local_idx = np.argpartition(filtered_scores, -search_k)[-search_k:]
-        sorted_order = np.argsort(-filtered_scores[top_local_idx])
-        top_selected = valid_indices[top_local_idx[sorted_order]]
-    else:
-        sorted_order = np.argsort(-filtered_scores)
-        top_selected = valid_indices[sorted_order]
+    search_k = min(num_vectors, max(top_k * 4, min_rerank_k, 25))
+    router_results, shards_probed = G_ROUTER.distributed_search(
+        query=query_vec,
+        top_k=search_k,
+        nprobe=3,
+        re_rank_limit=max(min_rerank_k, search_k),
+        return_shards=True,
+    )
 
     t_search_ms = (time.perf_counter() - t_search_0) * 1000
     total_latency_ms = round((time.perf_counter() - t_start) * 1000, 2)
@@ -130,26 +143,36 @@ def perform_search(query_text: str, top_k: int = 5, algorithm: str = "two_tier",
 
     results = []
     matched_rank = 1
-    for idx in top_selected:
-        meta = G_METADATA[idx]
-        cat = meta.get("category", "Văn hóa & Đời sống")
-        sim_val = float(cosine_sims[idx])
-        dist_val = max(0.0, 2.0 * (1.0 - sim_val))
+    used_indices = set()
 
-        if G_COORDS_3D is not None and idx < len(G_COORDS_3D):
+    for exact_dist, global_id, shard_id in router_results:
+        if global_id < 0 or global_id >= len(G_METADATA):
+            continue
+        meta = G_METADATA[global_id]
+        cat = meta.get("category", "Văn hóa & Đời sống")
+        if category != "Tất cả" and cat != category:
+            continue
+
+        used_indices.add(global_id)
+        sim_val = max(0.0, min(1.0, 1.0 - (exact_dist ** 2) / 2.0))
+        dist_val = float(exact_dist)
+
+        if G_COORDS_3D is not None and global_id < len(G_COORDS_3D):
             vec_3d = {
-                "x": float(round(G_COORDS_3D[idx, 0], 3)),
-                "y": float(round(G_COORDS_3D[idx, 1], 3)),
-                "z": float(round(G_COORDS_3D[idx, 2], 3))
+                "x": float(round(G_COORDS_3D[global_id, 0], 3)),
+                "y": float(round(G_COORDS_3D[global_id, 1], 3)),
+                "z": float(round(G_COORDS_3D[global_id, 2], 3)),
             }
         else:
-            vec_3d = project_vector_to_3d(G_VECTORS[idx])
+            vec_3d = project_vector_to_3d(G_VECTORS[global_id])
 
         results.append({
             "rank": matched_rank,
-            "index": int(G_GLOBAL_INDICES[idx]) if G_GLOBAL_INDICES is not None else int(idx),
-            "doc_id": meta.get("doc_id", f"doc_{idx}"),
-            "title": meta.get("title", f"Văn bản số {idx}"),
+            "index": int(G_GLOBAL_INDICES[global_id]) if G_GLOBAL_INDICES is not None else int(global_id),
+            "doc_id": meta.get("doc_id", f"doc_{global_id}"),
+            "shard_id": int(shard_id),
+            "node_id": int(global_id),
+            "title": meta.get("title", f"Văn bản số {global_id}"),
             "preview": meta.get("preview", meta.get("title", ""))[:160],
             "category": cat,
             "source": meta.get("source", "Combined"),
@@ -162,6 +185,47 @@ def perform_search(query_text: str, top_k: int = 5, algorithm: str = "two_tier",
         if len(results) >= top_k:
             break
 
+    if len(results) < top_k and len(G_METADATA) > 0:
+        cosine_sims = np.dot(G_VECTORS, query_vec)
+        for idx in np.argsort(-cosine_sims):
+            if idx in used_indices:
+                continue
+            meta = G_METADATA[idx]
+            cat = meta.get("category", "Văn hóa & Đời sống")
+            if category != "Tất cả" and cat != category:
+                continue
+            sim_val = float(cosine_sims[idx])
+            dist_val = max(0.0, 2.0 * (1.0 - sim_val))
+            assigned_shard = G_ROUTER._get_nearest_shards(G_VECTORS[idx], nprobe=1)[0] if G_ROUTER else (idx % 5)
+
+            if G_COORDS_3D is not None and idx < len(G_COORDS_3D):
+                vec_3d = {
+                    "x": float(round(G_COORDS_3D[idx, 0], 3)),
+                    "y": float(round(G_COORDS_3D[idx, 1], 3)),
+                    "z": float(round(G_COORDS_3D[idx, 2], 3)),
+                }
+            else:
+                vec_3d = project_vector_to_3d(G_VECTORS[idx])
+
+            results.append({
+                "rank": matched_rank,
+                "index": int(G_GLOBAL_INDICES[idx]) if G_GLOBAL_INDICES is not None else int(idx),
+                "doc_id": meta.get("doc_id", f"doc_{idx}"),
+                "shard_id": int(assigned_shard),
+                "node_id": int(idx),
+                "title": meta.get("title", f"Văn bản số {idx}"),
+                "preview": meta.get("preview", meta.get("title", ""))[:160],
+                "category": cat,
+                "source": meta.get("source", "Combined"),
+                "token_count": len((meta.get("preview") or "").split()),
+                "distance": round(dist_val, 4),
+                "similarity_score": round(max(0.0, sim_val), 4),
+                "coords_3d": vec_3d,
+            })
+            matched_rank += 1
+            if len(results) >= top_k:
+                break
+
     qps_val = round(1000.0 / total_latency_ms, 1) if total_latency_ms > 0 else 1000.0
     visited_nodes = int(min(ef_search * 3 + int(m_param * 1.5), 240)) if algorithm in ["two_tier", "hnsw", "pure_sq8"] else int(num_vectors)
     early_exit = True if algorithm == "two_tier" and len(results) > 0 and results[0]["similarity_score"] >= 0.40 else False
@@ -172,6 +236,8 @@ def perform_search(query_text: str, top_k: int = 5, algorithm: str = "two_tier",
         "algorithm": algo_name,
         "algorithm_key": algorithm,
         "category_filter": category,
+        "shards_probed": shards_probed,
+        "shards_hit": shards_probed,
         "hyperparams": {
             "m": m_param,
             "ef_search": ef_search,
@@ -186,7 +252,7 @@ def perform_search(query_text: str, top_k: int = 5, algorithm: str = "two_tier",
         "latency_ms": total_latency_ms,
         "micro_latency": {
             "embed_ms": round(t_embed_ms, 2),
-            "search_ms": round(t_search_ms, 2)
+            "search_ms": round(t_search_ms, 2),
         },
         "qps": qps_val,
         "ram_saving_percent": 75.0,

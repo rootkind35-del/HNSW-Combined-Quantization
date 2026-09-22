@@ -118,9 +118,8 @@ def load_dataset(max_samples: int = 3000):
                             pass
             count = len(metadata)
             if count > 0:
-                mmap = np.memmap(v_path, dtype=dtype, mode="r", shape=(count, dim))
-                vectors = np.array(mmap, dtype=np.float32)
-                del mmap
+                raw_data = np.fromfile(v_path, dtype=dtype, count=count * dim)
+                vectors = raw_data.reshape((count, dim)).astype(np.float32)
                 return vectors, metadata, v_rel, None
 
     # Fallback synthetic

@@ -1,80 +1,54 @@
 [
   {
-    "scale_n": 1000,
-    "dim": 64,
-    "queries": 30,
-    "standard_hnsw": {
-      "algorithm": "StandardHNSW(m=16, ef=30, backend=fallback_graph)",
-      "build_time_sec": 0.065,
-      "ram_mb": 0.37,
-      "recall_at_10": 98.33,
-      "latency_p50_ms": 2.684,
-      "latency_p95_ms": 4.605,
-      "latency_p99_ms": 5.589,
-      "qps": 347.63
-    },
-    "two_tier_hnsw": {
-      "algorithm": "TwoTierHNSW(SQ8+EarlyExit(τ=3,ε=0.0001)+ReRank)",
-      "build_time_sec": 0.147,
-      "ram_mb": 0.18,
-      "recall_at_10": 74.0,
-      "latency_p50_ms": 2.175,
-      "latency_p95_ms": 3.767,
-      "latency_p99_ms": 5.845,
-      "qps": 421.03
-    },
-    "ram_reduction_pct": 49.87
-  },
-  {
-    "scale_n": 2500,
-    "dim": 64,
-    "queries": 30,
-    "standard_hnsw": {
-      "algorithm": "StandardHNSW(m=16, ef=30, backend=fallback_graph)",
-      "build_time_sec": 0.35,
-      "ram_mb": 0.92,
-      "recall_at_10": 96.0,
-      "latency_p50_ms": 4.403,
-      "latency_p95_ms": 6.906,
-      "latency_p99_ms": 7.515,
-      "qps": 213.9
-    },
-    "two_tier_hnsw": {
-      "algorithm": "TwoTierHNSW(SQ8+EarlyExit(τ=3,ε=0.0001)+ReRank)",
-      "build_time_sec": 0.796,
-      "ram_mb": 0.46,
-      "recall_at_10": 51.0,
-      "latency_p50_ms": 2.505,
-      "latency_p95_ms": 4.233,
-      "latency_p99_ms": 6.706,
-      "qps": 386.39
-    },
-    "ram_reduction_pct": 49.95
-  },
-  {
     "scale_n": 5000,
-    "dim": 64,
+    "dim": 384,
     "queries": 30,
     "standard_hnsw": {
       "algorithm": "StandardHNSW(m=16, ef=30, backend=fallback_graph)",
-      "build_time_sec": 4.151,
-      "ram_mb": 1.83,
-      "recall_at_10": 93.67,
-      "latency_p50_ms": 6.71,
-      "latency_p95_ms": 10.865,
-      "latency_p99_ms": 14.858,
-      "qps": 141.34
+      "build_time_sec": 48.801,
+      "ram_mb": 7.93,
+      "recall_at_10": 83.33,
+      "latency_p50_ms": 36.158,
+      "latency_p95_ms": 44.282,
+      "latency_p99_ms": 45.478,
+      "qps": 27.04
     },
     "two_tier_hnsw": {
       "algorithm": "TwoTierHNSW(SQ8+EarlyExit(τ=3,ε=0.0001)+ReRank)",
-      "build_time_sec": 9.801,
-      "ram_mb": 0.92,
-      "recall_at_10": 50.33,
-      "latency_p50_ms": 4.047,
-      "latency_p95_ms": 9.206,
-      "latency_p99_ms": 14.725,
-      "qps": 223.98
+      "build_time_sec": 0.8,
+      "ram_mb": 2.44,
+      "recall_at_10": 33.33,
+      "latency_p50_ms": 19.754,
+      "latency_p95_ms": 35.653,
+      "latency_p99_ms": 47.836,
+      "qps": 44.68
     },
-    "ram_reduction_pct": 49.97
+    "ram_reduction_pct": 69.19
+  },
+  {
+    "scale_n": 10000,
+    "dim": 384,
+    "queries": 30,
+    "standard_hnsw": {
+      "algorithm": "StandardHNSW(m=16, ef=30, backend=fallback_graph)",
+      "build_time_sec": 170.365,
+      "ram_mb": 15.87,
+      "recall_at_10": 80.67,
+      "latency_p50_ms": 55.476,
+      "latency_p95_ms": 69.418,
+      "latency_p99_ms": 78.012,
+      "qps": 18.71
+    },
+    "two_tier_hnsw": {
+      "algorithm": "TwoTierHNSW(SQ8+EarlyExit(τ=3,ε=0.0001)+ReRank)",
+      "build_time_sec": 2.604,
+      "ram_mb": 4.89,
+      "recall_at_10": 30.67,
+      "latency_p50_ms": 25.508,
+      "latency_p95_ms": 57.362,
+      "latency_p99_ms": 996.956,
+      "qps": 14.86
+    },
+    "ram_reduction_pct": 69.21
   }
 ]

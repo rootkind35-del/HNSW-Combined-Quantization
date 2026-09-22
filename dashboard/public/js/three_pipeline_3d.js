@@ -17,11 +17,11 @@ class Pipeline3DModule {
       {
         id: "pod_stream",
         name: "1. Multi-Corpus Ingestion",
-        tier: "Input Layer (31.33M)",
+        tier: "Input Layer (16.45M)",
         color: 0x38bdf8,
         pos: { x: -40, y: 0, z: -20 },
         desc: "Hợp nhất Báo chí-Pháp luật (16.46M) và Wikipedia (14.87M)",
-        stats: { total: "31,331,931 docs", shards: "400 Shards" }
+        stats: { total: "16,459,486 docs", shards: "400 Shards" }
       },
       {
         id: "pod_prep",
@@ -39,7 +39,7 @@ class Pipeline3DModule {
         color: 0x10b981,
         pos: { x: 15, y: 0, z: -20 },
         desc: "Lượng tử hóa vector float32 sang int8 (Tiết kiệm 75% RAM)",
-        stats: { ram_reduction: "75.0%", size_int8: "11.47 GB" }
+        stats: { ram_reduction: "75.0%", size_int8: "6.02 GB" }
       },
       {
         id: "pod_early_exit",
@@ -51,13 +51,13 @@ class Pipeline3DModule {
         stats: { hops_saved: "60% - 70%", p50_latency: "1.25 ms" }
       },
       {
-        id: "pod_memmap",
-        name: "5. Tier 2: SSD Memmap",
+        id: "pod_direct_io",
+        name: "5. Tier 2: Direct I/O SSD Manager",
         tier: "Tier 2 (SSD Disk)",
         color: 0xf59e0b,
         pos: { x: 25, y: 0, z: 20 },
-        desc: "Mảng nhị phân int8 trên đĩa SSD NVMe (Zero-RAM)",
-        stats: { disk_size: "11.47 GB", active_ram: "0 MB" }
+        desc: "Đọc trực tiếp nhị phân Direct I/O kết hợp bộ nhớ đệm đa luồng ThreadPoolExecutor",
+        stats: { disk_size: "6.02 GB", active_ram: "0 MB" }
       },
       {
         id: "pod_reranker",

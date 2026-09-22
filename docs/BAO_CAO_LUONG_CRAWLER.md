@@ -18,7 +18,7 @@ flowchart TD
     subgraph Sources ["Nguồn Dữ liệu"]
         S1["Báo điện tử Việt Nam (VNExpress, Dân Trí, Tuổi Trẻ...)"]
         S2["Kho ngữ liệu văn bản Pháp luật"]
-        S3["Bách khoa toàn thư Wikipedia tiếng Việt"]
+        
     end
 
     subgraph Network ["Tầng Mạng & Kết nối"]
@@ -156,10 +156,7 @@ Nhận từng bản ghi dữ liệu đã làm sạch và ghi tuần tự vào c�
 
 ---
 
-### 2.6. Kịch bản thu thập Wikipedia độc lập: `scripts/run_wiki_crawler.py`
-
 #### Mục đích và vai trò
-Đáp ứng yêu cầu thu thập 10.000.000 bản ghi bách khoa toàn thư Wikipedia tiếng Việt một cách độc lập hoàn toàn, không đụng chạm đến kịch bản cào tin tức báo chí cũ.
 
 #### Các hàm chuyên biệt trong `run_wiki_crawler.py`
 1. `clean_wikitext(text: str) -> str`
@@ -171,7 +168,7 @@ Nhận từng bản ghi dữ liệu đã làm sạch và ghi tuần tự vào c�
 2. `is_boilerplate_header(header_name: str) -> bool`
    - Kiểm tra các tiêu đề mục phụ lục như *"Tham khảo"*, *"Liên kết ngoài"*, *"Xem thêm"*, *"Tài liệu tham khảo"*.
    - *Lý do:* Các mục này chỉ chứa đường link, tên sách hoặc số ISBN, không chứa tri thức thực sự, việc loại bỏ giúp nâng cao độ chính xác của ngữ liệu.
-3. `stream_wikipedia_passages(cleaner, min_words=15)`
+
    - Sử dụng `datasets.load_dataset(..., streaming=True)` để kết nối trực tiếp đến các tệp lưu trữ Parquet trên Hugging Face.
    - Trích xuất từng bài viết và phân tách thành các mục ngữ cảnh độc lập theo định dạng header `== ... ==`.
    - Mỗi mục có độ dài $\ge 15$ từ được sinh ra (`yield`) thành một bản ghi hoàn chỉnh:
@@ -179,9 +176,9 @@ Nhận từng bản ghi dữ liệu đã làm sạch và ghi tuần tự vào c�
      {
        "doc_id": "wiki_291b11bddbdb8fe4",
        "title": "Internet Society - Mục tiêu hoạt động",
-       "url": "https://vi.wikipedia.org/wiki/Internet_Society",
+       
        "content_full": "Nội dung văn bản toàn văn của mục...",
-       "source": "wikipedia_vi"
+       
      }
      ```
 4. `main()`
@@ -201,8 +198,6 @@ ANN/
 │   │   ├── shard_00000.jsonl                 # Phân đoạn bản ghi toàn văn
 │   │   └── ... (shard_00001 -> shard_00199)
 │   │
-│   └── crawl_wiki/                           # Dữ liệu Wikipedia tiếng Việt (14.872.445 phân đoạn)
-│       ├── CRAWL_MANIFEST.json               # Kê khai 200 shards Wikipedia
 │       ├── crawl_checkpoint.json             # Lưu vết tiến độ thu thập
 │       ├── shard_00000.jsonl                 # Phân đoạn bách khoa toàn thư
 │       └── ... (shard_00001 -> shard_00199)
@@ -219,9 +214,8 @@ ANN/
 │   │   └── drive_downloader.py               # Tải tệp lớn từ đám mây
 │   ├── storage/
 │   │   └── shard_writer.py                   # Bộ phân đoạn ghi đĩa JSONL
-│   └── pipeline.py                           # Điều phối cào đa nguồn
+│   └── pipeline.py                           # Điều phối cào Báo chí
 │
 └── scripts/
     ├── run_crawler.py                        # CLI cào tin tức & pháp luật
-    └── run_wiki_crawler.py                   # CLI cào 10M Wikipedia độc lập
 ```

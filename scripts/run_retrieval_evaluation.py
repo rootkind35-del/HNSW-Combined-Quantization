@@ -28,11 +28,12 @@ def main():
     
     # In bảng ASCII ra Terminal
     print("\n" + "="*80)
-    print(f"{'THUẬT TOÁN':<15} | {'QPS':<10} | {'MEAN LATENCY (ms)':<20} | {'P95 LATENCY (ms)':<20} | {'RECALL@' + str(args.top_k):<10}")
+    print(f"{'THUẬT TOÁN':<25} | {'QPS':<10} | {'MEAN LATENCY (ms)':<20} | {'P95 LATENCY (ms)':<20} | {'RECALL@' + str(args.top_k):<10}")
     print("-" * 80)
-    for algo in ['flat', 'hnsw', 'ivf_pq', 'two_tier']:
+    for algo in ['hnsw', 'two_tier']:
         data = report[algo]
-        print(f"{algo:<15} | {data['qps']:<10.2f} | {data['latency_mean_ms']:<20.2f} | {data['latency_p95_ms']:<20.2f} | {data['recall_at_k']:<10.4f}")
+        algo_name = "Standard HNSW" if algo == 'hnsw' else "Two-Tier Quantized HNSW"
+        print(f"{algo_name:<25} | {data['qps']:<10.2f} | {data['latency_mean_ms']:<20.2f} | {data['latency_p95_ms']:<20.2f} | {data['recall_at_k']:<10.4f}")
     print("="*80)
     
     print(f"\nĐã lưu báo cáo JSON: {result['json_path']}")

@@ -18,7 +18,6 @@ if hasattr(sys.stdout, "reconfigure"):
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src")))
 
 from ann_index.benchmark import BenchmarkRunner
-from ann_index.hnsw import StandardHNSWIndex
 from ann_index.two_tier_hnsw import TwoTierQuantizedHNSW
 from ann_data.loaders.benchmark_loader import BenchmarkDatasetLoader
 from ann_data.utils import get_logger
@@ -74,10 +73,6 @@ def run_scale_experiment(
 
         runner = BenchmarkRunner(dataset=dataset, queries=queries, metric="l2", ground_truth_k=50)
 
-        # 1. Thuật toán Standard HNSW đối chuẩn
-        hnsw = StandardHNSWIndex(space="l2", m=16, ef_construction=100, ef_search=30)
-        hnsw_eval = runner.evaluate_index(hnsw, top_k=10, repeat_runs=2)
-
         # 2. Thuật toán TwoTierQuantizedHNSW đề xuất
         two_tier = TwoTierQuantizedHNSW(
             m=16,
@@ -90,28 +85,17 @@ def run_scale_experiment(
         )
         two_tier_eval = runner.evaluate_index(two_tier, top_k=10, repeat_runs=2)
 
-        ram_hnsw = hnsw_eval["ram_mb"]
         ram_twotier = two_tier_eval["ram_mb"]
-        raw_ram_hnsw = hnsw.get_memory_bytes()
         raw_ram_twotier = two_tier.get_memory_bytes()
-        ram_reduction = ((raw_ram_hnsw - raw_ram_twotier) / max(raw_ram_hnsw, 1)) * 100.0
 
         step_record = {
             "scale_n": n,
             "dim": dim,
             "queries": num_queries,
-            "standard_hnsw": hnsw_eval,
             "two_tier_hnsw": two_tier_eval,
-            "ram_reduction_pct": round(ram_reduction, 2),
         }
         experiment_records.append(step_record)
-        logger.info(
-            "Mốc N=%d: RAM Standard HNSW: %.2f MB | RAM Two-Tier HNSW: %.2f MB (Giảm %.1f%%)",
-            n,
-            ram_hnsw,
-            ram_twotier,
-            ram_reduction,
-        )
+        logger.info("Mốc N=%d: RAM Two-Tier HNSW: %.2f MB", n, ram_twotier)
 
     # Sinh báo cáo tóm tắt định dạng Markdown
     md_report = generate_markdown_report(experiment_records)
@@ -150,9 +134,7 @@ def generate_markdown_report(records: List[Dict[str, Any]]) -> str:
 
     for rec in records:
         n = rec["scale_n"]
-        h = rec["standard_hnsw"]
         t = rec["two_tier_hnsw"]
-        red = rec["ram_reduction_pct"]
 
         lines.append(
             f"| N = {n:,} | **Standard HNSW** | {h['ram_mb']:.2f} MB | Baseline | {h['recall_at_10']}% | {h['latency_p50_ms']:.2f} ms | {h['latency_p95_ms']:.2f} ms | {h['qps']:.1f} |"

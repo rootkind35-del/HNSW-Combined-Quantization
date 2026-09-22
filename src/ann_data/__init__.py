@@ -2,10 +2,16 @@
 
 from ann_data.cleaner import TextCleaner, clean_text
 from ann_data.config import PipelineConfig
-from ann_data.deduplicator import StreamDeduplicator
+try:
+    from ann_data.deduplicator import StreamDeduplicator
+except (ImportError, ModuleNotFoundError):
+    StreamDeduplicator = None
 from ann_data.embedder import BatchEmbedder, BaseEmbedder, MockEmbedder, SentenceTransformerEmbedder
 from ann_data.loaders import BaseDataLoader, HuggingFaceLoader, NewsRssCrawler
-from ann_data.pipeline import DataPipeline
+try:
+    from ann_data.pipeline import DataPipeline
+except (ImportError, ModuleNotFoundError):
+    DataPipeline = None
 from ann_data.search import ExactVectorSearch, SemanticSearchEngine
 from ann_data.storage import MemmapStorage
 from ann_data.tokenizer import BaseTokenizer, PyViTokenizer, WhitespaceTokenizer, segment_text

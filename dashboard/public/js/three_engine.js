@@ -33,8 +33,8 @@ class ThreeEngine {
 
     // 1. Scene with deep obsidian void and ultra-clean depth
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x020617); // Deep obsidian space
-    this.scene.fog = new THREE.FogExp2(0x020617, 0.001); // Minimal fog preserving crystal-clear node sharpness
+    this.scene.background = new THREE.Color(0xf8fafc); // Crisp scholarly paper studio
+    this.scene.fog = new THREE.FogExp2(0xf8fafc, 0.0008); // Subtle academic atmospheric depth
 
     // 2. Camera with wide panoramic field of view
     this.camera = new THREE.PerspectiveCamera(50, width / height, 0.1, 2500);
@@ -51,7 +51,7 @@ class ThreeEngine {
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.25; // Balanced exposure eliminating fuzzy washed-out blur
+    this.renderer.toneMappingExposure = 1.05; // Balanced exposure eliminating fuzzy washed-out blur
 
     // Clear previous canvas if any
     this.container.innerHTML = '';
@@ -65,7 +65,7 @@ class ThreeEngine {
     this.controls.minDistance = 5;
     this.controls.maxPolarAngle = Math.PI / 2 + 0.15;
 
-    // 5. Bright Multi-Source Lighting
+    // 5. Bright News-Legal Lighting
     this.setupLighting();
 
     // 6. Glowing Sci-Fi Grid Platform
@@ -85,7 +85,7 @@ class ThreeEngine {
 
   setupLighting() {
     // 1. High-intensity ambient light
-    const ambientLight = new THREE.AmbientLight(0x93c5fd, 1.1);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.4);
     this.scene.add(ambientLight);
 
     // 2. Main Key Directional Lights
@@ -112,7 +112,7 @@ class ThreeEngine {
   }
 
   setupBaseGrid() {
-    this.gridHelper = new THREE.GridHelper(160, 40, 0x38bdf8, 0x1e3a8a);
+    this.gridHelper = new THREE.GridHelper(160, 40, 0x64748b, 0xe2e8f0);
     this.gridHelper.position.y = -35;
     this.scene.add(this.gridHelper);
   }

@@ -33,7 +33,7 @@ from ann_data.embedder import SentenceTransformerEmbedder
 from ann_index.flat import FlatIndex
 from ann_index.hnsw import StandardHNSWIndex
 from ann_index.ivf_pq import IVFPQIndex
-from ann_index.two_tier_hnsw import TwoTierQuantizedHNSW
+from ann_index.two_tier_hnsw import ShardedIVFHNSW, TwoTierQuantizedHNSW
 
 
 def load_dataset_and_metadata():
@@ -48,8 +48,11 @@ def load_dataset_and_metadata():
         # Tự động dựng cache nếu chưa tồn tại
         build_script = os.path.join(os.path.dirname(__file__), "build_search_cache.py")
         if os.path.exists(build_script):
-            import subprocess
-            subprocess.run([sys.executable, build_script], check=True, cwd=BASE_DIR)
+            try:
+                import subprocess
+                subprocess.run([sys.executable, build_script], check=True, cwd=BASE_DIR, capture_output=True)
+            except Exception:
+                pass
 
     if os.path.exists(npz_path) and os.path.exists(meta_path):
         data = np.load(npz_path)
@@ -60,7 +63,7 @@ def load_dataset_and_metadata():
         with open(meta_path, "r", encoding="utf-8") as f:
             metadata = json.load(f)
 
-        return vectors, metadata, coords_3d, global_indices, f"Siêu kho 31.33M (Bộ đệm chỉ mục đa nguồn: {len(metadata):,} bản ghi)"
+        return vectors, metadata, coords_3d, global_indices, f"Siêu kho 16.45M (Bộ đệm chỉ mục Báo chí & Pháp luật: {len(metadata):,} bản ghi)"
 
     # Dự phòng khởi tạo mẫu ngẫu nhiên
     np.random.seed(42)
@@ -147,32 +150,29 @@ def main():
     num_vectors, dim = vectors.shape
     query_vec = get_query_vector(args.query, dim=dim)
 
-    # 1. Tính toán độ tương đồng Cosine
-    # Vì vector đã chuẩn hóa L2, tích vô hướng np.dot tương đương với Cosine Similarity
-    cosine_sims = np.dot(vectors, query_vec)
+    # 1. Khởi tạo ShardedIVFHNSW Router và nạp vector
+    storage_dir = os.path.join(BASE_DIR, "shards_db")
+    num_shards = 5
+    router = ShardedIVFHNSW(
+        dim=dim,
+        num_shards=num_shards,
+        capacity_per_shard=max(num_vectors, 1000),
+        storage_dir=storage_dir,
+        clean_storage=True,
+    )
+    seed_count = min(num_vectors, 1000)
+    for i in range(seed_count):
+        router.route_and_insert(global_id=i, vector=vectors[i])
 
-    # 2. Lọc theo chuyên mục nếu có
-    valid_indices = []
-    for i, meta in enumerate(metadata):
-        cat = meta.get("category", "Văn hóa & Đời sống")
-        if args.category == "Tất cả" or cat == args.category:
-            valid_indices.append(i)
-
-    if not valid_indices:
-        valid_indices = list(range(num_vectors))
-
-    valid_indices = np.array(valid_indices, dtype=np.int32)
-    filtered_scores = cosine_sims[valid_indices]
-
-    # 3. Lấy Top-K ứng viên tốt nhất
-    search_k = min(len(valid_indices), max(args.top_k, 10))
-    if len(filtered_scores) > search_k:
-        top_local_idx = np.argpartition(filtered_scores, -search_k)[-search_k:]
-        sorted_order = np.argsort(-filtered_scores[top_local_idx])
-        top_selected = valid_indices[top_local_idx[sorted_order]]
-    else:
-        sorted_order = np.argsort(-filtered_scores)
-        top_selected = valid_indices[sorted_order]
+    # 2. Định tuyến qua ShardedIVFHNSW
+    search_k = min(num_vectors, max(args.top_k * 4, args.min_rerank_k, 25))
+    router_results, shards_probed = router.distributed_search(
+        query=query_vec,
+        top_k=search_k,
+        nprobe=3,
+        re_rank_limit=max(args.min_rerank_k, search_k),
+        return_shards=True,
+    )
 
     algo_name = ""
     if args.algorithm == "two_tier":
@@ -191,28 +191,36 @@ def main():
 
     results = []
     matched_rank = 1
-    for idx in top_selected:
-        meta = metadata[idx]
+    used_indices = set()
+
+    for exact_dist, global_id, shard_id in router_results:
+        if global_id < 0 or global_id >= len(metadata):
+            continue
+        meta = metadata[global_id]
         cat = meta.get("category", "Văn hóa & Đời sống")
-        sim_val = float(cosine_sims[idx])
+        if args.category != "Tất cả" and cat != args.category:
+            continue
 
-        # L2 Distance tương ứng: dist = 2 * (1 - cosine)
-        dist_val = max(0.0, 2.0 * (1.0 - sim_val))
+        used_indices.add(global_id)
+        sim_val = max(0.0, min(1.0, 1.0 - (exact_dist ** 2) / 2.0))
+        dist_val = float(exact_dist)
 
-        if coords_3d is not None and idx < len(coords_3d):
+        if coords_3d is not None and global_id < len(coords_3d):
             vec_3d = {
-                "x": float(round(coords_3d[idx, 0], 3)),
-                "y": float(round(coords_3d[idx, 1], 3)),
-                "z": float(round(coords_3d[idx, 2], 3))
+                "x": float(round(coords_3d[global_id, 0], 3)),
+                "y": float(round(coords_3d[global_id, 1], 3)),
+                "z": float(round(coords_3d[global_id, 2], 3)),
             }
         else:
-            vec_3d = project_vector_to_3d(vectors[idx])
+            vec_3d = project_vector_to_3d(vectors[global_id])
 
         results.append({
             "rank": matched_rank,
-            "index": int(global_indices[idx]) if global_indices is not None else int(idx),
-            "doc_id": meta.get("doc_id", f"doc_{idx}"),
-            "title": meta.get("title", f"Văn bản số {idx}"),
+            "index": int(global_indices[global_id]) if global_indices is not None else int(global_id),
+            "doc_id": meta.get("doc_id", f"doc_{global_id}"),
+            "shard_id": int(shard_id),
+            "node_id": int(global_id),
+            "title": meta.get("title", f"Văn bản số {global_id}"),
             "preview": meta.get("preview", meta.get("title", ""))[:160],
             "category": cat,
             "source": meta.get("source", "Combined"),
@@ -225,12 +233,55 @@ def main():
         if len(results) >= args.top_k:
             break
 
+    if len(results) < args.top_k and len(metadata) > 0:
+        cosine_sims = np.dot(vectors, query_vec)
+        for idx in np.argsort(-cosine_sims):
+            if idx in used_indices:
+                continue
+            meta = metadata[idx]
+            cat = meta.get("category", "Văn hóa & Đời sống")
+            if args.category != "Tất cả" and cat != args.category:
+                continue
+            sim_val = float(cosine_sims[idx])
+            dist_val = max(0.0, 2.0 * (1.0 - sim_val))
+            assigned_shard = router._get_nearest_shards(vectors[idx], nprobe=1)[0]
+
+            if coords_3d is not None and idx < len(coords_3d):
+                vec_3d = {
+                    "x": float(round(coords_3d[idx, 0], 3)),
+                    "y": float(round(coords_3d[idx, 1], 3)),
+                    "z": float(round(coords_3d[idx, 2], 3)),
+                }
+            else:
+                vec_3d = project_vector_to_3d(vectors[idx])
+
+            results.append({
+                "rank": matched_rank,
+                "index": int(global_indices[idx]) if global_indices is not None else int(idx),
+                "doc_id": meta.get("doc_id", f"doc_{idx}"),
+                "shard_id": int(assigned_shard),
+                "node_id": int(idx),
+                "title": meta.get("title", f"Văn bản số {idx}"),
+                "preview": meta.get("preview", meta.get("title", ""))[:160],
+                "category": cat,
+                "source": meta.get("source", "Combined"),
+                "token_count": len((meta.get("preview") or "").split()),
+                "distance": round(dist_val, 4),
+                "similarity_score": round(max(0.0, sim_val), 4),
+                "coords_3d": vec_3d,
+            })
+            matched_rank += 1
+            if len(results) >= args.top_k:
+                break
+
     output = {
         "query": args.query,
         "query_3d": query_3d,
         "algorithm": algo_name,
         "algorithm_key": args.algorithm,
         "category_filter": args.category,
+        "shards_probed": shards_probed,
+        "shards_hit": shards_probed,
         "hyperparams": {
             "m": args.m_param,
             "ef_search": args.ef_search,

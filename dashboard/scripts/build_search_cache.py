@@ -211,20 +211,16 @@ def generate_hnsw_3d_topology(coords_3d: np.ndarray, metadata: List[Dict]) -> Di
 
 def main():
     start_time = time.time()
-    n_sample = 2500
+    n_sample = 5000
 
     news_meta_file = os.path.join(BASE_DIR, "data", "quantized", "metadata.jsonl")
     news_dat_file = os.path.join(BASE_DIR, "data", "quantized", "vectors_int8.dat")
     news_param_file = os.path.join(BASE_DIR, "data", "quantized", "quantization_params.json")
 
-    wiki_meta_file = os.path.join(BASE_DIR, "data", "quantized_wiki", "metadata.jsonl")
-    wiki_dat_file = os.path.join(BASE_DIR, "data", "quantized_wiki", "vectors_int8.dat")
-    wiki_param_file = os.path.join(BASE_DIR, "data", "quantized_wiki", "quantization_params.json")
-
     out_dir = os.path.join(BASE_DIR, "data", "processed")
     os.makedirs(out_dir, exist_ok=True)
 
-    print("[1] Đọc và lọc dữ liệu Báo chí tiếng Việt (chỉ lấy news_)...")
+    print("[1] Đọc và lọc dữ liệu Báo chí & Pháp luật (lấy 5.000 bản ghi news_)...")
     news_rows, news_metadata = load_clean_corpus_subset(
         meta_path=news_meta_file,
         prefix="news_",
@@ -232,19 +228,9 @@ def main():
         global_offset=0,
         target_count=n_sample
     )
-    print(f"    -> Thu thập {len(news_metadata)} bản ghi news (dòng {news_rows[0]} đến {news_rows[-1]}).")
+    print(f"    -> Thu thập {len(news_metadata)} bản ghi Báo chí (dòng {news_rows[0]} đến {news_rows[-1]}).")
 
-    print("[2] Đọc và lọc dữ liệu Wikipedia tiếng Việt (chỉ lấy wiki_)...")
-    wiki_rows, wiki_metadata = load_clean_corpus_subset(
-        meta_path=wiki_meta_file,
-        prefix="wiki_",
-        source_name="Wikipedia tiếng Việt",
-        global_offset=16459486,
-        target_count=n_sample
-    )
-    print(f"    -> Thu thập {len(wiki_metadata)} bản ghi wiki (dòng {wiki_rows[0]} đến {wiki_rows[-1]}).")
-
-    print("[3] Nạp vector int8 từ đĩa và giải lượng tử hóa SQ8 sang float32...")
+    print("[2] Nạp vector int8 từ đĩa và giải lượng tử hóa SQ8 sang float32...")
     mmap_news = np.memmap(news_dat_file, dtype=np.int8, mode="r", shape=(16459486, 384))
     raw_news_int8 = np.array(mmap_news[news_rows], dtype=np.int8)
     del mmap_news
@@ -254,22 +240,13 @@ def main():
         sq8_news.load_params(json.load(f))
     vecs_news_float = sq8_news.dequantize(raw_news_int8)
 
-    mmap_wiki = np.memmap(wiki_dat_file, dtype=np.int8, mode="r", shape=(14872445, 384))
-    raw_wiki_int8 = np.array(mmap_wiki[wiki_rows], dtype=np.int8)
-    del mmap_wiki
-
-    sq8_wiki = ScalarQuantizer8()
-    with open(wiki_param_file, "r", encoding="utf-8") as f:
-        sq8_wiki.load_params(json.load(f))
-    vecs_wiki_float = sq8_wiki.dequantize(raw_wiki_int8)
-
-    print("[4] Ghép nối và chuẩn hóa L2 vector...")
-    all_vectors = np.vstack([vecs_news_float, vecs_wiki_float]).astype(np.float32)
+    print("[3] Chuẩn hóa L2 vector...")
+    all_vectors = vecs_news_float.astype(np.float32)
     norms = np.linalg.norm(all_vectors, axis=1, keepdims=True)
     all_vectors_norm = (all_vectors / np.maximum(norms, 1e-12)).astype(np.float32)
 
-    all_metadata = news_metadata + wiki_metadata
-    assert len(all_metadata) == 5000, f"Tổng số bản ghi không khớp 5000: {len(all_metadata)}"
+    all_metadata = news_metadata
+    assert len(all_metadata) == n_sample, f"Tổng số bản ghi không khớp {n_sample}: {len(all_metadata)}"
     assert all(not m["doc_id"].startswith("hf_") for m in all_metadata), "Phát hiện bản ghi hf_!"
 
     print("[5] Tính toán phép chiếu PCA 3D và lưu tham số mô hình...")

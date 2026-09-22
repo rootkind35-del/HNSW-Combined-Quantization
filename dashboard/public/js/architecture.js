@@ -35,27 +35,26 @@ function renderSvgGraph(arch) {
       <path d="M 0 1 L 9 5 L 0 9 z" fill="#64748b" />
     </marker>
     <marker id="arrow-active" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-      <path d="M 0 1 L 9 5 L 0 9 z" fill="#38bdf8" />
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#1d4ed8" />
     </marker>
   `;
   svg.appendChild(defs);
 
   // Enlarged node dimensions (W: 275, H: 88) ensuring text never escapes
   const nodePositions = {
-    "node_news_legal":   { x: 25,  y: 20,  w: 275, h: 84, color: "#38bdf8", icon: "fa-newspaper" },
-    "node_wikipedia":    { x: 25,  y: 115, w: 275, h: 84, color: "#38bdf8", icon: "fa-book-atlas" },
-    "node_cleaner":      { x: 330, y: 20,  w: 275, h: 84, color: "#818cf8", icon: "fa-filter" },
-    "node_tokenizer":    { x: 635, y: 20,  w: 275, h: 84, color: "#818cf8", icon: "fa-spell-check" },
-    "node_federation":   { x: 635, y: 115, w: 275, h: 84, color: "#818cf8", icon: "fa-layer-group" },
-    "node_sq8":          { x: 330, y: 115, w: 275, h: 84, color: "#10b981", icon: "fa-compress" },
-    "node_early_exit":   { x: 25,  y: 235, w: 275, h: 84, color: "#34d399", icon: "fa-stopwatch-20" },
-    "node_beam_search":  { x: 330, y: 235, w: 275, h: 84, color: "#10b981", icon: "fa-network-wired" },
-    "node_memmap":       { x: 635, y: 235, w: 275, h: 84, color: "#f59e0b", icon: "fa-hard-drive" },
-    "node_reranker":     { x: 480, y: 355, w: 285, h: 84, color: "#fb923c", icon: "fa-arrow-down-1-9" },
-    "node_serving":      { x: 480, y: 475, w: 285, h: 80, color: "#ef4444", icon: "fa-check-double" },
+    "node_news_legal":   { x: 25,  y: 65,  w: 275, h: 84, color: "#2563eb", icon: "fa-newspaper" },
+    "node_cleaner":      { x: 330, y: 20,  w: 275, h: 84, color: "#4f46e5", icon: "fa-filter" },
+    "node_tokenizer":    { x: 635, y: 20,  w: 275, h: 84, color: "#4f46e5", icon: "fa-spell-check" },
+    "node_federation":   { x: 635, y: 115, w: 275, h: 84, color: "#4f46e5", icon: "fa-layer-group" },
+    "node_sq8":          { x: 330, y: 115, w: 275, h: 84, color: "#059669", icon: "fa-compress" },
+    "node_early_exit":   { x: 25,  y: 235, w: 275, h: 84, color: "#059669", icon: "fa-stopwatch-20" },
+    "node_beam_search":  { x: 330, y: 235, w: 275, h: 84, color: "#059669", icon: "fa-network-wired" },
+    "node_memmap":       { x: 635, y: 235, w: 275, h: 84, color: "#d97706", icon: "fa-hard-drive" },
+    "node_reranker":     { x: 480, y: 355, w: 285, h: 84, color: "#ea580c", icon: "fa-arrow-down-1-9" },
+    "node_serving":      { x: 480, y: 475, w: 285, h: 80, color: "#dc2626", icon: "fa-check-double" },
     // Fallback legacy IDs
-    "node_hf_stream":    { x: 25,  y: 20,  w: 275, h: 84, color: "#38bdf8", icon: "fa-satellite-dish" },
-    "node_dedup":        { x: 635, y: 115, w: 275, h: 84, color: "#818cf8", icon: "fa-clone" }
+    "node_hf_stream":    { x: 25,  y: 65,  w: 275, h: 84, color: "#2563eb", icon: "fa-satellite-dish" },
+    "node_dedup":        { x: 635, y: 115, w: 275, h: 84, color: "#4f46e5", icon: "fa-clone" }
   };
 
   // Group for connections (lines and animated dashes)
@@ -88,7 +87,7 @@ function renderSvgGraph(arch) {
 
     path.setAttribute('d', d);
     path.setAttribute('fill', 'none');
-    path.setAttribute('stroke', '#38bdf8');
+    path.setAttribute('stroke', '#2563eb');
     path.setAttribute('stroke-width', '2.5');
     path.setAttribute('stroke-opacity', '0.85');
     path.setAttribute('class', 'flow-edge');
@@ -117,16 +116,16 @@ function renderSvgGraph(arch) {
 
       fo.innerHTML = `
         <div xmlns="http://www.w3.org/1999/xhtml" class="w-full h-full rounded-2xl p-3.5 flex flex-col justify-between transition-all duration-200 border-2 ${
-          isSelected ? 'bg-slate-800/95 ring-2 ring-sky-400 shadow-xl' : 'bg-slate-900/95 hover:bg-slate-850 shadow-md'
-        }" style="border-color: ${isSelected ? '#38bdf8' : pos.color}; box-shadow: 0 8px 20px rgba(0,0,0,0.55);">
+          isSelected ? 'bg-white ring-2 ring-blue-700 shadow-lg' : 'bg-white hover:shadow-md'
+        }" style="border-color: ${isSelected ? '#1d4ed8' : pos.color}; box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);">
           <div class="flex items-center justify-between gap-2">
             <div class="flex items-center gap-2 min-w-0">
               <i class="fa-solid ${pos.icon} text-[15px] shrink-0" style="color: ${pos.color}"></i>
-              <h4 class="font-bold text-[14px] text-white truncate leading-tight">${node.label}</h4>
+              <h4 class="font-bold text-[14px] text-slate-900 truncate leading-tight">${node.label}</h4>
             </div>
-            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0 ${isSelected ? 'animate-ping' : ''}"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0 ${isSelected ? 'animate-ping' : ''}"></span>
           </div>
-          <p class="text-[12px] text-slate-300 line-clamp-2 leading-snug mt-1">${node.sublabel}</p>
+          <p class="text-[12px] text-slate-600 line-clamp-2 leading-snug mt-1">${node.sublabel}</p>
         </div>
       `;
 

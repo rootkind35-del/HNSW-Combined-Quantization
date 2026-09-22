@@ -2,20 +2,20 @@
 
 **Tác giả:** Nhóm Nghiên cứu Kỹ thuật Hệ thống Tìm kiếm Vector  
 **Đơn vị:** Phòng Thí nghiệm Khoa học Máy tính & Trí tuệ Nhân tạo  
-**Dự án:** Approximate Nearest Neighbor (ANN) trên Quy mô 10 Triệu đến 31.33 Triệu Bản ghi  
+**Dự án:** Approximate Nearest Neighbor (ANN) trên Quy mô 10 Triệu đến 16.45 triệu Bản ghi  
 **Thời gian:** Tháng 8 - Tháng 9 năm 2026  
 
 ---
 
 ## TÓM TẮT (ABSTRACT)
 
-Báo cáo này trình bày nghiên cứu, thiết kế kiến trúc và kết quả thực nghiệm của thuật toán tìm kiếm láng giềng gần xấp xỉ hai tầng (**Two-Tier Quantized HNSW**) trên tập dữ liệu văn bản tiếng Việt quy mô lớn (mốc cơ sở 10 triệu và mở rộng siêu kho hợp nhất 31.331.931 vector chiều $D = 384$). 
+Báo cáo này trình bày nghiên cứu, thiết kế kiến trúc và kết quả thực nghiệm của thuật toán tìm kiếm láng giềng gần xấp xỉ hai tầng (**Two-Tier Quantized HNSW**) trên tập dữ liệu văn bản tiếng Việt quy mô lớn (mốc cơ sở 10 triệu và mở rộng Siêu kho 16.459.486 vector chiều $D = 384$). 
 
-Trên các hệ thống phần cứng giới hạn (RAM máy chủ phổ thông từ 16GB đến 32GB), cấu trúc đồ thị HNSW truyền thống đòi hỏi từ 46 GB đến 64.2 GB RAM, vượt quá dung lượng vật lý và dẫn đến lỗi tràn bộ nhớ (Out-Of-Memory). Các phương pháp nén dữ liệu như IVF-PQ tiết kiệm bộ nhớ nhưng làm suy giảm độ chính xác Recall@10 xuống mức 35% - 40%. 
+Trên các hệ thống phần cứng giới hạn (RAM máy chủ phổ thông từ 16GB đến 32GB), cấu trúc đồ thị HNSW truyền thống đòi hỏi từ 46 GB đến 33.7 GB RAM, vượt quá dung lượng vật lý và dẫn đến lỗi tràn bộ nhớ (Out-Of-Memory). Các phương pháp nén dữ liệu như IVF-PQ tiết kiệm bộ nhớ nhưng làm suy giảm độ chính xác Recall@10 xuống mức 35% - 40%. 
 
 Để giải quyết tam giác đánh đổi giữa Bộ nhớ - Độ trễ - Độ chính xác (The ANN Trilemma), giải pháp đề xuất kết hợp:
 1. **Tier 1 (In-Memory)**: Lượng tử hóa vô hướng 8-bit (SQ8 uint8) giảm 75% kích thước vector trong RAM kết hợp bộ điều khiển dừng sớm thích ứng (**Adaptive Early-Exit Controller** với tham số $\tau = 3, \varepsilon = 10^{-4}$) loại bỏ 35% - 40% (lên tới 64% trên tập tối ưu) số bước duyệt đồ thị dư thừa.
-2. **Tier 2 (SSD Memmap)**: Lưu trữ mảng nhị phân `float32` nguyên bản trên đĩa SSD (dung lượng 15.36 GB cho 10 triệu vector và 45.90 GB cho 31.33 triệu vector) qua cơ chế `np.memmap` và thực thi tái xếp hạng chính xác (**Exact Float32 Re-ranking**) trên Top-$K_{\text{rerank}}$ ứng viên.
+2. **Tier 2 (SSD Memmap)**: Lưu trữ mảng nhị phân `float32` nguyên bản trên đĩa SSD (dung lượng 15.36 GB cho 10 triệu vector và 24.11 GB cho 16.45 triệu vector) qua cơ chế `np.memmap` và thực thi tái xếp hạng chính xác (**Exact Float32 Re-ranking**) trên Top-$K_{\text{rerank}}$ ứng viên.
 
 Kết quả đo đạc thực nghiệm trên bộ 91 bài kiểm thử tự động xác nhận: Two-Tier Quantized HNSW cắt giảm chính xác **50% đến 75% tổng dung lượng RAM** ở mọi mốc quy mô, đạt thông lượng **365.0 QPS** (đạt tới 1.250 QPS với bộ đệm cân bằng), độ trễ trung vị $p_{50} = 2.37$ ms (đạt 1.25 ms trên tập cân bằng), và duy trì độ chính xác Recall@10 đạt trên **94% - 95.4%** sau bước tái xếp hạng.
 
@@ -252,10 +252,10 @@ Thời gian truy xuất SSD chỉ tốn $0.12$ ms là minh chứng rõ ràng cho
 
 ### 5.2. Mô hình Graph Biểu diễn Kiến trúc Thực tế
 Giao diện Tab 1 trực quan hóa sơ đồ khối tương tác qua đồ họa véc-tơ SVG:
-- **Tầng 1 (Nguồn Dữ liệu)**: Stream đa nguồn từ Crawler RSS Báo chí & Pháp luật và Bách khoa toàn thư Wikipedia tiếng Việt.
+- **Tầng 1 (Nguồn Dữ liệu)**: Stream Báo chí từ Crawler RSS Báo chí & Pháp luật .
 - **Tầng 2 (Tiền xử lý & Lọc trùng)**: Unicode NFC Cleaner -> Tách từ tiếng Việt (PyVi) -> MinHash LSH Deduplicator.
 - **Tầng 3 (Tier 1 In-Memory)**: Scalar Quantizer (SQ8) -> Adaptive Early-Exit Controller -> Beam Search Routing.
-- **Tầng 4 (Tier 2 SSD Storage)**: Binary Memmap Storage (45.90 GB thô float32 / 11.47 GB int8) -> Top-K Exact Re-Ranking Engine.
+- **Tầng 4 (Tier 2 SSD Storage)**: Binary Memmap Storage (24.11 GB thô float32 / 6.02 GB int8) -> Top-K Exact Re-Ranking Engine.
 - **Tầng 5 (Phục vụ & Đánh giá)**: Query Serving & Universal Retrieval Benchmark Engine.
 - **Tính năng tương tác**: Các đường kết nối dữ liệu có hiệu ứng chuyển động luồng (`flow-edge`). Nhấp vào từng khối kiến trúc sẽ mở bảng hiển thị tham số hoạt động ($M, ef\_search, \tau, \varepsilon, K_{\text{rerank}}$) và số liệu đo đạc thực tế.
 
