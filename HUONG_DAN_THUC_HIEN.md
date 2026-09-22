@@ -1,78 +1,103 @@
-# Huong dan Thuc hien — HNSW Combined Quantization
+# Hướng dẫn Thực hiện — HNSW Combined Quantization
 
-**Phien ban:** v1.0.0  
-**Cap nhat:** Thang 9, 2026  
-**Pham vi:** Cai dat, chay thu, su dung dashboard va danh gia ket qua
-
----
-
-## Muc luc
-
-1. [Yeu cau Phan cung & Phan mem](#1-yeu-cau-phan-cung--phan-mem)
-2. [Cai dat Du an](#2-cai-dat-du-an)
-3. [Chay Dashboard Truc quan](#3-chay-dashboard-truc-quan)
-4. [Huong dan Su dung Tung Tab](#4-huong-dan-su-dung-tung-tab)
-5. [Chay Danh gia Thuat toan](#5-chay-danh-gia-thuat-toan)
-6. [Chay Pipeline Tu Dau](#6-chay-pipeline-tu-dau)
-7. [Cau hinh Sieu tham so](#7-cau-hinh-sieu-tham-so)
-8. [Chay Bo Kiem thu](#8-chay-bo-kiem-thu)
-9. [API Reference](#9-api-reference)
-10. [Xu ly Su co Thuong gap](#10-xu-ly-su-co-thuong-gap)
+**Phiên bản:** v1.0.0  
+**Cập nhật:** Tháng 9, 2026  
+**Phạm vi:** Cài đặt, chạy thử, sử dụng dashboard và đánh giá kết quả
 
 ---
 
-## 1. Yeu cau Phan cung & Phan mem
+## Mục lục
 
-### Toi thieu
+1. [Yêu cầu Phần cứng & Phần mềm](#1-yêu-cầu-phần-cứng--phần-mềm)
+2. [Tải Dữ liệu (Bắt buộc)](#2-tải-dữ-liệu-bắt-buộc)
+3. [Cài đặt Dự án](#3-cài-đặt-dự-án)
+4. [Chạy Dashboard Trực quan](#4-chạy-dashboard-trực-quan)
+5. [Hướng dẫn Sử dụng Từng Tab](#5-hướng-dẫn-sử-dụng-từng-tab)
+6. [Chạy Đánh giá Thuật toán](#6-chạy-đánh-giá-thuật-toán)
+7. [Chạy Pipeline Từ Đầu](#7-chạy-pipeline-từ-đầu)
+8. [Cấu hình Siêu tham số](#8-cấu-hình-siêu-tham-số)
+9. [Chạy Bộ Kiểm thử](#9-chạy-bộ-kiểm-thử)
+10. [API Reference](#10-api-reference)
+11. [Xử lý Sự cố Thường gặp](#11-xử-lý-sự-cố-thường-gặp)
 
-| Thanh phan | Yeu cau |
+---
+
+## 1. Yêu cầu Phần cứng & Phần mềm
+
+### Tối thiểu
+
+| Thành phần | Yêu cầu |
 |:---|:---|
-| RAM | 16 GB (du chay Two-Tier HNSW) |
-| Storage | 15 GB NVMe SSD trong (cho index SQ8) |
-| CPU | x86_64 voi AVX2 |
-| Python | 3.11 hoac cao hon |
-| Node.js | 20 hoac cao hon |
+| RAM | 16 GB (đủ chạy Two-Tier HNSW) |
+| Storage | 15 GB NVMe SSD trống (cho index SQ8) |
+| CPU | x86_64 với AVX2 |
+| Python | 3.11 hoặc cao hơn |
+| Node.js | 20 hoặc cao hơn |
 
-### Khuyen nghi
+### Khuyến nghị
 
-| Thanh phan | Khuyen nghi |
+| Thành phần | Khuyến nghị |
 |:---|:---|
 | RAM | 32 GB+ |
-| Storage | 50 GB+ SSD (cho du lieu float32 + SQ8 + cache) |
-| CPU | Ho tro AVX-512 cho hieu suat SIMD tot hon |
+| Storage | 50 GB+ SSD (cho dữ liệu float32 + SQ8 + cache) |
+| CPU | Hỗ trợ AVX-512 cho hiệu suất SIMD tốt hơn |
 
-> **Luu y:** Standard HNSW tren 16.45M vector can ~64 GB RAM. Chi Two-Tier Quantized HNSW moi chay duoc tren may 16-32 GB.
+> **Lưu ý:** Standard HNSW trên 16.45M vector cần ~64 GB RAM. Chỉ Two-Tier Quantized HNSW mới chạy được trên máy 16-32 GB.
 
 ---
 
-## 2. Cai dat Du an
+## 2. Tải Dữ liệu (Bắt buộc)
 
-### Buoc 1 — Clone va moi truong
+Do giới hạn về dung lượng của GitHub, dữ liệu không được đính kèm trong mã nguồn. Bạn cần tải dữ liệu và đặt đúng vào thư mục `data/`.
+
+👉 **Link tải trọn bộ dữ liệu (Google Drive):**  
+[https://drive.google.com/drive/folders/1b2yiq6Ly5cl3VdNW2LuM1EqdaZNdpbPW?usp=sharing](https://drive.google.com/drive/folders/1b2yiq6Ly5cl3VdNW2LuM1EqdaZNdpbPW?usp=sharing)
+
+**Cách bố trí thư mục dữ liệu sau khi tải:**
+```text
+HNSW-Combined-Quantization/
+├── data/
+│   ├── processed/
+│   │   ├── search_index_cache.npz          # 5,000 vector đã chuẩn hóa
+│   │   ├── search_index_metadata.json      # Metadata 5,000 tài liệu
+│   │   ├── pca_3d_projection.json          # Tọa độ PCA 3D
+│   │   └── vectors_3d_cache.json           # Cache đồ thị 3D cho Dashboard
+│   ├── raw/
+│   │   ├── raw_crawled_news.jsonl          # Dữ liệu văn bản thô
+│   │   └── RAW_DATASET_MANIFEST.json
+```
+*(Chi tiết thêm vui lòng xem file `data/README.md`)*
+
+---
+
+## 3. Cài đặt Dự án
+
+### Bước 1 — Clone và môi trường
 
 ```bash
 git clone git@github.com:rootkind35-del/HNSW-Combined-Quantization.git
 cd HNSW-Combined-Quantization
 
-# Tao virtual environment
+# Tạo virtual environment
 python -m venv .venv
 
-# Kich hoat (Windows)
+# Kích hoạt (Windows)
 .venv\Scripts\activate
-# Kich hoat (Linux/macOS)
+# Kích hoạt (Linux/macOS)
 source .venv/bin/activate
 ```
 
-### Buoc 2 — Cai dat thu vien Python
+### Bước 2 — Cài đặt thư viện Python
 
 ```bash
-# Cai dat co ban
+# Cài đặt cơ bản
 pip install -e .
 
-# Cai dat them ML + dev tools
+# Cài đặt thêm ML + dev tools
 pip install -e ".[ml,dev]"
 ```
 
-### Buoc 3 — Cai dat Node.js cho Dashboard
+### Bước 3 — Cài đặt Node.js cho Dashboard
 
 ```bash
 cd dashboard
@@ -80,7 +105,7 @@ npm install
 cd ..
 ```
 
-### Buoc 4 — Kiem tra cai dat
+### Bước 4 — Kiểm tra cài đặt
 
 ```bash
 python -c "import numpy, sentence_transformers; print('Python OK')"
@@ -89,312 +114,232 @@ node -e "console.log('Node OK')"
 
 ---
 
-## 3. Chay Dashboard Truc quan
+## 4. Chạy Dashboard Trực quan
 
-### Option A — Dung Cache Co san (nhanh nhat)
+Hãy chắc chắn rằng bạn đã làm bước **2. Tải Dữ liệu** và đặt chúng vào thư mục `data/processed/`.
 
-Tai cache tu Google Drive:
-
-1. Truy cap: `https://drive.google.com/drive/folders/1b2yiq6Ly5cl3VdNW2LuM1EqdaZNdpbPW?usp=sharing`
-2. Tai ve va giai nen vao `data/processed/`:
-
-```
-data/processed/
-├── search_index_cache.npz          # 5,000 vector da chuan hoa
-├── search_index_metadata.json       # Metadata 5,000 tai lieu
-├── pca_3d_projection.json          # Toa do PCA 3D
-└── vectors_3d_cache.json           # Cache toa do 3D
-```
-
-3. Kiem tra:
+### Khởi động Server
 
 ```bash
-python -c "import json; d=json.load(open('data/processed/search_index_metadata.json', encoding='utf-8')); print(f'Loaded {len(d)} records')"
-```
-
-### Khoi dong Server
-
-```bash
-# Mo terminal 1 — Python search microservice
+# Mở terminal 1 — Python search microservice
 cd dashboard
 python scripts/search_service.py
-# Service chay tren port 5005
+# Service chạy trên port 5005
 
-# Mo terminal 2 — Node.js dashboard server
+# Mở terminal 2 — Node.js dashboard server
 cd dashboard
-node server.js
-# Hoac: npm start
-# Server chay tren port 3000
+npm start
+# Server chạy trên port 3000
 ```
 
-Mo trinh duyet, truy cap: **http://localhost:3000**
+Mở trình duyệt, truy cập: **http://localhost:3000**
 
 ---
 
-## 4. Huong dan Su dung Tung Tab
+## 5. Hướng dẫn Sử dụng Từng Tab
 
-### Tab 1 — Tim kiem & Execution Inspector
+### Tab 1 — Tìm kiếm & Execution Inspector
 
-**Muc dich:** Nhap cau truy van ngu nghia va xem ket qua tim kiem cung voi bieu do thuc thi 4 giai doan.
+**Mục đích:** Nhập câu truy vấn ngữ nghĩa và xem kết quả tìm kiếm cùng với biểu đồ thực thi 4 giai đoạn.
 
-**Cach su dung:**
+**Cách sử dụng:**
 
-1. Nhap van ban vao o tim kiem (vi du: `hop dong lao dong`).
-2. Chon algorithm: `Two-Tier Quantized HNSW` hoac `Standard HNSW`.
-3. Chinh Top-K slider (5-20 ket qua).
-4. Chon chip danh muc neu muon loc.
-5. Nhan **Tim kiem** hoac Enter.
+1. Nhập văn bản vào ô tìm kiếm (ví dụ: `hợp đồng lao động tối thiểu`).
+2. Chọn thuật toán: `Two-Tier Quantized HNSW` hoặc `Standard HNSW`.
+3. Chỉnh Top-K slider (5-20 kết quả).
+4. Chọn chip danh mục nếu muốn lọc.
+5. Nhấn **Tìm kiếm** hoặc Enter.
 
-**Giai thich ket qua hien thi:**
+**Giải thích kết quả hiển thị:**
 
-| Phan | Mo ta |
+| Phần | Mô tả |
 |:---|:---|
 | 4 KPI cards | Elapsed time, Slot time, Bytes shuffled, Bytes spilled |
-| S00 — Input | Thoi gian chuan hoa va nhung vector |
-| S01 — Aggregate | Thoi gian duyet do thi SQ8 qua 200 shards |
-| S02 — Re-rank | Thoi gian doc SSD va tinh lai khoang cach float32 |
-| S03 — Output | Tong ket qua va thoi gian phat sinh response |
-| Graph Output | Danh sach ket qua (List view / JSON view) |
+| S00 — Input | Thời gian chuẩn hóa và nhúng vector |
+| S01 — Aggregate | Thời gian duyệt đồ thị SQ8 qua 200 shards |
+| S02 — Re-rank | Thời gian đọc SSD và tính lại khoảng cách float32 |
+| S03 — Output | Tổng kết quả và thời gian phát sinh response |
+| Graph Output | Danh sách kết quả (List view / JSON view) |
 
-**Chuyen doi dang xem ket qua:**
+**Chuyển đổi dạng xem kết quả:**
 
-- Nhan `[Dang Danh Sach]` de xem the card.
-- Nhan `[Dang JSON]` de xem raw JSON.
-- Nhan `Copy JSON` de sao chep vao clipboard.
+- Nhấn `[Dạng Danh Sách]` để xem thẻ card.
+- Nhấn `[Dạng JSON]` để xem raw JSON.
+- Nhấn `Copy JSON` để sao chép vào clipboard.
 
-**Dynamic SQL:** Phan SQL duoi thanh tim kiem tu dong cap nhat khi doi tham so — day la SQL logic tieu bieu, khong phai lenh thuc thi vat ly.
-
----
-
-### Tab 2 — Khong gian Vector 3D (Three.js)
-
-**Muc dich:** Truc quan hoa khong gian vector nhung 384-D duoc chieu xuong 3 chieu qua PCA.
-
-**Cach su dung:**
-
-1. Thuc hien tim kiem o Tab 1 truoc.
-2. Chuyen sang Tab 2.
-3. Cac diem ket qua tim kiem duoc to mau vang/do, cac diem nen mau xanh.
-4. Di chuot len diem bat ky de xem tooltip (tieu de, danh muc, score, ly do).
-5. Nhan **Xem tren 3D** tren mot ket qua de focus vao diem do tren khong gian 3D.
-6. Panel **HUD Detail** hien thi day du thong tin tai lieu duoc chon.
-
-**Dieu huong:**
-- Keo chuot de xoay
-- Scroll de phong to/thu nho
-- Click phai + keo de dich chuyen
+**Dynamic SQL:** Phần SQL dưới thanh tìm kiếm tự động cập nhật khi đổi tham số — đây là SQL mô phỏng logic truy vấn động.
 
 ---
 
-### Tab 3 — Danh sach Top-K
+### Tab 2 — Không gian Vector 3D (Three.js)
 
-**Muc dich:** Xem bang ket qua tim kiem day du voi xep hang ro rang.
+**Mục đích:** Trực quan hóa không gian vector nhúng 384-D được chiếu xuống 3 chiều qua PCA.
 
-**Noi dung hien thi:**
-- Thu tu xep hang (Rank #1 = do tuong dong cao nhat)
-- Do tuong dong (Similarity Score, thang 0-1)
-- Tieu de tai lieu
-- Doan trich dan van ban
-- Danh muc (News / Legal)
-- Ly do xep hang (Reasoning badge)
+**Cách sử dụng:**
 
-**Luu y:** Ket qua duoc sap xep giam dan theo `similarity_score` — Rank #1 luon la ket qua co do khop ngu nghia cao nhat.
+1. Thực hiện tìm kiếm ở Tab 1 trước.
+2. Chuyển sang Tab 2.
+3. Các điểm kết quả tìm kiếm được tô màu vàng/đỏ, các điểm nền màu xanh.
+4. Di chuột lên điểm bất kỳ để xem tooltip (tiêu đề, danh mục, score, lý do).
+5. Nhấn **Xem trên 3D** trên một kết quả để focus vào điểm đó.
+6. Panel **HUD Detail** hiển thị đầy đủ thông tin tài liệu được chọn.
 
----
-
-### Tab Danh gia
-
-**Muc dich:** So sanh Two-Tier Quantized HNSW vs Standard HNSW tren cac chi so QPS, Recall, Latency.
-
-**Cach su dung:**
-
-1. Nhan **Chay Danh gia**.
-2. He thong chay 100 cau truy van mau tren ca 2 thuat toan.
-3. Bieu do QPS, Latency, Recall hien thi so sanh truc tiep.
-4. Bieu do HNSW Siêu tham so cho phep thay doi `M`, `ef_construction`, `ef_search` de xem anh huong.
+**Điều hướng:**
+- Kéo chuột để xoay
+- Scroll để phóng to/thu nhỏ
+- Click phải + kéo để dịch chuyển
 
 ---
 
-## 5. Chay Danh gia Thuat toan
+### Tab 3 — Danh sách Top-K
 
-### Quick Benchmark qua Dashboard
+**Mục đích:** Xem bảng kết quả tìm kiếm đầy đủ với xếp hạng rõ ràng.
 
-Trong Tab Danh gia, nhan "Chay Danh gia" — ket qua hien thi ngay tren bieu do.
+**Nội dung hiển thị:**
+- Thứ tự xếp hạng (Rank #1 = độ tương đồng cao nhất)
+- Độ tương đồng (Similarity Score, thang 0-1)
+- Tiêu đề tài liệu
+- Đoạn trích dẫn văn bản
+- Danh mục (News / Legal)
+- Lý do xếp hạng (Reasoning badge)
 
-### CLI Benchmark
+**Lưu ý:** Kết quả được sắp xếp giảm dần theo `similarity_score`.
+
+---
+
+### Tab 4 — Đánh giá Thuật toán
+
+**Mục đích:** So sánh Two-Tier Quantized HNSW vs Standard HNSW trên các chỉ số QPS, Recall, Latency.
+
+**Cách sử dụng:**
+
+1. Nhấn **Chạy Đánh giá**.
+2. Hệ thống chạy 100 câu truy vấn mẫu trên cả 2 thuật toán.
+3. Biểu đồ QPS, Latency, Recall hiển thị so sánh trực tiếp.
+4. Biểu đồ HNSW Siêu tham số cho phép thay đổi `M`, `ef_construction`, `ef_search` để xem ảnh hưởng.
+
+---
+
+## 6. Chạy Đánh giá Thuật toán bằng CLI
+
+Ngoài việc dùng Dashboard, bạn có thể chạy bằng dòng lệnh:
 
 ```bash
-# Chay danh gia truy xuat tren 2 thuat toan
+# Chạy đánh giá truy xuất trên 2 thuật toán
 python scripts/run_retrieval_evaluation.py --top-k 10
 
-# Ket qua luu tai:
+# Kết quả lưu tại:
 #   data/processed/evaluation_results/benchmark_report_YYYYMMDD_HHMMSS.json
 #   data/processed/evaluation_results/benchmark_summary_YYYYMMDD_HHMMSS.md
 ```
 
-### Scale Stress Test
+### Scale Stress Test (Chịu tải)
 
 ```bash
-# Kiem tra hieu suat theo quy mo N = 1000, 2500, 5000
+# Kiểm tra hiệu suất theo quy mô N = 1000, 2500, 5000
 python scripts/run_scale_stress_test.py
-
-# Ket qua luu tai: data/experiments/scale_stress_results.json
 ```
 
 ---
 
-## 6. Chay Pipeline Tu Dau
+## 7. Chạy Pipeline Từ Đầu
 
-Chi thuc hien khi muon tai lai du lieu va xay dung lai index tu nguon.
-
-### Buoc 1 — Thu thap du lieu
+Chỉ thực hiện khi bạn muốn làm lại toàn bộ quá trình thu thập và lượng tử hóa:
 
 ```bash
-# Thu thap bao chi & phap luat tieng Viet
+# 1. Thu thập dữ liệu báo chí & pháp luật
 python scripts/run_crawler.py --target-records 100000 --batch-size 1000
 
-# Thu thap Wikipedia tieng Viet (tuy chon)
-# python scripts/run_wiki_crawler.py --target-records 100000
-```
-
-### Buoc 2 — Luong tu hoa SQ8
-
-```bash
+# 2. Lượng tử hóa SQ8
 python scripts/run_quantization.py
-```
 
-### Buoc 3 — Xay dung cache tim kiem
-
-```bash
+# 3. Xây dựng bộ đệm tìm kiếm cho Dashboard
 python scripts/build_clean_search_cache.py
 ```
 
 ---
 
-## 7. Cau hinh Sieu tham so
+## 8. Cấu hình Siêu tham số
 
-File cau hinh: `configs/default_pipeline.json`
+File cấu hình: `configs/default_pipeline.json`
 
-| Tham so | Kieu | Mac dinh | Mo ta |
+| Tham số | Kiểu | Mặc định | Mô tả |
 |:---|:---|:---:|:---|
-| `dim` | int | 384 | So chieu vector (chuan Sentence-BERT) |
-| `max_elements` | int | 10,000,000 | Dung luong toi da moi phan vung index |
-| `M` | int | 16 | So lien ket toi da moi node trong HNSW |
-| `ef_construction` | int | 100 | Kich thuoc hang doi ung vien khi xay graph |
-| `ef_search` | int | 32 | Kich thuoc hang doi ung vien khi truy van |
-| `tau` | int | 3 | So buoc bao hoa dung som (Early-Exit) |
-| `eps` | float | 0.0001 | Nguong cai thien tuong doi dung som |
-| `rerank_factor` | int | 3 | He so nhan so ung vien Tier 2 (K_rerank = K x factor) |
-
-**Thay doi sieu tham so qua Dashboard:**
-
-Tab Danh gia → Khu vuc "HNSW Sieu tham so" → Keo cac thanh truot M, ef_construction, ef_search, tau, epsilon → Bieu do tu cap nhat.
+| `dim` | int | 384 | Số chiều vector (chuẩn Sentence-BERT) |
+| `max_elements` | int | 10,000,000 | Dung lượng tối đa mỗi phân vùng index |
+| `M` | int | 16 | Số liên kết tối đa mỗi node trong HNSW |
+| `ef_construction` | int | 100 | Kích thước hàng đợi ứng viên khi xây graph |
+| `ef_search` | int | 32 | Kích thước hàng đợi ứng viên khi truy vấn |
+| `tau` | int | 3 | Số bước bão hòa dừng sớm (Adaptive Early-Exit) |
+| `eps` | float | 0.0001 | Ngưỡng cải thiện tương đối để dừng sớm |
+| `rerank_factor` | int | 3 | Hệ số nhân số lượng ứng viên Tier 2 |
 
 ---
 
-## 8. Chay Bo Kiem thu
+## 9. Chạy Bộ Kiểm thử
 
-### Kiem thu Backend Python
+### Kiểm thử Backend Python
 
 ```bash
-# Chay toan bo 91 pytest
+# Chạy toàn bộ 91 bài kiểm thử pytest
 pytest tests/ -v
-
-# Chay nhanh (khong verbose)
-pytest tests/
 ```
 
-### Kiem thu Frontend UI
+### Kiểm thử Frontend UI
 
 ```bash
-# Kiem thu render va logic UI (Node.js)
+# Kiểm thử render và logic UI (Node.js)
 node tests/test_ui_render_harness.js
-# Ket qua: 19 passed, 0 failed
+# Kết quả: 19 passed, 0 failed
 
-# Kiem thu adversarial stress
+# Kiểm thử adversarial stress
 node tests/test_adversarial_frontend_stress.js
-# Ket qua: 3 adversarial cases, 0 findings
+# Kết quả: 3 adversarial cases, 0 findings
 ```
 
 ---
 
-## 9. API Reference
+## 10. API Reference
 
-Server Express chay tren port 3000.
+Server Express của Dashboard chạy trên port 3000.
 
-| Endpoint | Method | Body / Params | Chuc nang |
+| Endpoint | Method | Body / Params | Chức năng |
 |:---|:---|:---|:---|
-| `GET /api/status` | GET | — | Trang thai index, RAM usage, so ban ghi |
-| `POST /api/search` | POST | `{ query, algorithm, top_k, category }` | Thuc thi tim kiem ngu nghia |
-| `POST /api/eval/run` | POST | `{ top_k }` | Chay benchmark 2 thuat toan |
-| `GET /api/eval/history` | GET | — | Danh sach cac bao cao benchmark da chay |
-| `GET /api/eval/download/:type/:file` | GET | type=report/query, file=filename | Tai JSON/Markdown report |
+| `GET /api/status` | GET | — | Trạng thái index, RAM usage, số bản ghi |
+| `POST /api/search` | POST | `{ query, algorithm, top_k, category }` | Thực thi tìm kiếm ngữ nghĩa |
+| `POST /api/eval/run` | POST | `{ top_k }` | Chạy benchmark 2 thuật toán |
+| `GET /api/eval/history` | GET | — | Danh sách các báo cáo benchmark đã chạy |
+| `GET /api/eval/download/:type/:file` | GET | type=report/query, file=filename | Tải JSON/Markdown report |
 
-### Vi du goi API tim kiem
+### Ví dụ gọi API tìm kiếm
 
 ```bash
 curl -X POST http://localhost:3000/api/search \
   -H "Content-Type: application/json" \
-  -d '{"query": "hop dong lao dong toi thieu", "algorithm": "two_tier", "top_k": 5}'
-```
-
-### Vi du phan hoi API
-
-```json
-{
-  "results": [
-    {
-      "id": 1042381,
-      "title": "Quy dinh ve muc luong toi thieu vung 2026",
-      "preview": "Theo Nghi dinh 74/2025/ND-CP, muc luong...",
-      "category": "legal",
-      "similarity_score": 0.912,
-      "rank": 1,
-      "shard_id": "S047",
-      "reason": "Do tuong dong cao (0.912): Noi dung khop voi tru khoa 'hop dong lao dong toi thieu'"
-    }
-  ],
-  "metrics": {
-    "elapsed_ms": 1777,
-    "slot_ms": 16645,
-    "bytes_shuffled": 4864,
-    "bytes_spilled": 0,
-    "stage_latencies": {
-      "s00_input_ms": 160,
-      "s01_graph_ms": 14820,
-      "s02_rerank_ms": 1210,
-      "s03_output_ms": 370
-    }
-  }
-}
+  -d '{"query": "hợp đồng lao động tối thiểu", "algorithm": "two_tier", "top_k": 5}'
 ```
 
 ---
 
-## 10. Xu ly Su co Thuong gap
+## 11. Xử lý Sự cố Thường gặp
 
-### Loi ket noi `Python service not responding`
+### Lỗi kết nối `Python service not responding`
 
-**Nguyen nhan:** Python microservice (port 5005) chua chay.
+**Nguyên nhân:** Python microservice (port 5005) chưa chạy.
 
-**Cach xu ly:**
+**Cách xử lý:**
 ```bash
 cd dashboard
 python scripts/search_service.py
 ```
 
-Kiem tra port 5005 da mo:
-```bash
-netstat -an | findstr 5005
-```
-
 ---
 
-### Loi `Cannot find module`
+### Lỗi `Cannot find module` khi chạy Node
 
-**Nguyen nhan:** `npm install` chua chay.
+**Nguyên nhân:** Bạn chưa cài đặt package cho thư mục dashboard.
 
-**Cach xu ly:**
+**Cách xử lý:**
 ```bash
 cd dashboard
 npm install
@@ -402,65 +347,25 @@ npm install
 
 ---
 
-### Loi `ModuleNotFoundError` trong Python
+### Lỗi `ModuleNotFoundError` trong Python
 
-**Nguyen nhan:** Chua cai dat dependencies.
-
-**Cach xu ly:**
+**Cách xử lý:** Đảm bảo bạn đã cài toàn bộ môi trường ảo.
 ```bash
 pip install -e ".[ml,dev]"
 ```
 
 ---
 
-### Trang tim kiem khong tra ket qua
+### Biểu đồ 3D không hiển thị
 
-**Kiem tra:**
-1. Server Node.js dang chay o port 3000?
-2. Python service dang chay o port 5005?
-3. File `data/processed/search_index_metadata.json` va `search_index_cache.npz` ton tai?
+**Nguyên nhân:** Trình duyệt không hỗ trợ WebGL hoặc GPU bị vô hiệu hóa.
 
-```bash
-python -c "import os; print(os.path.exists('data/processed/search_index_metadata.json'))"
-```
+**Cách xử lý:**
+- Thử trình duyệt khác (Chrome/Edge phiên bản mới nhất).
+- Bật `Override software rendering list` trong `chrome://flags`.
 
 ---
 
-### Bieu do 3D khong hien thi
+### Out-Of-Memory khi chạy Standard HNSW
 
-**Nguyen nhan:** Trinh duyet khong ho tro WebGL hoac GPU bi disabled.
-
-**Cach xu ly:**
-- Thu trinh duyet khac (Chrome/Edge phien ban moi).
-- Kiem tra `chrome://flags` → `Override software rendering list` → Enable.
-
----
-
-### Out-Of-Memory khi chay Standard HNSW
-
-**Day la dieu binh thuong** voi tap 16.45M vector. Standard HNSW can ~64 GB RAM. Chuyen sang dung `Two-Tier Quantized HNSW`.
-
----
-
-## Ghi chu Nhanh
-
-```bash
-# Tat ca lenh quan trong
-
-# Cai dat
-pip install -e ".[ml,dev]" && cd dashboard && npm install && cd ..
-
-# Chay he thong
-python dashboard/scripts/search_service.py &
-node dashboard/server.js
-
-# Mo dashboard
-start http://localhost:3000
-
-# Kiem thu
-pytest tests/ -v
-node tests/test_ui_render_harness.js
-
-# Benchmark CLI
-python scripts/run_retrieval_evaluation.py --top-k 10
-```
+**Đây là điều bình thường** với tập 16.45M vector. Standard HNSW cần tới ~64 GB RAM. Hãy chuyển sang sử dụng `Two-Tier Quantized HNSW` để tiết kiệm 75% RAM.

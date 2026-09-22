@@ -17,6 +17,11 @@
 [![PyTest Suite](https://img.shields.io/badge/Tests-91%20Passed-brightgreen?style=flat-square&logo=pytest&logoColor=white)](tests/)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue?style=flat-square)](LICENSE)
 
+<p align="center">
+  <a href="README.md"><img alt="English" height="40" src="https://img.shields.io/badge/English-BCDCF7"></a>&nbsp;
+  <a href="README_VN.md"><img alt="Tiếng Việt" height="40" src="https://img.shields.io/badge/Tiếng_Việt-CDCFD4"></a>
+</p>
+
 [Features](#-key-features) · [Get Started](#-get-started) · [Explore](#-explore-project) · [CLI](#%EF%B8%8F-cli--evaluation-engine) · [Community](#-community)
 
 </div>
