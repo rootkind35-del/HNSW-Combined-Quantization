@@ -145,7 +145,7 @@ Mở trình duyệt, truy cập: **http://localhost:3000**
 **Cách sử dụng:**
 
 1. Nhập văn bản vào ô tìm kiếm (ví dụ: `hợp đồng lao động tối thiểu`).
-2. Chọn thuật toán: `Two-Tier Quantized HNSW` hoặc `Standard HNSW`.
+2. Chọn thuật toán: `Two-Tier Quantized HNSW`, `Standard HNSW` hoặc `Distributed Collaborative Filtering`.
 3. Chỉnh Top-K slider (5-20 kết quả).
 4. Chọn chip danh mục nếu muốn lọc.
 5. Nhấn **Tìm kiếm** hoặc Enter.

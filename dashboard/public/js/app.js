@@ -864,8 +864,8 @@ function updateDynamicSql() {
   const hp = typeof getHyperparams === 'function' ? getHyperparams() : { m: 16, ef_search: 30, tau: 3, min_rerank_k: 20 };
 
   const isTwoTier = (algo === 'two_tier');
-  const algoTitle = isTwoTier ? 'Two-Tier Quantized HNSW' : 'Standard HNSW';
-  const quantMode = isTwoTier ? 'SQ8_UINT8' : 'FLOAT32_EXACT';
+  const algoTitle = isTwoTier ? 'Two-Tier Quantized HNSW' : (algo === 'cf_distributed' ? 'Distributed Collaborative Filtering' : 'Standard HNSW');
+  const quantMode = isTwoTier ? 'SQ8_UINT8' : (algo === 'cf_distributed' ? 'CF_LATENT_FACTORS' : 'FLOAT32_EXACT');
   const hintClause = isTwoTier 
     ? `/*+ ROUTING(200_SHARDS), HNSW(M=${hp.m}, ef=${hp.ef_search}), EARLY_EXIT(tau=${hp.tau}, eps=1e-4) */`
     : `/*+ ROUTING(MONOLITHIC_RAM), HNSW(M=${hp.m}, ef=${hp.ef_search}), EARLY_EXIT(OFF) */`;
@@ -1555,12 +1555,14 @@ function updateEvaluationTable(reportData, topK = 5, timestampStr = "") {
 
   const algos = {
     hnsw: 'eval-hnsw',
-    two_tier: 'eval-twotier'
+    two_tier: 'eval-twotier',
+    cf_distributed: 'eval-cfdistributed'
   };
 
   const ramSavings = {
     hnsw: "0.0% (Tốn RAM)",
-    two_tier: "75.0%"
+    two_tier: "75.0%",
+    cf_distributed: "Phân tán (Shards)"
   };
 
   for (const [key, prefix] of Object.entries(algos)) {

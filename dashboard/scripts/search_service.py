@@ -32,6 +32,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 from ann_data.embedder import SentenceTransformerEmbedder
 from ann_index.two_tier_hnsw import ShardedIVFHNSW
+from ann_index.collaborative_filtering import DistributedCFIndex
 from search_bridge import load_dataset_and_metadata, project_vector_to_3d
 
 # Biến toàn cục lưu trữ trong RAM
@@ -42,10 +43,11 @@ G_GLOBAL_INDICES = None
 G_DATASET_SOURCE = ""
 G_EMBEDDER = None
 G_ROUTER = None
+G_CF_INDEX = None
 
 
 def initialize_service():
-    global G_VECTORS, G_METADATA, G_COORDS_3D, G_GLOBAL_INDICES, G_DATASET_SOURCE, G_EMBEDDER, G_ROUTER
+    global G_VECTORS, G_METADATA, G_COORDS_3D, G_GLOBAL_INDICES, G_DATASET_SOURCE, G_EMBEDDER, G_ROUTER, G_CF_INDEX
 
     print("[SearchService] Đang nạp bộ đệm vector và metadata 5.000 bản ghi...")
     res = load_dataset_and_metadata()
@@ -76,6 +78,10 @@ def initialize_service():
     for i in range(seed_count):
         G_ROUTER.route_and_insert(global_id=i, vector=G_VECTORS[i])
     print(f"[SearchService] Đã nạp {seed_count} vector vào ShardedIVFHNSW router.")
+
+    print(f"[SearchService] Khởi tạo Distributed Collaborative Filtering ({num_shards} shards)...")
+    G_CF_INDEX = DistributedCFIndex(num_shards=num_shards, n_threads=4)
+    G_CF_INDEX.build(G_VECTORS)
 
     # Warm-up 1 câu truy vấn để biên dịch đồ thị tensor và nạp GPU/CPU cache
     _ = G_EMBEDDER.encode(["khởi động dịch vụ"])
@@ -111,18 +117,31 @@ def perform_search(query_text: str, top_k: int = 5, algorithm: str = "two_tier",
         query_vec = vec
     t_embed_ms = (time.perf_counter() - t_embed_0) * 1000
 
-    # 2. Định tuyến truy vấn qua ShardedIVFHNSW Router
+    # 2. Định tuyến truy vấn qua các cấu trúc chỉ mục
     t_search_0 = time.perf_counter()
     num_vectors = G_VECTORS.shape[0]
-
-    search_k = min(num_vectors, max(top_k * 4, min_rerank_k, 25))
-    router_results, shards_probed = G_ROUTER.distributed_search(
-        query=query_vec,
-        top_k=search_k,
-        nprobe=3,
-        re_rank_limit=max(min_rerank_k, search_k),
-        return_shards=True,
-    )
+    shards_probed = 1
+    
+    if algorithm == "cf_distributed":
+        # Search via Distributed CF
+        search_k = min(num_vectors, max(top_k, 25))
+        query_vecs_2d = np.expand_dims(query_vec, axis=0)
+        cf_indices, cf_distances = G_CF_INDEX.search(query_vecs_2d, top_k=search_k)
+        router_results = []
+        if cf_indices.size > 0:
+            for dist, idx in zip(cf_distances[0], cf_indices[0]):
+                router_results.append((dist, idx, 0)) # shard_id mock as 0
+        shards_probed = G_CF_INDEX.num_shards
+    else:
+        # HNSW Routing
+        search_k = min(num_vectors, max(top_k * 4, min_rerank_k, 25))
+        router_results, shards_probed = G_ROUTER.distributed_search(
+            query=query_vec,
+            top_k=search_k,
+            nprobe=3,
+            re_rank_limit=max(min_rerank_k, search_k),
+            return_shards=True,
+        )
 
     t_search_ms = (time.perf_counter() - t_search_0) * 1000
     total_latency_ms = round((time.perf_counter() - t_start) * 1000, 2)
@@ -130,6 +149,8 @@ def perform_search(query_text: str, top_k: int = 5, algorithm: str = "two_tier",
     algo_name = ""
     if algorithm == "two_tier":
         algo_name = f"Two-Tier Quantized HNSW (M={m_param}, ef={ef_search}, τ={tau})"
+    elif algorithm == "cf_distributed":
+        algo_name = f"Distributed Collaborative Filtering (Shards={G_CF_INDEX.num_shards})"
     elif algorithm == "pure_sq8":
         algo_name = f"Pure SQ8 HNSW (uint8 Không Re-rank, M={m_param}, ef={ef_search})"
     elif algorithm == "hnsw":

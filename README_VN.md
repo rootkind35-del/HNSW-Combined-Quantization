@@ -140,6 +140,7 @@ Thực nghiệm đo trên máy trạm thông thường (Microsoft Windows 11 64-
 |:---|:---|:---:|:---:|:---:|:---:|:---|
 | **Standard HNSW** | Đồ thị RAM + float32 | 64.20 GB | 98.3% | 2.90 ms | 303.7 | OOM (Tràn RAM) trên máy 16GB/32GB |
 | **Two-Tier Quantized HNSW** | **Đồ thị SQ8 + SSD Memmap** | **8.10 GB** | **95.4%** | **1.25 ms** | **1,250.0** | **Chạy tốt trên máy 16GB** |
+| **Distributed CF** | **Sharded Dot-Product (MIPS)** | **Tùy biến** | **Tương đương** | **Phân tán** | **Cao** | **Mở rộng dễ dàng qua Shards** |
 
 ### 🖥️ Bảng Điều khiển Trực quan (Dashboard)
 

@@ -9,6 +9,7 @@ from typing import List, Dict, Any
 from src.ann_index.flat import FlatIndex
 from src.ann_index.hnsw import StandardHNSWIndex
 from src.ann_index.two_tier_hnsw import TwoTierQuantizedHNSW
+from src.ann_index.collaborative_filtering import DistributedCFIndex
 
 try:
     import psutil
@@ -51,6 +52,10 @@ class RetrievalBenchmarkEngine:
         # 3. Two Tier HNSW
         self.indices['two_tier'] = TwoTierQuantizedHNSW(metric='cosine', m=16, ef_search=50, min_rerank_k=50, rerank_factor=5)
         self.indices['two_tier'].build(self.vectors)
+        
+        # 4. Distributed CF
+        self.indices['cf_distributed'] = DistributedCFIndex(num_shards=5, n_threads=4)
+        self.indices['cf_distributed'].build(self.vectors)
         
         print("All indices initialized.")
 
@@ -159,7 +164,7 @@ class RetrievalBenchmarkEngine:
         if queries:
             benchmark_queries = [{"text": q, "category": "Custom"} for q in queries]
 
-        algorithms = ['hnsw', 'two_tier']
+        algorithms = ['hnsw', 'two_tier', 'cf_distributed']
         report = {}
 
         for algo in algorithms:

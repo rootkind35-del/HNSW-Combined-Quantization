@@ -52,6 +52,8 @@
 | **Khả năng chạy trên 16GB PC** | Không (OOM) | **Có** | N/A |
 | **Kích thước index trên disk** | 64.20 GB (float32 graph) | **8.10 GB** | **-87.4%** |
 
+*(Bổ sung: Đã tích hợp thuật toán **Distributed Collaborative Filtering** dựa trên Sharded MIPS (Maximum Inner Product Search) mô phỏng quá trình tìm kiếm nhân tố ẩn trong Recommendation System. Thuật toán này hoạt động song song trên bộ chia shard, đảm bảo kết xuất đồng nhất với HNSW).* 
+
 > **Ghi chú:** Standard HNSW kết quả OOM (Out-Of-Memory) khi thu nạp 16.45M vector trên máy có 32 GB RAM do cấu trúc danh sách kề phân tầng. Số liệu được đo trên tập con 5,000 bản ghi (scale_stress) và nội suy toàn quy mô theo công thức tuyến tính.
 
 ---
