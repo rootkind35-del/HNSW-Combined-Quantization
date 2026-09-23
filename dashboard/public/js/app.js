@@ -1,18 +1,18 @@
-/**
+﻿/**
  * Main Application Logic, Search Controller, Category Filter & File Upload
  */
 
 const CATEGORIES = [
-  "Tất cả",
-  "Kinh doanh & Tài chính",
-  "Khoa học & Công nghệ",
-  "Giáo dục",
-  "Y tế & Sức khỏe",
-  "Giao thông & Xây dựng",
-  "Văn hóa & Đời sống"
+  "Táº¥t cáº£",
+  "Kinh doanh & TÃ i chÃ­nh",
+  "Khoa há»c & CÃ´ng nghá»‡",
+  "GiÃ¡o dá»¥c",
+  "Y táº¿ & Sá»©c khá»e",
+  "Giao thÃ´ng & XÃ¢y dá»±ng",
+  "VÄƒn hÃ³a & Äá»i sá»‘ng"
 ];
 
-let selectedCategory = "Tất cả";
+let selectedCategory = "Táº¥t cáº£";
 let uploadedFileContent = "";
 let uploadedFileName = "";
 
@@ -25,9 +25,9 @@ function triggerLiveSpeedBenchmark() {
   const timeEl = document.getElementById('live-bench-time');
 
   btn.disabled = true;
-  btn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i> Đang đo đạc...';
+  btn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i> Äang Ä‘o Ä‘áº¡c...';
   statusEl.classList.remove('hidden');
-  msgEl.innerHTML = `<i class="fa-solid fa-spinner animate-spin text-amber-400"></i> Đang đo đạc 50 câu truy vấn trực tiếp với thuật toán: <strong>${algo}</strong>...`;
+  msgEl.innerHTML = `<i class="fa-solid fa-spinner animate-spin text-amber-400"></i> Äang Ä‘o Ä‘áº¡c 50 cÃ¢u truy váº¥n trá»±c tiáº¿p vá»›i thuáº­t toÃ¡n: <strong>${algo}</strong>...`;
 
   const tStart = performance.now();
 
@@ -39,10 +39,10 @@ function triggerLiveSpeedBenchmark() {
     .then(res => res.json())
     .then(resData => {
       btn.disabled = false;
-      btn.innerHTML = '<i class="fa-solid fa-play"></i> Chạy Đo Tốc độ Thực tế (50 Queries)';
+      btn.innerHTML = '<i class="fa-solid fa-play"></i> Cháº¡y Äo Tá»‘c Ä‘á»™ Thá»±c táº¿ (50 Queries)';
 
       if (!resData.success) {
-        alert("Lỗi khi đo benchmark: " + (resData.error || "Không rõ nguyên nhân"));
+        alert("Lá»—i khi Ä‘o benchmark: " + (resData.error || "KhÃ´ng rÃµ nguyÃªn nhÃ¢n"));
         statusEl.classList.add('hidden');
         return;
       }
@@ -63,15 +63,15 @@ function triggerLiveSpeedBenchmark() {
         renderHistogramChart(data.histogram);
       }
 
-      msgEl.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400"></i> Hoàn tất đo 50 câu truy vấn (${data.algorithm}): Thông lượng đạt <strong>${data.qps} QPS</strong>!`;
-      timeEl.textContent = `Thời gian chạy: ${elapsed}s`;
+      msgEl.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400"></i> HoÃ n táº¥t Ä‘o 50 cÃ¢u truy váº¥n (${data.algorithm}): ThÃ´ng lÆ°á»£ng Ä‘áº¡t <strong>${data.qps} QPS</strong>!`;
+      timeEl.textContent = `Thá»i gian cháº¡y: ${elapsed}s`;
     })
     .catch(err => {
       btn.disabled = false;
-      btn.innerHTML = '<i class="fa-solid fa-play"></i> Chạy Đo Tốc độ Thực tế (50 Queries)';
+      btn.innerHTML = '<i class="fa-solid fa-play"></i> Cháº¡y Äo Tá»‘c Ä‘á»™ Thá»±c táº¿ (50 Queries)';
       statusEl.classList.add('hidden');
       console.error("Benchmark error:", err);
-      alert("Lỗi kết nối tới server benchmark");
+      alert("Lá»—i káº¿t ná»‘i tá»›i server benchmark");
     });
 }
 
@@ -249,7 +249,7 @@ function handleFileSelected(event) {
 
 function searchByUploadedFile() {
   if (!uploadedFileContent) {
-    alert("Vui lòng chọn tệp văn bản hợp lệ.");
+    alert("Vui lÃ²ng chá»n tá»‡p vÄƒn báº£n há»£p lá»‡.");
     return;
   }
 
@@ -259,7 +259,7 @@ function searchByUploadedFile() {
 
   const searchBtn = document.getElementById('search-button');
   searchBtn.disabled = true;
-  searchBtn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i> Đang tìm theo tệp...';
+  searchBtn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i> Äang tÃ¬m theo tá»‡p...';
 
   fetch('/api/upload-search', {
     method: 'POST',
@@ -276,9 +276,9 @@ function searchByUploadedFile() {
     .then(res => res.json())
     .then(resData => {
       searchBtn.disabled = false;
-      searchBtn.innerHTML = '<i class="fa-solid fa-bolt"></i> Tìm kiếm';
+      searchBtn.innerHTML = '<i class="fa-solid fa-bolt"></i> TÃ¬m kiáº¿m';
       if (!resData.success) {
-        alert("Lỗi khi tìm kiếm tệp: " + (resData.error || "Không rõ"));
+        alert("Lá»—i khi tÃ¬m kiáº¿m tá»‡p: " + (resData.error || "KhÃ´ng rÃµ"));
         return;
       }
       try {
@@ -289,9 +289,9 @@ function searchByUploadedFile() {
     })
     .catch(err => {
       searchBtn.disabled = false;
-      searchBtn.innerHTML = '<i class="fa-solid fa-bolt"></i> Tìm kiếm';
+      searchBtn.innerHTML = '<i class="fa-solid fa-bolt"></i> TÃ¬m kiáº¿m';
       console.error("Upload search error:", err);
-      alert("Lỗi kết nối tới server khi tìm kiếm tệp: " + (err.message || "Không thể kết nối"));
+      alert("Lá»—i káº¿t ná»‘i tá»›i server khi tÃ¬m kiáº¿m tá»‡p: " + (err.message || "KhÃ´ng thá»ƒ káº¿t ná»‘i"));
     });
 }
 
@@ -373,7 +373,7 @@ function executeSearch() {
   if (!query) return;
 
   searchBtn.disabled = true;
-  searchBtn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i> Đang tìm kiếm...';
+  searchBtn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i> Äang tÃ¬m kiáº¿m...';
 
   fetch('/api/search', {
     method: 'POST',
@@ -389,9 +389,9 @@ function executeSearch() {
     .then(res => res.json())
     .then(resData => {
       searchBtn.disabled = false;
-      searchBtn.innerHTML = '<i class="fa-solid fa-bolt"></i> Tìm kiếm';
+      searchBtn.innerHTML = '<i class="fa-solid fa-bolt"></i> TÃ¬m kiáº¿m';
       if (!resData.success) {
-        alert("Lỗi khi tìm kiếm: " + (resData.error || "Không rõ nguyên nhân"));
+        alert("Lá»—i khi tÃ¬m kiáº¿m: " + (resData.error || "KhÃ´ng rÃµ nguyÃªn nhÃ¢n"));
         return;
       }
       try {
@@ -402,9 +402,9 @@ function executeSearch() {
     })
     .catch(err => {
       searchBtn.disabled = false;
-      searchBtn.innerHTML = '<i class="fa-solid fa-bolt"></i> Tìm kiếm';
+      searchBtn.innerHTML = '<i class="fa-solid fa-bolt"></i> TÃ¬m kiáº¿m';
       console.error("Search API error:", err);
-      alert("Lỗi kết nối tới server tìm kiếm: " + (err.message || "Không thể kết nối"));
+      alert("Lá»—i káº¿t ná»‘i tá»›i server tÃ¬m kiáº¿m: " + (err.message || "KhÃ´ng thá»ƒ káº¿t ná»‘i"));
     });
 }
 
@@ -423,13 +423,13 @@ function renderSearchResults(data) {
 
   if (queryEl) {
     if (data.uploaded_file) {
-      queryEl.textContent = `Tệp tải lên: ${data.uploaded_file}`;
+      queryEl.textContent = `Tá»‡p táº£i lÃªn: ${data.uploaded_file}`;
     } else {
       queryEl.textContent = data.query || "";
     }
   }
 
-  if (catBadge) catBadge.textContent = `Chuyên mục: ${data.category_filter || "Tất cả"}`;
+  if (catBadge) catBadge.textContent = `ChuyÃªn má»¥c: ${data.category_filter || "Táº¥t cáº£"}`;
   if (algoEl) algoEl.textContent = data.algorithm || "Two-Tier Quantized HNSW";
   const latVal = typeof data.latency_ms === 'number' ? (isNaN(data.latency_ms) ? '0.00' : data.latency_ms.toFixed(2)) : (data.latency_ms && !isNaN(parseFloat(data.latency_ms)) ? parseFloat(data.latency_ms).toFixed(2) : '0.00');
   if (latencyEl) latencyEl.textContent = latVal;
@@ -463,7 +463,7 @@ function renderSearchResults(data) {
     }
   }
 
-  // Hiển thị thông báo tệp kết quả nhật ký truy vấn
+  // Hiá»ƒn thá»‹ thÃ´ng bÃ¡o tá»‡p káº¿t quáº£ nháº­t kÃ½ truy váº¥n
   const fileContainer = document.getElementById('search-result-file-container');
   const filenameEl = document.getElementById('search-result-filename');
   const downloadBtn = document.getElementById('btn-download-result-file');
@@ -480,7 +480,7 @@ function renderSearchResults(data) {
     }
   }
 
-  // Cập nhật thẻ chỉ số BigQuery Runtime Inspector
+  // Cáº­p nháº­t tháº» chá»‰ sá»‘ BigQuery Runtime Inspector
   const bqElapsedEl = document.getElementById('bq-elapsed-time');
   const bqSlotEl = document.getElementById('bq-slot-time');
   const bqShuffledEl = document.getElementById('bq-bytes-shuffled');
@@ -508,7 +508,7 @@ function renderSearchResults(data) {
     bqSpilledEl.textContent = (data.bigquery_telemetry && data.bigquery_telemetry.bytes_spilled_to_disk) || "0 B";
   }
   if (bqSqlCategory) {
-    bqSqlCategory.textContent = `'${data.category_filter || "Tất cả"}'`;
+    bqSqlCategory.textContent = `'${data.category_filter || "Táº¥t cáº£"}'`;
   }
   if (bqSqlQuery) {
     bqSqlQuery.textContent = `'${(data.query || "").substring(0, 32)}${(data.query && data.query.length > 32) ? "..." : ""}'`;
@@ -517,7 +517,7 @@ function renderSearchResults(data) {
     bqSqlTopk.textContent = String(data.results_count || 5);
   }
 
-  // Cập nhật thời gian các chặng của BigQuery Execution Graph
+  // Cáº­p nháº­t thá»i gian cÃ¡c cháº·ng cá»§a BigQuery Execution Graph
   if (data.bigquery_telemetry && Array.isArray(data.bigquery_telemetry.stages)) {
     const s00 = document.getElementById('stage-s00-time');
     const s01 = document.getElementById('stage-s01-time');
@@ -539,7 +539,7 @@ function renderSearchResults(data) {
     listEl.innerHTML = `
       <div class="academic-card p-8 text-center text-slate-500 bg-white border border-slate-200 rounded-xl">
         <i class="fa-regular fa-folder-open text-3xl mb-2 text-slate-400"></i>
-        <p class="text-[14px]">Không tìm thấy bài viết nào phù hợp trong chuyên mục "${data.category_filter || 'Tất cả'}".</p>
+        <p class="text-[14px]">KhÃ´ng tÃ¬m tháº¥y bÃ i viáº¿t nÃ o phÃ¹ há»£p trong chuyÃªn má»¥c "${data.category_filter || 'Táº¥t cáº£'}".</p>
       </div>
     `;
     return;
@@ -547,35 +547,35 @@ function renderSearchResults(data) {
 
   const resultsList = Array.isArray(data.results) ? data.results : [];
 
-  // Sắp xếp giảm dần theo độ tương đồng Cosine (tương đồng cao nhất đứng top)
+  // Sáº¯p xáº¿p giáº£m dáº§n theo Ä‘á»™ tÆ°Æ¡ng Ä‘á»“ng Cosine (tÆ°Æ¡ng Ä‘á»“ng cao nháº¥t Ä‘á»©ng top)
   resultsList.sort((a, b) => {
     const scoreA = (a && a.similarity_score !== undefined && !isNaN(a.similarity_score)) ? Number(a.similarity_score) : 0;
     const scoreB = (b && b.similarity_score !== undefined && !isNaN(b.similarity_score)) ? Number(b.similarity_score) : 0;
     return scoreB - scoreA;
   });
 
-  // Gán lại thứ hạng rank và tạo giải thích lý do đứng Top cho từng bản ghi
+  // GÃ¡n láº¡i thá»© háº¡ng rank vÃ  táº¡o giáº£i thÃ­ch lÃ½ do Ä‘á»©ng Top cho tá»«ng báº£n ghi
   resultsList.forEach((item, idx) => {
     item.rank = idx + 1;
     if (!item.reason) {
       const scorePct = Math.round((item.similarity_score || 0) * 100);
-      const shardStr = item.shard_id !== undefined ? `Shard #${item.shard_id}` : "phân vùng lượng tử SQ8";
+      const shardStr = item.shard_id !== undefined ? `Shard #${item.shard_id}` : "phÃ¢n vÃ¹ng lÆ°á»£ng tá»­ SQ8";
       const distStr = item.distance !== undefined && !isNaN(item.distance) ? Number(item.distance).toFixed(4) : "0.0000";
-      const querySnippet = (data.query || "truy vấn").trim();
-      item.reason = `Tài liệu đạt độ tương đồng ngữ nghĩa Cosine cao nhất (${scorePct}%) với từ khóa "${querySnippet}". Được định tuyến chính xác tới ${shardStr} qua bộ chỉ mục HNSW đa tầng (τ=3) và được đối soát sai số Euclid (${distStr}) đọc trực tiếp từ tệp Direct I/O trên ổ cứng SSD NVMe.`;
+      const querySnippet = (data.query || "truy váº¥n").trim();
+      item.reason = `TÃ i liá»‡u Ä‘áº¡t Ä‘á»™ tÆ°Æ¡ng Ä‘á»“ng ngá»¯ nghÄ©a Cosine cao nháº¥t (${scorePct}%) vá»›i tá»« khÃ³a "${querySnippet}". ÄÆ°á»£c Ä‘á»‹nh tuyáº¿n chÃ­nh xÃ¡c tá»›i ${shardStr} qua bá»™ chá»‰ má»¥c HNSW Ä‘a táº§ng (Ï„=3) vÃ  Ä‘Æ°á»£c Ä‘á»‘i soÃ¡t sai sá»‘ Euclid (${distStr}) Ä‘á»c trá»±c tiáº¿p tá»« tá»‡p Direct I/O trÃªn á»• cá»©ng SSD NVMe.`;
     }
   });
 
   window.currentTab4SearchResults = resultsList;
 
-  // Cập nhật thẻ chỉ số STAGE S03: OUTPUT trong BigQuery Execution Graph
+  // Cáº­p nháº­t tháº» chá»‰ sá»‘ STAGE S03: OUTPUT trong BigQuery Execution Graph
   const s03TimeEl = document.getElementById('stage-s03-time');
   const s03LatencyEl = document.getElementById('stage-s03-latency');
   const s03RecordsEl = document.getElementById('stage-s03-records');
   const s03TopScoreEl = document.getElementById('stage-s03-top-score');
 
   if (s03LatencyEl) s03LatencyEl.textContent = `${latVal} ms`;
-  if (s03RecordsEl) s03RecordsEl.textContent = `${resultsList.length} bản ghi`;
+  if (s03RecordsEl) s03RecordsEl.textContent = `${resultsList.length} báº£n ghi`;
   if (s03TopScoreEl) {
     if (resultsList.length > 0) {
       const topScore = Math.round((resultsList[0].similarity_score || 0) * 100);
@@ -588,7 +588,7 @@ function renderSearchResults(data) {
     s03TimeEl.textContent = `${latVal} ms`;
   }
 
-  // Cập nhật khung kết quả xuất ra ngay dưới S03 (Dạng Danh sách & Dạng JSON)
+  // Cáº­p nháº­t khung káº¿t quáº£ xuáº¥t ra ngay dÆ°á»›i S03 (Dáº¡ng Danh sÃ¡ch & Dáº¡ng JSON)
   const graphListEl = document.getElementById('graph-output-list');
   const graphRawJsonEl = document.getElementById('graph-raw-json');
 
@@ -601,7 +601,7 @@ function renderSearchResults(data) {
     if (resultsList.length === 0) {
       graphListEl.innerHTML = `
         <div class="academic-card p-6 text-center text-slate-500 bg-white border border-slate-200 rounded-xl text-xs">
-          Không tìm thấy bài viết nào phù hợp trong chuyên mục "${data.category_filter || 'Tất cả'}".
+          KhÃ´ng tÃ¬m tháº¥y bÃ i viáº¿t nÃ o phÃ¹ há»£p trong chuyÃªn má»¥c "${data.category_filter || 'Táº¥t cáº£'}".
         </div>
       `;
     } else {
@@ -622,7 +622,7 @@ function renderSearchResults(data) {
               <div>
                 <h4 class="text-[16px] font-serif font-bold text-slate-900 leading-snug">${item.title}</h4>
                 <div class="flex flex-wrap items-center gap-2 mt-1">
-                  <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-800 border border-blue-200">${item.category || "Tin tức"}</span>
+                  <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-800 border border-blue-200">${item.category || "Tin tá»©c"}</span>
                   <span class="text-[11px] font-mono font-semibold px-2 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200 flex items-center gap-1">
                     <i class="fa-solid fa-server text-[10px] text-amber-700"></i> Shard #${shardId}
                   </span>
@@ -632,11 +632,11 @@ function renderSearchResults(data) {
             </div>
             <div class="flex items-center space-x-3 shrink-0 self-end md:self-auto">
               <div class="text-right">
-                <div class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Sai số Euclid</div>
+                <div class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Sai sá»‘ Euclid</div>
                 <div class="text-[13px] font-mono font-bold text-slate-800">${item.distance !== undefined && !isNaN(item.distance) ? Number(item.distance).toFixed(4) : '0.0000'}</div>
               </div>
               <div class="text-right">
-                <div class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Tương đồng</div>
+                <div class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">TÆ°Æ¡ng Ä‘á»“ng</div>
                 <div class="text-[16px] font-mono font-bold text-emerald-700">${scorePct}%</div>
               </div>
               <button
@@ -652,7 +652,7 @@ function renderSearchResults(data) {
           <div class="bg-amber-50/80 p-2.5 rounded-lg border border-amber-200 text-xs text-amber-950 flex items-start gap-2">
             <i class="fa-solid fa-lightbulb text-amber-600 mt-0.5 shrink-0 text-sm"></i>
             <div>
-              <span class="font-bold text-amber-900">Lý do đứng Top &amp; Giải thích:</span> ${item.reason}
+              <span class="font-bold text-amber-900">LÃ½ do Ä‘á»©ng Top &amp; Giáº£i thÃ­ch:</span> ${item.reason}
             </div>
           </div>
         `;
@@ -661,14 +661,14 @@ function renderSearchResults(data) {
     }
   }
 
-  // Render danh sách trong tab View 2: Danh sách Top-K
+  // Render danh sÃ¡ch trong tab View 2: Danh sÃ¡ch Top-K
   listEl.innerHTML = '';
 
   if (resultsList.length === 0) {
     listEl.innerHTML = `
       <div class="academic-card p-8 text-center text-slate-500 bg-white border border-slate-200 rounded-xl">
         <i class="fa-regular fa-folder-open text-3xl mb-2 text-slate-400"></i>
-        <p class="text-[14px]">Không tìm thấy bài viết nào phù hợp trong chuyên mục "${data.category_filter || 'Tất cả'}".</p>
+        <p class="text-[14px]">KhÃ´ng tÃ¬m tháº¥y bÃ i viáº¿t nÃ o phÃ¹ há»£p trong chuyÃªn má»¥c "${data.category_filter || 'Táº¥t cáº£'}".</p>
       </div>
     `;
   } else {
@@ -690,7 +690,7 @@ function renderSearchResults(data) {
             <div class="space-y-1.5">
               <div class="flex flex-wrap items-center gap-2">
                 <h4 class="text-[17px] font-serif font-bold text-slate-900">${item.title}</h4>
-                <span class="text-[12px] font-semibold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-800 border border-blue-200 font-medium">${item.category || "Tin tức"}</span>
+                <span class="text-[12px] font-semibold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-800 border border-blue-200 font-medium">${item.category || "Tin tá»©c"}</span>
                 <span class="text-[12px] font-mono font-semibold px-2.5 py-0.5 rounded-lg bg-amber-50 text-amber-800 border border-amber-200 font-medium flex items-center gap-1.5 shadow-sm">
                   <i class="fa-solid fa-server text-[11px] text-amber-700"></i> Shard #${shardId}
                 </span>
@@ -702,11 +702,11 @@ function renderSearchResults(data) {
 
           <div class="flex items-center space-x-4 shrink-0 text-right self-end md:self-auto border-t md:border-t-0 border-slate-200 pt-2 md:pt-0 w-full md:w-auto justify-between md:justify-end">
             <div>
-              <div class="text-[11px] uppercase tracking-wider text-slate-500 font-semibold">Sai số Euclid</div>
+              <div class="text-[11px] uppercase tracking-wider text-slate-500 font-semibold">Sai sá»‘ Euclid</div>
               <div class="text-[15px] font-mono font-bold text-slate-800">${item.distance !== undefined && !isNaN(item.distance) ? Number(item.distance).toFixed(4) : '0.0000'}</div>
             </div>
             <div>
-              <div class="text-[11px] uppercase tracking-wider text-slate-500 font-semibold">Độ tương đồng</div>
+              <div class="text-[11px] uppercase tracking-wider text-slate-500 font-semibold">Äá»™ tÆ°Æ¡ng Ä‘á»“ng</div>
               <div class="text-[17px] font-mono font-bold text-emerald-700">${scorePct}%</div>
             </div>
             <button
@@ -722,7 +722,7 @@ function renderSearchResults(data) {
         <div class="bg-amber-50/80 p-2.5 rounded-lg border border-amber-200 text-xs text-amber-950 flex items-start gap-2">
           <i class="fa-solid fa-lightbulb text-amber-600 mt-0.5 shrink-0 text-sm"></i>
           <div>
-            <span class="font-bold text-amber-900">Lý do đứng Top &amp; Giải thích:</span> ${item.reason}
+            <span class="font-bold text-amber-900">LÃ½ do Ä‘á»©ng Top &amp; Giáº£i thÃ­ch:</span> ${item.reason}
           </div>
         </div>
       `;
@@ -730,20 +730,20 @@ function renderSearchResults(data) {
     });
   }
 
-  // Tự động đồng bộ kết quả sang Tab 3D
+  // Tá»± Ä‘á»™ng Ä‘á»“ng bá»™ káº¿t quáº£ sang Tab 3D
   if (typeof render3DSearchResults === 'function') {
     try {
       render3DSearchResults(data);
     } catch (syncErr3D) {
-      console.warn("Lỗi đồng bộ render3DSearchResults:", syncErr3D);
+      console.warn("Lá»—i Ä‘á»“ng bá»™ render3DSearchResults:", syncErr3D);
     }
   }
 
-  // Đồng bộ kết quả tìm kiếm với không gian 3D nếu 3D Engine đang chạy
+  // Äá»“ng bá»™ káº¿t quáº£ tÃ¬m kiáº¿m vá»›i khÃ´ng gian 3D náº¿u 3D Engine Ä‘ang cháº¡y
   if (window.threeEngine && window.threeEngine.vectorSpaceModule && resultsList.length > 0) {
     try {
       window.threeEngine.vectorSpaceModule.renderQueryResults(
-        data.query || "Truy vấn văn bản",
+        data.query || "Truy váº¥n vÄƒn báº£n",
         data.query_3d || { x: 0, y: 0, z: 0 },
         resultsList
       );
@@ -752,13 +752,13 @@ function renderSearchResults(data) {
     }
   }
 
-  // Cập nhật số liệu W&B Metrics Studio nếu đã khởi tạo
+  // Cáº­p nháº­t sá»‘ liá»‡u W&B Metrics Studio náº¿u Ä‘Ã£ khá»Ÿi táº¡o
   if (typeof refreshWandBMetrics === 'function' && typeof isWandBInitialized !== 'undefined' && isWandBInitialized) {
     refreshWandBMetrics();
   }
 }
 
-// Chế độ xem đầu ra S03 trong Execution Graph
+// Cháº¿ Ä‘á»™ xem Ä‘áº§u ra S03 trong Execution Graph
 function setGraphOutputMode(mode) {
   const btnList = document.getElementById('btn-graph-mode-list');
   const btnJson = document.getElementById('btn-graph-mode-json');
@@ -785,19 +785,19 @@ function copyGraphJson() {
   const rawJsonEl = document.getElementById('graph-raw-json');
   if (!rawJsonEl) return;
   navigator.clipboard.writeText(rawJsonEl.textContent).then(() => {
-    alert("Đã sao chép toàn bộ dữ liệu JSON kết quả vào clipboard!");
+    alert("ÄÃ£ sao chÃ©p toÃ n bá»™ dá»¯ liá»‡u JSON káº¿t quáº£ vÃ o clipboard!");
   }).catch(() => {
-    alert("Không thể tự động sao chép. Vui lòng chọn văn bản JSON thủ công.");
+    alert("KhÃ´ng thá»ƒ tá»± Ä‘á»™ng sao chÃ©p. Vui lÃ²ng chá»n vÄƒn báº£n JSON thá»§ cÃ´ng.");
   });
 }
 window.copyGraphJson = copyGraphJson;
 
 function searchAll() {
-  selectedCategory = "Tất cả";
+  selectedCategory = "Táº¥t cáº£";
   initCategoryChips();
   const input = document.getElementById('search-input');
   if (!input.value.trim()) {
-    input.value = "thị trường chứng khoán và tài chính";
+    input.value = "thá»‹ trÆ°á»ng chá»©ng khoÃ¡n vÃ  tÃ i chÃ­nh";
   }
   executeSearch();
 }
@@ -857,8 +857,8 @@ function escapeSqlString(str) {
 function updateDynamicSql() {
   const inputEl = document.getElementById('search-input');
   const rawQuery = inputEl ? inputEl.value.trim() : '';
-  const displayQuery = rawQuery || 'thị trường chứng khoán và tài chính';
-  const category = selectedCategory || 'Tất cả';
+  const displayQuery = rawQuery || 'thá»‹ trÆ°á»ng chá»©ng khoÃ¡n vÃ  tÃ i chÃ­nh';
+  const category = selectedCategory || 'Táº¥t cáº£';
   const topK = parseInt(document.getElementById('input-top-k')?.value || 5, 10);
   const algo = document.getElementById('select-algorithm')?.value || 'two_tier';
   const hp = typeof getHyperparams === 'function' ? getHyperparams() : { m: 16, ef_search: 30, tau: 3, min_rerank_k: 20 };
@@ -870,7 +870,7 @@ function updateDynamicSql() {
     ? `/*+ ROUTING(200_SHARDS), HNSW(M=${hp.m}, ef=${hp.ef_search}), EARLY_EXIT(tau=${hp.tau}, eps=1e-4) */`
     : `/*+ ROUTING(MONOLITHIC_RAM), HNSW(M=${hp.m}, ef=${hp.ef_search}), EARLY_EXIT(OFF) */`;
 
-  const whereCategory = (category && category !== 'Tất cả') 
+  const whereCategory = (category && category !== 'Táº¥t cáº£') 
     ? `category = '${escapeSqlString(category)}'` 
     : `category IS NOT NULL`;
 
@@ -910,7 +910,7 @@ function updateDynamicSql() {
     engineEl.textContent = algoTitle;
   }
   if (routingEl) {
-    routingEl.textContent = isTwoTier ? `200 Shards / M=${hp.m}, τ=${hp.tau}` : `RAM Đầy đủ / M=${hp.m}`;
+    routingEl.textContent = isTwoTier ? `200 Shards / M=${hp.m}, Ï„=${hp.tau}` : `RAM Äáº§y Ä‘á»§ / M=${hp.m}`;
   }
   if (queryResultEl && rawQuery) {
     queryResultEl.textContent = rawQuery;
@@ -998,13 +998,13 @@ function filter3DCloud(category) {
   const btns = document.querySelectorAll('.btn-3d-filter');
   btns.forEach(btn => {
     const btnText = btn.textContent.trim();
-    const isTarget = (category === 'Tất cả' && btnText === 'Tất cả') ||
-                     (category === 'Kinh doanh & Tài chính' && (btnText === 'Kinh doanh' || btnText === 'Kinh doanh & Tài chính')) ||
-                     (category === 'Khoa học & Công nghệ' && (btnText === 'Công nghệ' || btnText === 'Khoa học & Công nghệ')) ||
-                     (category === 'Giáo dục' && btnText === 'Giáo dục') ||
-                     (category === 'Y tế & Sức khỏe' && (btnText === 'Y tế' || btnText === 'Y tế & Sức khỏe')) ||
-                     (category === 'Giao thông & Xây dựng' && (btnText === 'Giao thông' || btnText === 'Giao thông & Xây dựng')) ||
-                     (category === 'Văn hóa & Đời sống' && (btnText === 'Văn hóa' || btnText === 'Văn hóa & Đời sống'));
+    const isTarget = (category === 'Táº¥t cáº£' && btnText === 'Táº¥t cáº£') ||
+                     (category === 'Kinh doanh & TÃ i chÃ­nh' && (btnText === 'Kinh doanh' || btnText === 'Kinh doanh & TÃ i chÃ­nh')) ||
+                     (category === 'Khoa há»c & CÃ´ng nghá»‡' && (btnText === 'CÃ´ng nghá»‡' || btnText === 'Khoa há»c & CÃ´ng nghá»‡')) ||
+                     (category === 'GiÃ¡o dá»¥c' && btnText === 'GiÃ¡o dá»¥c') ||
+                     (category === 'Y táº¿ & Sá»©c khá»e' && (btnText === 'Y táº¿' || btnText === 'Y táº¿ & Sá»©c khá»e')) ||
+                     (category === 'Giao thÃ´ng & XÃ¢y dá»±ng' && (btnText === 'Giao thÃ´ng' || btnText === 'Giao thÃ´ng & XÃ¢y dá»±ng')) ||
+                     (category === 'VÄƒn hÃ³a & Äá»i sá»‘ng' && (btnText === 'VÄƒn hÃ³a' || btnText === 'VÄƒn hÃ³a & Äá»i sá»‘ng'));
 
     if (isTarget) {
       btn.classList.add('active', 'bg-blue-900', 'text-white');
@@ -1048,7 +1048,7 @@ function toggle3DFullscreen() {
   const isFull = container.classList.toggle('threejs-fullscreen');
   const btn = document.getElementById('btn-3d-fullscreen');
   if (btn) {
-    btn.innerHTML = isFull ? '<i class="fa-solid fa-compress"></i> Thu nhỏ' : '<i class="fa-solid fa-expand"></i> Fullscreen';
+    btn.innerHTML = isFull ? '<i class="fa-solid fa-compress"></i> Thu nhá»' : '<i class="fa-solid fa-expand"></i> Fullscreen';
   }
   if (window.threeEngine) {
     setTimeout(() => window.threeEngine.onWindowResize(), 100);
@@ -1115,7 +1115,7 @@ function handle3DFileSelected(event) {
 
 function searchByUploadedFile3D() {
   if (!uploaded3DFileContent) {
-    alert("Vui lòng chọn tệp văn bản hợp lệ.");
+    alert("Vui lÃ²ng chá»n tá»‡p vÄƒn báº£n há»£p lá»‡.");
     return;
   }
 
@@ -1126,7 +1126,7 @@ function searchByUploadedFile3D() {
   const searchBtn = document.getElementById('search-button-3d');
   if (searchBtn) {
     searchBtn.disabled = true;
-    searchBtn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i> Đang tính toán 3D...';
+    searchBtn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i> Äang tÃ­nh toÃ¡n 3D...';
   }
 
   fetch('/api/upload-search', {
@@ -1145,10 +1145,10 @@ function searchByUploadedFile3D() {
     .then(resData => {
       if (searchBtn) {
         searchBtn.disabled = false;
-        searchBtn.innerHTML = '<i class="fa-solid fa-bolt text-amber-300"></i> Tìm & Mô phỏng 3D';
+        searchBtn.innerHTML = '<i class="fa-solid fa-bolt text-amber-300"></i> TÃ¬m & MÃ´ phá»ng 3D';
       }
       if (!resData.success) {
-        alert("Lỗi khi tìm kiếm tệp: " + (resData.error || "Không rõ"));
+        alert("Lá»—i khi tÃ¬m kiáº¿m tá»‡p: " + (resData.error || "KhÃ´ng rÃµ"));
         return;
       }
       render3DSearchResults(resData.data);
@@ -1156,18 +1156,18 @@ function searchByUploadedFile3D() {
     .catch(err => {
       if (searchBtn) {
         searchBtn.disabled = false;
-        searchBtn.innerHTML = '<i class="fa-solid fa-bolt text-amber-300"></i> Tìm & Mô phỏng 3D';
+        searchBtn.innerHTML = '<i class="fa-solid fa-bolt text-amber-300"></i> TÃ¬m & MÃ´ phá»ng 3D';
       }
       console.error("3D Upload search error:", err);
-      alert("Lỗi kết nối tới server.");
+      alert("Lá»—i káº¿t ná»‘i tá»›i server.");
     });
 }
 
 function searchAll3D() {
-  filter3DCloud('Tất cả');
+  filter3DCloud('Táº¥t cáº£');
   const input = document.getElementById('search-input-3d');
   if (input && !input.value.trim()) {
-    input.value = "thị trường chứng khoán và tài chính";
+    input.value = "thá»‹ trÆ°á»ng chá»©ng khoÃ¡n vÃ  tÃ i chÃ­nh";
   }
   execute3DSearch();
 }
@@ -1189,7 +1189,7 @@ function execute3DSearch() {
 
   if (searchBtn) {
     searchBtn.disabled = true;
-    searchBtn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i> Đang tìm kiếm & chiếu 3D...';
+    searchBtn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i> Äang tÃ¬m kiáº¿m & chiáº¿u 3D...';
   }
 
   fetch('/api/search', {
@@ -1207,10 +1207,10 @@ function execute3DSearch() {
     .then(resData => {
       if (searchBtn) {
         searchBtn.disabled = false;
-        searchBtn.innerHTML = '<i class="fa-solid fa-bolt text-amber-300"></i> Tìm & Mô phỏng 3D';
+        searchBtn.innerHTML = '<i class="fa-solid fa-bolt text-amber-300"></i> TÃ¬m & MÃ´ phá»ng 3D';
       }
       if (!resData.success) {
-        alert("Lỗi khi tìm kiếm: " + (resData.error || "Không rõ nguyên nhân"));
+        alert("Lá»—i khi tÃ¬m kiáº¿m: " + (resData.error || "KhÃ´ng rÃµ nguyÃªn nhÃ¢n"));
         return;
       }
       try {
@@ -1222,10 +1222,10 @@ function execute3DSearch() {
     .catch(err => {
       if (searchBtn) {
         searchBtn.disabled = false;
-        searchBtn.innerHTML = '<i class="fa-solid fa-bolt text-amber-300"></i> Tìm & Mô phỏng 3D';
+        searchBtn.innerHTML = '<i class="fa-solid fa-bolt text-amber-300"></i> TÃ¬m & MÃ´ phá»ng 3D';
       }
       console.error("3D Search API error:", err);
-      alert("Lỗi kết nối tới server 3D: " + (err.message || "Không thể kết nối"));
+      alert("Lá»—i káº¿t ná»‘i tá»›i server 3D: " + (err.message || "KhÃ´ng thá»ƒ káº¿t ná»‘i"));
     });
 }
 
@@ -1243,9 +1243,9 @@ function render3DSearchResults(data) {
 
   if (section) section.classList.remove('hidden');
   if (countEl) countEl.textContent = data.results_count;
-  if (queryEl) queryEl.textContent = data.uploaded_file ? `Tệp: ${data.uploaded_file}` : data.query;
+  if (queryEl) queryEl.textContent = data.uploaded_file ? `Tá»‡p: ${data.uploaded_file}` : data.query;
   if (algoEl) algoEl.textContent = data.algorithm;
-  if (catEl) catEl.textContent = data.category_filter || "Tất cả";
+  if (catEl) catEl.textContent = data.category_filter || "Táº¥t cáº£";
   if (latencyEl) latencyEl.textContent = typeof data.latency_ms === 'number' ? data.latency_ms.toFixed(2) : (data.latency_ms || '0.00');
   if (qpsEl) qpsEl.textContent = data.qps || (data.latency_ms > 0 ? (1000 / data.latency_ms).toFixed(1) : "1,000");
 
@@ -1278,10 +1278,10 @@ function render3DSearchResults(data) {
   if (visitedNodesEl) visitedNodesEl.innerHTML = `${data.visited_nodes_count || 142} <span class="text-[12px] font-normal text-slate-400">nodes</span>`;
   if (earlyExitEl) {
     if (data.early_exit_triggered) {
-      earlyExitEl.textContent = "Đạt điều kiện dừng sớm (τ=3)";
+      earlyExitEl.textContent = "Äáº¡t Ä‘iá»u kiá»‡n dá»«ng sá»›m (Ï„=3)";
       earlyExitEl.className = "text-[15px] font-bold text-emerald-400 font-mono";
     } else {
-      earlyExitEl.textContent = "Duyệt tầng 0 (Đầy đủ)";
+      earlyExitEl.textContent = "Duyá»‡t táº§ng 0 (Äáº§y Ä‘á»§)";
       earlyExitEl.className = "text-[15px] font-bold text-amber-400 font-mono";
     }
   }
@@ -1295,22 +1295,22 @@ function render3DSearchResults(data) {
 
   const results3D = Array.isArray(data.results) ? [...data.results] : [];
 
-  // Sắp xếp giảm dần theo độ tương đồng Cosine (tương đồng cao nhất đứng top)
+  // Sáº¯p xáº¿p giáº£m dáº§n theo Ä‘á»™ tÆ°Æ¡ng Ä‘á»“ng Cosine (tÆ°Æ¡ng Ä‘á»“ng cao nháº¥t Ä‘á»©ng top)
   results3D.sort((a, b) => {
     const scoreA = (a && a.similarity_score !== undefined && !isNaN(a.similarity_score)) ? Number(a.similarity_score) : 0;
     const scoreB = (b && b.similarity_score !== undefined && !isNaN(b.similarity_score)) ? Number(b.similarity_score) : 0;
     return scoreB - scoreA;
   });
 
-  // Gán lại thứ hạng rank và tạo giải thích lý do đứng Top cho từng bản ghi 3D
+  // GÃ¡n láº¡i thá»© háº¡ng rank vÃ  táº¡o giáº£i thÃ­ch lÃ½ do Ä‘á»©ng Top cho tá»«ng báº£n ghi 3D
   results3D.forEach((item, idx) => {
     item.rank = idx + 1;
     if (!item.reason) {
       const scorePct = Math.round((item.similarity_score || 0) * 100);
-      const shardStr = item.shard_id !== undefined ? `Shard #${item.shard_id}` : "phân vùng lượng tử SQ8";
+      const shardStr = item.shard_id !== undefined ? `Shard #${item.shard_id}` : "phÃ¢n vÃ¹ng lÆ°á»£ng tá»­ SQ8";
       const distStr = item.distance !== undefined && !isNaN(item.distance) ? Number(item.distance).toFixed(4) : "0.0000";
-      const querySnippet = (data.query || "truy vấn").trim();
-      item.reason = `Tài liệu đạt độ tương đồng ngữ nghĩa Cosine cao nhất (${scorePct}%) với từ khóa "${querySnippet}". Được định tuyến chính xác tới ${shardStr} qua bộ chỉ mục HNSW đa tầng (τ=3) và đối soát sai số Euclid (${distStr}) trực tiếp từ tệp Direct I/O trên ổ cứng SSD NVMe.`;
+      const querySnippet = (data.query || "truy váº¥n").trim();
+      item.reason = `TÃ i liá»‡u Ä‘áº¡t Ä‘á»™ tÆ°Æ¡ng Ä‘á»“ng ngá»¯ nghÄ©a Cosine cao nháº¥t (${scorePct}%) vá»›i tá»« khÃ³a "${querySnippet}". ÄÆ°á»£c Ä‘á»‹nh tuyáº¿n chÃ­nh xÃ¡c tá»›i ${shardStr} qua bá»™ chá»‰ má»¥c HNSW Ä‘a táº§ng (Ï„=3) vÃ  Ä‘á»‘i soÃ¡t sai sá»‘ Euclid (${distStr}) trá»±c tiáº¿p tá»« tá»‡p Direct I/O trÃªn á»• cá»©ng SSD NVMe.`;
     }
   });
 
@@ -1321,7 +1321,7 @@ function render3DSearchResults(data) {
     if (results3D.length === 0) {
       listEl.innerHTML = `
         <div class="academic-card p-6 text-center text-slate-500 bg-white border border-slate-200 rounded-xl text-xs">
-          Không tìm thấy bài viết nào phù hợp trong chuyên mục "${data.category_filter || 'Tất cả'}".
+          KhÃ´ng tÃ¬m tháº¥y bÃ i viáº¿t nÃ o phÃ¹ há»£p trong chuyÃªn má»¥c "${data.category_filter || 'Táº¥t cáº£'}".
         </div>
       `;
     } else {
@@ -1330,7 +1330,7 @@ function render3DSearchResults(data) {
         card.className = "academic-card p-4 transition-all duration-150 flex flex-col gap-3 text-[15px] border-l-4 border-l-blue-700 bg-white hover:border-blue-600 hover:shadow-sm rounded-xl";
         const scorePct = Math.round((item.similarity_score !== undefined && !isNaN(item.similarity_score) ? item.similarity_score : 0) * 100);
         const c3d = item.coords_3d || { x: 0, y: 0, z: 0 };
-        const sourceLabel = "Báo chí & Pháp luật";
+        const sourceLabel = "BÃ¡o chÃ­ & PhÃ¡p luáº­t";
         const shardId = item.shard_id !== undefined ? item.shard_id : 0;
         const nodeId = item.node_id !== undefined ? item.node_id : (item.index !== undefined ? item.index : (item.doc_id || 0));
         const identifier = item.doc_id || ('Node #' + nodeId);
@@ -1344,7 +1344,7 @@ function render3DSearchResults(data) {
               <div class="space-y-1.5">
                 <div class="flex flex-wrap items-center gap-2">
                   <h4 class="text-[17px] font-serif font-bold text-slate-900">${item.title}</h4>
-                  <span class="text-[13px] font-semibold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-800 border border-blue-200 font-medium">${item.category || "Tin tức"}</span>
+                  <span class="text-[13px] font-semibold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-800 border border-blue-200 font-medium">${item.category || "Tin tá»©c"}</span>
                   <span class="text-[12px] font-mono font-semibold px-2.5 py-0.5 rounded-lg bg-amber-50 text-amber-800 border border-amber-200 font-medium flex items-center gap-1.5 shadow-sm">
                     <i class="fa-solid fa-server text-[11px] text-amber-700"></i> Shard #${shardId}
                   </span>
@@ -1357,15 +1357,15 @@ function render3DSearchResults(data) {
 
             <div class="flex items-center space-x-4 shrink-0 self-end md:self-auto border-t md:border-t-0 border-slate-200 pt-2 md:pt-0 w-full md:w-auto justify-between md:justify-end text-right">
               <div>
-                <div class="text-[11px] uppercase tracking-wider text-slate-500 font-semibold">Tọa độ 3D</div>
+                <div class="text-[11px] uppercase tracking-wider text-slate-500 font-semibold">Tá»a Ä‘á»™ 3D</div>
                 <div class="text-[13px] font-mono text-blue-700 font-semibold">[${c3d.x.toFixed(1)}, ${c3d.y.toFixed(1)}, ${c3d.z.toFixed(1)}]</div>
               </div>
               <div>
-                <div class="text-[11px] uppercase tracking-wider text-slate-500 font-semibold">Khoảng cách L2</div>
+                <div class="text-[11px] uppercase tracking-wider text-slate-500 font-semibold">Khoáº£ng cÃ¡ch L2</div>
                 <div class="text-[14px] font-mono font-bold text-slate-800">${item.distance !== undefined && !isNaN(item.distance) ? Number(item.distance).toFixed(4) : "0.0000"}</div>
               </div>
               <div>
-                <div class="text-[11px] uppercase tracking-wider text-slate-500 font-semibold">Tương đồng</div>
+                <div class="text-[11px] uppercase tracking-wider text-slate-500 font-semibold">TÆ°Æ¡ng Ä‘á»“ng</div>
                 <div class="text-[17px] font-mono font-bold text-emerald-700">${scorePct}%</div>
               </div>
               <button
@@ -1373,7 +1373,7 @@ function render3DSearchResults(data) {
                 onclick="focusOn3DResultByIndex(${index})"
                 class="px-3.5 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 text-[13px] font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer shrink-0"
               >
-                <i class="fa-solid fa-crosshairs"></i> Xem trên 3D
+                <i class="fa-solid fa-crosshairs"></i> Xem trÃªn 3D
               </button>
             </div>
           </div>
@@ -1381,7 +1381,7 @@ function render3DSearchResults(data) {
           <div class="bg-amber-50/80 p-2.5 rounded-lg border border-amber-200 text-xs text-amber-950 flex items-start gap-2">
             <i class="fa-solid fa-lightbulb text-amber-600 mt-0.5 shrink-0 text-sm"></i>
             <div>
-              <span class="font-bold text-amber-900">Lý do đứng Top &amp; Giải thích:</span> ${item.reason}
+              <span class="font-bold text-amber-900">LÃ½ do Ä‘á»©ng Top &amp; Giáº£i thÃ­ch:</span> ${item.reason}
             </div>
           </div>
         `;
@@ -1392,7 +1392,7 @@ function render3DSearchResults(data) {
 
   if (window.threeEngine && window.threeEngine.vectorSpaceModule && results3D.length > 0) {
     window.threeEngine.vectorSpaceModule.renderQueryResults(
-      data.query || "Truy vấn",
+      data.query || "Truy váº¥n",
       data.query_3d || { x: 0, y: 0, z: 0 },
       results3D
     );
@@ -1450,11 +1450,11 @@ function focusOn3DResult(x, y, z, title, category, preview, score = null, rank =
 
     const catEl = document.getElementById('hud-doc-category');
     if (catEl) {
-      catEl.textContent = category || "Tin tức";
+      catEl.textContent = category || "Tin tá»©c";
       catEl.className = `px-3 py-1 rounded-lg text-[13px] font-bold ${
-        category === 'Kinh doanh & Tài chính' ? 'bg-sky-500/30 text-sky-300 border border-sky-500/50' :
-        category === 'Khoa học & Công nghệ' ? 'bg-purple-500/30 text-purple-300 border border-purple-500/50' :
-        category === 'Y tế & Sức khỏe' ? 'bg-emerald-500/30 text-emerald-300 border border-emerald-500/50' :
+        category === 'Kinh doanh & TÃ i chÃ­nh' ? 'bg-sky-500/30 text-sky-300 border border-sky-500/50' :
+        category === 'Khoa há»c & CÃ´ng nghá»‡' ? 'bg-purple-500/30 text-purple-300 border border-purple-500/50' :
+        category === 'Y táº¿ & Sá»©c khá»e' ? 'bg-emerald-500/30 text-emerald-300 border border-emerald-500/50' :
         'bg-indigo-500/30 text-indigo-300 border border-indigo-500/50'
       }`;
     }
@@ -1478,7 +1478,7 @@ function focusOn3DResult(x, y, z, title, category, preview, score = null, rank =
 
     const tokensEl = document.getElementById('hud-doc-tokens');
     if (tokensEl) {
-      tokensEl.textContent = rank ? `Top #${rank} (Độ tương đồng: ${score ? Math.round(score * 100) : '--'}%)` : "Top-K Search Match";
+      tokensEl.textContent = rank ? `Top #${rank} (Äá»™ tÆ°Æ¡ng Ä‘á»“ng: ${score ? Math.round(score * 100) : '--'}%)` : "Top-K Search Match";
     }
   }
 }
@@ -1498,10 +1498,10 @@ function runLiveBenchmark() {
 
   if (btn) {
     btn.disabled = true;
-    btn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i> Đang chạy Benchmark...';
+    btn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i> Äang cháº¡y Benchmark...';
   }
   if (statusEl) statusEl.classList.remove('hidden');
-  if (msgEl) msgEl.innerHTML = `<i class="fa-solid fa-spinner animate-spin text-emerald-700 text-lg"></i> Đang chạy đối chuẩn toàn diện Benchmark với <strong>Top-K = ${topK}</strong> trên 2 thuật toán HNSW...`;
+  if (msgEl) msgEl.innerHTML = `<i class="fa-solid fa-spinner animate-spin text-emerald-700 text-lg"></i> Äang cháº¡y Ä‘á»‘i chuáº©n toÃ n diá»‡n Benchmark vá»›i <strong>Top-K = </strong> trÃªn 3 thuáº­t toÃ¡n HNSW...`;
   if (timeEl) timeEl.textContent = '';
 
   const tStart = performance.now();
@@ -1516,19 +1516,19 @@ function runLiveBenchmark() {
       const elapsed = ((performance.now() - tStart) / 1000).toFixed(2);
       if (btn) {
         btn.disabled = false;
-        btn.innerHTML = '<i class="fa-solid fa-bolt"></i> Chạy Đánh giá Benchmark Tức thì';
+        btn.innerHTML = '<i class="fa-solid fa-bolt"></i> Cháº¡y ÄÃ¡nh giÃ¡ Benchmark Tá»©c thÃ¬';
       }
 
       if (!resData.success) {
-        if (msgEl) msgEl.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-rose-600"></i> Lỗi khi chạy Benchmark: ${resData.error || "Không rõ"}`;
+        if (msgEl) msgEl.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-rose-600"></i> Lá»—i khi cháº¡y Benchmark: ${resData.error || "KhÃ´ng rÃµ"}`;
         return;
       }
 
-      if (msgEl) msgEl.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-700 text-lg"></i> Hoàn tất Universal Retrieval Benchmark (Top-K=${topK})!`;
-      if (timeEl) timeEl.textContent = `Thời gian thực thi: ${elapsed}s`;
+      if (msgEl) msgEl.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-700 text-lg"></i> HoÃ n táº¥t Universal Retrieval Benchmark (Top-K=${topK})!`;
+      if (timeEl) timeEl.textContent = `Thá»i gian thá»±c thi: ${elapsed}s`;
 
       if (resData.data) {
-        updateEvaluationTable(resData.data, topK, "Vừa cập nhật");
+        updateEvaluationTable(resData.data, topK, "Vá»«a cáº­p nháº­t");
       } else {
         loadEvaluationHistory(true);
       }
@@ -1536,9 +1536,9 @@ function runLiveBenchmark() {
     .catch(err => {
       if (btn) {
         btn.disabled = false;
-        btn.innerHTML = '<i class="fa-solid fa-bolt"></i> Chạy Đánh giá Benchmark Tức thì';
+        btn.innerHTML = '<i class="fa-solid fa-bolt"></i> Cháº¡y ÄÃ¡nh giÃ¡ Benchmark Tá»©c thÃ¬';
       }
-      if (msgEl) msgEl.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-rose-600"></i> Lỗi kết nối tới máy chủ: ${err.message}`;
+      if (msgEl) msgEl.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-rose-600"></i> Lá»—i káº¿t ná»‘i tá»›i mÃ¡y chá»§: ${err.message}`;
       console.error("Benchmark error:", err);
     });
 }
@@ -1560,9 +1560,9 @@ function updateEvaluationTable(reportData, topK = 5, timestampStr = "") {
   };
 
   const ramSavings = {
-    hnsw: "0.0% (Tốn RAM)",
+    hnsw: "0.0% (Tá»‘n RAM)",
     two_tier: "75.0%",
-    cf_distributed: "Phân tán (Shards)"
+    cf_distributed: "PhÃ¢n tÃ¡n (Shards)"
   };
 
   for (const [key, prefix] of Object.entries(algos)) {
@@ -1601,7 +1601,7 @@ let chartEvalQpsRecall = null;
 function initEvaluationCharts() {
   if (typeof Chart === 'undefined') return;
 
-  // 1. Chart: Đường cong quy mô Big Data (RAM vs N)
+  // 1. Chart: ÄÆ°á»ng cong quy mÃ´ Big Data (RAM vs N)
   const ctxScaling = document.getElementById('chart-scaling-curve');
   if (ctxScaling && !chartEvalScaling) {
     const scales = ['10K', '100K', '1M', '10M', '16.45M'];
@@ -1621,7 +1621,7 @@ function initEvaluationCharts() {
             pointHoverRadius: 6
           },
           {
-            label: 'Two-Tier Quantized HNSW (Đề xuất - An toàn < 8.1GB)',
+            label: 'Two-Tier Quantized HNSW (Äá» xuáº¥t - An toÃ n < 8.1GB)',
             data: [0.003, 0.03, 0.26, 2.58, 8.10],
             borderColor: '#059669',
             backgroundColor: 'rgba(5, 150, 105, 0.1)',
@@ -1631,7 +1631,7 @@ function initEvaluationCharts() {
             pointHoverRadius: 7
           },
           {
-            label: 'Ngưỡng RAM PC (16 GB)',
+            label: 'NgÆ°á»¡ng RAM PC (16 GB)',
             data: [16, 16, 16, 16, 16],
             borderColor: '#dc2626',
             borderDash: [6, 6],
@@ -1653,24 +1653,24 @@ function initEvaluationCharts() {
           }
         },
         scales: {
-          x: { title: { display: true, text: 'Quy mô Dữ liệu (Số lượng Vector)' }, grid: { color: 'rgba(0, 0, 0, 0.05)' } },
-          y: { title: { display: true, text: 'RAM Tiêu thụ (GB)' }, grid: { color: 'rgba(0, 0, 0, 0.05)' }, beginAtZero: true }
+          x: { title: { display: true, text: 'Quy mÃ´ Dá»¯ liá»‡u (Sá»‘ lÆ°á»£ng Vector)' }, grid: { color: 'rgba(0, 0, 0, 0.05)' } },
+          y: { title: { display: true, text: 'RAM TiÃªu thá»¥ (GB)' }, grid: { color: 'rgba(0, 0, 0, 0.05)' }, beginAtZero: true }
         }
       }
     });
   }
 
-  // 2. Chart: Thông lượng QPS & Recall@10
+  // 2. Chart: ThÃ´ng lÆ°á»£ng QPS & Recall@10
   const ctxQps = document.getElementById('chart-qps-recall');
   if (ctxQps && !chartEvalQpsRecall) {
     chartEvalQpsRecall = new Chart(ctxQps, {
       type: 'bar',
       data: {
-        labels: ['Standard HNSW (Baseline)', 'Two-Tier Quantized HNSW (Đề xuất)'],
+        labels: ['Standard HNSW (Baseline)', 'Two-Tier Quantized HNSW (Äá» xuáº¥t)'],
         datasets: [
           {
             type: 'bar',
-            label: 'QPS (Truy vấn/giây)',
+            label: 'QPS (Truy váº¥n/giÃ¢y)',
             data: [303.7, 1250.0],
             backgroundColor: ['#3b82f6', '#059669'],
             borderRadius: 6,
@@ -1700,7 +1700,7 @@ function initEvaluationCharts() {
           yQps: {
             type: 'linear',
             position: 'left',
-            title: { display: true, text: 'QPS (cao hơn là tốt hơn)' },
+            title: { display: true, text: 'QPS (cao hÆ¡n lÃ  tá»‘t hÆ¡n)' },
             grid: { color: 'rgba(0, 0, 0, 0.05)' }
           },
           yRecall: {
@@ -1768,3 +1768,5 @@ document.addEventListener('DOMContentLoaded', () => {
 window.addEventListener('load', () => {
   setTimeout(renderAcademicMath, 150);
 });
+
+

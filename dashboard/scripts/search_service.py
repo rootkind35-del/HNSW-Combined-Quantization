@@ -175,8 +175,12 @@ def perform_search(query_text: str, top_k: int = 5, algorithm: str = "two_tier",
             continue
 
         used_indices.add(global_id)
-        sim_val = max(0.0, min(1.0, 1.0 - (exact_dist ** 2) / 2.0))
-        dist_val = float(exact_dist)
+        if algorithm == "cf_distributed":
+            sim_val = max(0.0, min(1.0, float(-exact_dist)))
+            dist_val = float(exact_dist)
+        else:
+            sim_val = max(0.0, min(1.0, 1.0 - (exact_dist ** 2) / 2.0))
+            dist_val = float(exact_dist)
 
         if G_COORDS_3D is not None and global_id < len(G_COORDS_3D):
             vec_3d = {
