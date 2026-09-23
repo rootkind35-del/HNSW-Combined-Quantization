@@ -74,6 +74,7 @@ class DistributedCFIndex(BaseIndex):
         """
         Thực thi tìm kiếm song song trên các shard và gộp kết quả.
         """
+        query_vectors = np.atleast_2d(query_vectors)
         if not self.shards:
             return np.array([]), np.array([])
 
