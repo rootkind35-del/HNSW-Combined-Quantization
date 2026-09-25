@@ -1370,6 +1370,13 @@ function render3DSearchResults(data) {
               </div>
               <button
                 type="button"
+                onclick="alert('Tiêu đề: ' + decodeURIComponent('${encodeURIComponent(item.title)}') + '\n\nTrích đoạn: ' + decodeURIComponent('${encodeURIComponent(item.preview)}'));"
+                class="px-3.5 py-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 text-[13px] font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer shrink-0"
+              >
+                <i class="fa-solid fa-file-lines"></i> Xem chi tiết
+              </button>
+              <button
+                type="button"
                 onclick="focusOn3DResultByIndex(${index})"
                 class="px-3.5 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 text-[13px] font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer shrink-0"
               >
