@@ -1,4 +1,4 @@
-<div align="center">
+readme_vn = """<div align="center">
 
 <p align="center">
   <img src="https://img.shields.io/badge/Project-HNSW%20Combined%20Quantization-0A0A0A?style=for-the-badge&labelColor=F5F5F4" height="34">&nbsp;
@@ -81,3 +81,11 @@ Kiến trúc hệ thống đã được xây dựng hoàn chỉnh và chạy th�
 3. **Johnson, J., Douze, M., & Jégou, H. (2019).** *Billion-scale similarity search with GPUs.* IEEE Transactions on Big Data, 7(3), 535-547.
 4. **HKUDS. (2024).** *DeepTutor: A Reference Architecture for Academic System Documentation.* Github Repository.
 
+</div>
+"""
+
+with open(r'f:\ANN\README_VN.md', 'w', encoding='utf-8') as f:
+    f.write(readme_vn)
+    
+with open(r'f:\ANN\README.md', 'w', encoding='utf-8') as f:
+    f.write(readme_vn)
