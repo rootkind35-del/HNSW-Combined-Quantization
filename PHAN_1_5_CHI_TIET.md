@@ -1,4 +1,4 @@
-# PHÂN TÍCH CHUYÊN SÂU PHẦN 1.5: XÂY DỰNG VÀ KIỂM THỬ (THAO TÁC THỰC TẾ)
+# PHÂN TÍCH CHUYÊN BIỆT PHẦN 1.5: XÂY DỰNG VÀ KIỂM THỬ (THAO TÁC THỰC TẾ)
 
 Tài liệu này đi sâu vào chi tiết kỹ thuật của Phần 1.5, giải phẫu 100% dựa trên mã nguồn thực tế đang tồn tại trong dự án (không sử dụng thông tin giả lập). Đây là cẩm nang để lập trình viên hoặc nhà nghiên cứu có thể đọc, hiểu và trực tiếp thao tác chạy dự án.
 
@@ -42,7 +42,7 @@ Nằm trong `io_manager.py`. `DirectIOManager` thao tác trực tiếp với fil
 
 ## 1.5.8. Cài đặt Tổng thể: ShardedIVFHNSW
 Để chịu tải được 16.45 triệu vector, class `ShardedIVFHNSW` trong `two_tier_hnsw.py` đã tổ chức K-Means ở vòng ngoài (Centroids).
-- **Thao tác truyền tham số:** `router = ShardedIVFHNSW(dim=384, num_shards=4, ...)`. 
+- **Thao tác truyền tham số:** `router = ShardedIVFHNSW(dim=384, num_shards=4,...)`. 
 - Khi người dùng gửi truy vấn, nó sẽ dùng hàm `_get_nearest_shards(query_vec, nprobe=2)` để chọn ra 2 shard gần nhất, sau đó truy vấn song song (hoặc tuần tự) vào các `LocalShard` này, thu thập các ứng viên uint8 rồi gọi Tier 2.
 
 ## 1.5.9. Backend Search Service (Python)

@@ -55,3 +55,10 @@ data/experiments/*
 *.fvecs
 *.ivecs
 *.bvecs
+nop/
+*.zip
+errors.txt
+test_dump.txt
+dump.py
+dump_err.py
+check_errors.py

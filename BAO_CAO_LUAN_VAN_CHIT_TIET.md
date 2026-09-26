@@ -6,7 +6,7 @@
   <img src="https://img.shields.io/badge/RAM%20Reduction--75%25-0A0A0A?style=for-the-badge&labelColor=F5F5F4" height="34">
 </p>
 
-# BÁO CÁO NGHIÊN CỨU CHUYÊN SÂU: TỐI ƯU HÓA HỆ THỐNG TRUY XUẤT VECTOR HNSW BẰNG KỸ THUẬT LƯỢNG TỬ HÓA VÀ TRUY XUẤT BỘ NHỚ PHÂN TẦNG (TWO-TIER ANN)
+# BÁO CÁO NGHIÊN CỨU CHUYÊN BIỆT: TỐI ƯU HỆ THỐNG TRUY XUẤT VECTOR HNSW BẰNG KỸ THUẬT LƯỢNG TỬ HÓA VÀ TRUY XUẤT BỘ NHỚ PHÂN TẦNG (TWO-TIER ANN)
 
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue?style=flat-square)](LICENSE)
@@ -38,11 +38,11 @@
 ### 1.1.1. Bối cảnh và tính cấp thiết
 Sự phát triển vũ bão của trí tuệ nhân tạo, đặc biệt là các Mô hình Ngôn ngữ Lớn (Large Language Models - LLMs) như GPT-4, LLaMA hay Gemini, đã mở ra kỷ nguyên của các ứng dụng AI tạo sinh có khả năng lập luận và giao tiếp như con người. Tuy nhiên, các mô hình này mắc phải hai nhược điểm cốt tử: hiện tượng "ảo giác" (hallucination) và sự giới hạn về kiến thức theo thời gian thực (knowledge cutoff). Để khắc phục, công nghệ Sinh văn bản Bổ trợ bằng Truy xuất (Retrieval-Augmented Generation - RAG) ra đời, kết hợp khả năng ngôn ngữ của LLM với độ chính xác của một cơ sở dữ liệu tri thức bên ngoài.
 
-Cốt lõi của hệ thống RAG là Khả năng Tìm kiếm Vector (Vector Search), nơi các văn bản được chuyển đổi thành các biểu diễn nhúng (Vector Embeddings) đa chiều. Để truy xuất thông tin, hệ thống phải giải quyết bài toán Tìm kiếm Lân cận Gần nhất (Nearest Neighbor Search). Mặc dù các thuật toán tìm kiếm lân cận gần nhất xấp xỉ (Approximate Nearest Neighbor - ANN) như HNSW (Hierarchical Navigable Small World) cung cấp hiệu suất truy vấn xuất sắc với độ phức tạp thời gian O(log N), chúng lại tiêu tốn một lượng tài nguyên bộ nhớ (RAM) khổng lồ. 
+Cốt lõi của hệ thống RAG là Khả năng Tìm kiếm Vector (Vector Search), nơi các văn bản được chuyển đổi thành các biểu diễn nhúng (Vector Embeddings) đa chiều. Để truy xuất thông tin, hệ thống phải giải quyết bài toán Tìm kiếm Lân cận Gần nhất (Nearest Neighbor Search). Mặc dù các thuật toán tìm kiếm lân cận gần nhất xấp xỉ (Approximate Nearest Neighbor - ANN) như HNSW (Hierarchical Navigable Small World) cung cấp hiệu suất truy vấn hiệu quả với độ phức tạp thời gian O(log N), chúng lại tiêu tốn một lượng tài nguyên bộ nhớ (RAM) khổng lồ. 
 
 Trong kiến trúc HNSW tiêu chuẩn, để duy trì tốc độ truy xuất, toàn bộ mạng lưới đồ thị và dữ liệu vector nguyên bản dạng dấu phẩy động 32-bit (float32) phải được nạp hoàn toàn vào bộ nhớ RAM. Với một tập dữ liệu quy mô doanh nghiệp lên đến 16.45 triệu vector 384 chiều (ví dụ như toàn bộ hệ thống văn bản pháp luật, tin tức báo chí quốc gia), một hệ thống HNSW tiêu chuẩn sẽ tiêu tốn xấp xỉ **64GB RAM** chỉ để chứa index, chưa kể overhead của hệ điều hành và các ứng dụng chạy ngầm. Điều này làm cho việc triển khai các hệ thống RAG cục bộ (Local deployment) trở nên bất khả thi đối với các máy chủ phổ thông (commodity hardware) và đội giá thành hạ tầng đám mây (Cloud Infrastructure) lên mức không thể chấp nhận được đối với các dự án startup hoặc nghiên cứu học thuật.
 
-Đứng trước thực trạng đó, tính cấp thiết của việc tìm ra một giải pháp tối ưu hóa bộ nhớ cho hệ thống ANN mà không làm giảm tốc độ hay độ chính xác trở nên vô cùng rõ rệt. Đề tài này được thực hiện nhằm giải quyết trực diện "nút thắt cổ chai" về bộ nhớ đó.
+Đứng trước thực trạng đó, tính cấp thiết của việc tìm ra một giải pháp tối ưu bộ nhớ cho hệ thống ANN mà không làm giảm tốc độ hay độ chính xác trở nên vô cùng rõ rệt. Đề tài này được thực hiện nhằm giải quyết trực diện "nút thắt cổ chai" về bộ nhớ đó.
 
 ### 1.1.2. Bài toán nghiên cứu
 Bài toán đặt ra không chỉ đơn thuần là nén dữ liệu, mà là thiết kế một **Kiến trúc Cơ sở dữ liệu Vector Hoàn chỉnh (End-to-end Vector Database Architecture)** với các ràng buộc khắt khe:
@@ -69,7 +69,7 @@ Mục tiêu tổng quát của dự án là nghiên cứu, thiết kế và phá
   - Các cấu trúc dữ liệu không gian nhiều chiều (Multi-dimensional Spatial Data Structures).
   - Thuật toán Tìm kiếm xấp xỉ HNSW (Hierarchical Navigable Small World).
   - Thuật toán nén dữ liệu: Scalar Quantization (SQ) và Product Quantization (PQ).
-- **Phạm vi dữ liệu:** 16.45 triệu vector 384 chiều, được trích xuất từ dữ liệu báo chí tiếng Việt tổng hợp, luật pháp, y tế. Trong đó, dự án sẽ sử dụng một tập mẫu 5,000 - 10,000 vector để kiểm thử chuyên sâu (Unit Test & Stress Test cục bộ) nhằm chứng minh lý thuyết.
+- **Phạm vi dữ liệu:** 16.45 triệu vector 384 chiều, được trích xuất từ dữ liệu báo chí tiếng Việt tổng hợp, luật pháp, y tế. Trong đó, dự án sẽ sử dụng một tập mẫu 5,000 - 10,000 vector để kiểm thử chuyên biệt (Unit Test & Stress Test cục bộ) nhằm chứng minh lý thuyết.
 - **Phạm vi kỹ thuật:** 
   - Backend sử dụng Python thuần (NumPy, Scikit-learn), tự viết từ đầu (from scratch) các cấu trúc dữ liệu đồ thị, không phụ thuộc vào các engine đóng gói sẵn như FAISS hay Milvus để đảm bảo kiểm soát hoàn toàn bộ nhớ.
   - Phân tán cục bộ (Local Sharding) bằng Multiprocessing trên một node (Single-node), không sử dụng Hadoop hay Spark nhằm mục đích kiểm soát độ trễ IO siêu thấp.
@@ -190,7 +190,7 @@ Thuật toán bắt đầu ở tầng cao nhất, nhảy các bước lớn đ�
 Để giải quyết bài toán RAM, dữ liệu float32 phải bị ép kiểu xuống uint8 (8-bit). 
 *Phương pháp:* Áp dụng chuẩn hóa Min-Max (Min-Max Scaling). Hệ thống tìm giá trị nhỏ nhất ($v_{min}$) và lớn nhất ($v_{max}$) trong toàn bộ ma trận dữ liệu.
 *Công thức nén:*
-$$ q = 	ext{round}\left( rac{v - v_{min}}{v_{max} - v_{min}} 	imes 255 
+$$ q = 	ext{round}\left(rac{v - v_{min}}{v_{max} - v_{min}} 	imes 255 
 ight) $$
 Mỗi con số float (4 bytes) giờ chỉ còn là một số nguyên từ 0 đến 255 (1 byte), tức là ta đã ép dung lượng giảm đi đúng 4 lần.
 
@@ -313,7 +313,7 @@ Nằm trong `io_manager.py`. `DirectIOManager` thao tác trực tiếp với fil
 
 ## 1.5.8. Cài đặt Tổng thể: ShardedIVFHNSW
 Để chịu tải được 16.45 triệu vector, class `ShardedIVFHNSW` trong `two_tier_hnsw.py` đã tổ chức K-Means ở vòng ngoài (Centroids).
-- **Thao tác truyền tham số:** `router = ShardedIVFHNSW(dim=384, num_shards=4, ...)`. 
+- **Thao tác truyền tham số:** `router = ShardedIVFHNSW(dim=384, num_shards=4,...)`. 
 - Khi người dùng gửi truy vấn, nó sẽ dùng hàm `_get_nearest_shards(query_vec, nprobe=2)` để chọn ra 2 shard gần nhất, sau đó truy vấn song song (hoặc tuần tự) vào các `LocalShard` này, thu thập các ứng viên uint8 rồi gọi Tier 2.
 
 ## 1.5.9. Backend Search Service (Python)
@@ -386,7 +386,7 @@ Kiến trúc Vector Database phân mảnh (Sharded) kết hợp với lượng t
 # PHẦN 2: KẾT LUẬN VÀ HƯỚNG PHÁT TRIỂN
 
 ## 2.1. Kết luận
-Dự án đã hoàn thành xuất sắc, vượt mọi kỳ vọng đặt ra từ đầu. Hệ thống **Two-Tier Quantized HNSW** đã được xây dựng từ con số 0 (from scratch) chứng minh được một lý thuyết kỹ thuật vững chắc: Sự kết hợp giữa bộ đệm phân tầng phần cứng (SSD - RAM) và nén dữ liệu bằng phần mềm (SQ8) tạo ra một cỗ máy tối thượng, cân bằng hoàn hảo trên Tam giác Đánh đổi của bài toán ANN. Tiết kiệm 75% RAM, tăng tốc độ xử lý QPS, và giữ độ chính xác Recall@10 trên mức 98%.
+Dự án đã hoàn thành hiệu quả, vượt mọi kỳ vọng đặt ra từ đầu. Hệ thống **Two-Tier Quantized HNSW** đã được xây dựng từ con số 0 (from scratch) chứng minh được một lý thuyết kỹ thuật vững chắc: Sự kết hợp giữa bộ đệm phân tầng phần cứng (SSD - RAM) và nén dữ liệu bằng phần mềm (SQ8) tạo ra một cỗ máy tối thượng, cân bằng hoàn hảo trên Tam giác Đánh đổi của bài toán ANN. Tiết kiệm 75% RAM, tăng tốc độ xử lý QPS, và giữ độ chính xác Recall@10 trên mức 98%.
 
 ## 2.2. Hạn chế
 - **Hạn chế Lượng tử hóa tuyến tính:** SQ8 nén mọi chiều (dimensions) theo cùng một tỷ lệ Min-Max. Nếu dữ liệu có giá trị ngoại lai (outliers) cực đoan, khoảng cách Min-Max bị giãn rộng, gây ra hiện tượng mất mát độ phân giải trên các giá trị bình thường.
@@ -401,7 +401,7 @@ Dự án đã hoàn thành xuất sắc, vượt mọi kỳ vọng đặt ra t�
 
 # PHẦN 3: TỰ CHẤM
 Căn cứ vào khối lượng công việc khổng lồ, mức độ phức tạp kỹ thuật (tự thiết kế và code các thuật toán từ nền tảng toán học thay vì phụ thuộc thư viện có sẵn), hệ thống Pipeline đầy đủ từ Crawler, Cleaner, Embedder, Indexer đến UI Dashboard, đi kèm báo cáo luận văn sắc sảo bằng hình ảnh và thực nghiệm.
-**Tự đánh giá:** Dự án xứng đáng đạt mức **XUẤT SẮC (9.5 - 10 Điểm)**.
+**Tự đánh giá:** Dự án xứng đáng đạt mức **HIỆU QUẢ (9.5 - 10 Điểm)**.
 
 ---
 
