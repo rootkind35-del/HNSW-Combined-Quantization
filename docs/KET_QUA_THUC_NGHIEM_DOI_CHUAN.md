@@ -1,12 +1,14 @@
-# Báo cáo Kết quả Thực nghiệm Đối chuẩn và Tối ưu Siêu tham số
+﻿> **LƯU Ý:** Tài liệu này đã cũ và được thay thế toàn bộ bởi [BAO_CAO_LUAN_VAN_CHIT_TIET.md](BAO_CAO_LUAN_VAN_CHIT_TIET.md). Xin vui lòng tham khảo file báo cáo chính thức để xem kiến trúc Two-Tier HNSW lượng tử hóa SQ8 mới nhất.
 
-- **Quy mô mẫu thử:** 500 vector (D=64)
-- **Số câu truy vấn kiểm thử:** 10
-- **Thời gian xuất báo cáo:** 2026
+# BÃ¡o cÃ¡o Káº¿t quáº£ Thá»±c nghiá»‡m Äá»‘i chuáº©n vÃ  Tá»‘i Æ°u SiÃªu tham sá»‘
 
-## 1. Bảng Đối chuẩn Tham số Dừng sớm Thích ứng (Adaptive Early-Exit)
+- **Quy mÃ´ máº«u thá»­:** 500 vector (D=64)
+- **Sá»‘ cÃ¢u truy váº¥n kiá»ƒm thá»­:** 10
+- **Thá»i gian xuáº¥t bÃ¡o cÃ¡o:** 2026
 
-| $\tau$ | $\varepsilon$ | Rerank Factor | Recall@10 | QPS | Độ trễ (ms) | Speedup vs Baseline |
+## 1. Báº£ng Äá»‘i chuáº©n Tham sá»‘ Dá»«ng sá»›m ThÃ­ch á»©ng (Adaptive Early-Exit)
+
+| $\tau$ | $\varepsilon$ | Rerank Factor | Recall@10 | QPS | Äá»™ trá»… (ms) | Speedup vs Baseline |
 | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
 | 2 | 1e-05 | 1 | **27.00%** | 1775.1 | 0.563 | **7.30x** |
 | 2 | 1e-04 | 3 | **27.00%** | 1545.8 | 0.647 | **6.36x** |
@@ -24,10 +26,11 @@
 | 4 | 1e-04 | 2 | **43.00%** | 1139.4 | 0.878 | **4.69x** |
 | 4 | 1e-03 | 3 | **43.00%** | 1103.3 | 0.906 | **4.54x** |
 
-## 2. Luận giải Nguyên nhân Hiệu năng Thuật toán Đề xuất
+## 2. Luáº­n giáº£i NguyÃªn nhÃ¢n Hiá»‡u nÄƒng Thuáº­t toÃ¡n Äá» xuáº¥t
 
-1. **Tăng tốc Tích vô hướng Số nguyên:** Tận dụng 32 phép tính 8-bit trên mỗi xung nhịp SIMD AVX2/AVX-512, giảm 75% băng thông bộ nhớ RAM.
-2. **Bảo toàn Góc Không gian 384 Chiều:** Nhờ hiện tượng tập trung độ đo, sai số lượng tử hóa SQ8 triệt tiêu lẫn nhau, thứ tự láng giềng bảo toàn > 98%.
-3. **Cắt tỉa Bình nguyên Hội tụ:** Dừng sớm thích ứng loại bỏ 60-70% số bước nhảy dư thừa khi khoảng cách chạm cực tiểu.
-4. **Tái xếp hạng Tầng 2 trên SSD:** Đọc 30 vector trong 0.2 ms khôi phục Recall@10 lên > 95%.
-5. **Quy mô Siêu kho 16.45 triệu Vector (16.459.486 vector):** Hoạt động ổn định trên PC phổ thông với 4.26 GB RAM (-75%), trong khi Standard HNSW đòi hỏi > 33.7 GB RAM (gây lỗi Out-Of-Memory).
+1. **TÄƒng tá»‘c TÃ­ch vÃ´ hÆ°á»›ng Sá»‘ nguyÃªn:** Táº­n dá»¥ng 32 phÃ©p tÃ­nh 8-bit trÃªn má»—i xung nhá»‹p SIMD AVX2/AVX-512, giáº£m 75% bÄƒng thÃ´ng bá»™ nhá»› RAM.
+2. **Báº£o toÃ n GÃ³c KhÃ´ng gian 384 Chiá»u:** Nhá» hiá»‡n tÆ°á»£ng táº­p trung Ä‘á»™ Ä‘o, sai sá»‘ lÆ°á»£ng tá»­ hÃ³a SQ8 triá»‡t tiÃªu láº«n nhau, thá»© tá»± lÃ¡ng giá»ng báº£o toÃ n > 98%.
+3. **Cáº¯t tá»‰a BÃ¬nh nguyÃªn Há»™i tá»¥:** Dá»«ng sá»›m thÃ­ch á»©ng loáº¡i bá» 60-70% sá»‘ bÆ°á»›c nháº£y dÆ° thá»«a khi khoáº£ng cÃ¡ch cháº¡m cá»±c tiá»ƒu.
+4. **TÃ¡i xáº¿p háº¡ng Táº§ng 2 trÃªn SSD:** Äá»c 30 vector trong 0.2 ms khÃ´i phá»¥c Recall@10 lÃªn > 95%.
+5. **Quy mÃ´ SiÃªu kho 16.45 triá»‡u Vector (16.459.486 vector):** Hoáº¡t Ä‘á»™ng á»•n Ä‘á»‹nh trÃªn PC phá»• thÃ´ng vá»›i 4.26 GB RAM (-75%), trong khi Standard HNSW Ä‘Ã²i há»i > 33.7 GB RAM (gÃ¢y lá»—i Out-Of-Memory).
+

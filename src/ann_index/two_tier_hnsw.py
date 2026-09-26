@@ -34,7 +34,7 @@ class LocalShard:
         storage_dir: str,
         clean_storage: bool = False,
     ) -> None:
-        """Initialize local shard.
+        """Khởi tạo local shard.
 
         Args:
             shard_id: Unique integer identifier for this shard.
@@ -49,7 +49,7 @@ class LocalShard:
         self.max_elements = max(100, max_elements)
         self.storage_dir = storage_dir
 
-        # --- Tier 1 (In-Memory HNSW Graph + Quantized Vectors) ---
+        # --- Tầng 1 (Đồ thị HNSW trong bộ nhớ RAM + Vector Lượng tử uint8) ---
         self.graph: Dict[int, List[int]] = {}
         self.entry_point: Optional[int] = None
 
@@ -58,10 +58,10 @@ class LocalShard:
         self.offsets = np.zeros((self.max_elements, 1), dtype=np.float16)
         self.local_count = 0
 
-        # Global ID mapping: local node_id (0..local_count-1) -> external global_id
+        # Ánh xạ ID toàn cục: node_id cục bộ -> global_id bên ngoài (giúp quản lý Shard độc lập)
         self.id_map: Dict[int, int] = {}
 
-        # --- Tier 2 (Direct I/O SSD Storage) ---
+        # --- Tầng 2 (Lưu trữ SSD Trực tiếp qua cơ chế Direct I/O) ---
         os.makedirs(storage_dir, exist_ok=True)
         db_path = os.path.join(storage_dir, f"shard_{shard_id}.bin")
         self.io_manager = DirectIOManager(db_path, dim=dim)
@@ -235,7 +235,7 @@ class ShardedIVFHNSW:
         storage_dir: str,
         clean_storage: bool = False,
     ) -> None:
-        """Initialize sharded IVF-HNSW router.
+        """Khởi tạo sharded IVF-HNSW router.
 
         Args:
             dim: Dimensionality of vector representations.
@@ -322,7 +322,7 @@ class ShardedIVFHNSW:
         target_shard_ids = self._get_nearest_shards(query_vec, nprobe=nprobe)
         self.last_probed_shards = list(target_shard_ids)
 
-        # Step 1 & 2: Search local graphs in candidate shards
+        # Bước 1 & 2: Quét tìm kiếm trên các đồ thị HNSW cục bộ tại các phân mảnh
         candidate_pool: List[Tuple[float, int, int, int]] = []
         for sid in target_shard_ids:
             shard = self.shards[sid]
@@ -344,11 +344,11 @@ class ShardedIVFHNSW:
                 return empty_res, target_shard_ids
             return empty_res
 
-        # Sort by ADC distance and retain top candidates for disk retrieval
+        # Sắp xếp theo khoảng cách Lượng tử ADC và giữ lại các ứng viên tốt nhất để nạp từ ổ cứng
         candidate_pool.sort(key=lambda x: x[0])
         top_candidates = candidate_pool[:re_rank_limit]
 
-        # Step 3: Fetch exact float32 vectors from SSD via DirectIOManager
+        # Bước 3: Truy xuất vector float32 nguyên bản từ SSD thông qua DirectIOManager
         requests_by_shard: Dict[int, List[int]] = {}
         for _, local_node_id, _, sid in top_candidates:
             if sid not in requests_by_shard:
@@ -361,7 +361,7 @@ class ShardedIVFHNSW:
             for nid, vec in batch_result.items():
                 fetched_vectors[(sid, nid)] = vec
 
-        # Step 4: Re-rank using exact Euclidean (L2) distance
+        # Bước 4: Xếp hạng lại (Re-ranking) sử dụng khoảng cách L2 thực tế để loại bỏ nhiễu lượng tử
         final_results: List[Tuple[float, int, int]] = []
         for _, local_node_id, global_id, sid in top_candidates:
             exact_vec = fetched_vectors.get((sid, local_node_id))

@@ -1,285 +1,288 @@
-# BÁO CÁO NGHIÊN CỨU KỸ THUẬT: TỐI ƯU HÓA BỘ NHỚ VÀ ĐỘ TRỄ TÌM KIẾM VECTOR LỚN BẰNG THUẬT TOÁN HNSW LƯỢNG TỬ HÓA HAI TẦNG (TWO-TIER QUANTIZED HNSW)
+﻿> **LƯU Ý:** Tài liệu này đã cũ và được thay thế toàn bộ bởi [BAO_CAO_LUAN_VAN_CHIT_TIET.md](BAO_CAO_LUAN_VAN_CHIT_TIET.md). Xin vui lòng tham khảo file báo cáo chính thức để xem kiến trúc Two-Tier HNSW lượng tử hóa SQ8 mới nhất.
 
-**Tác giả:** Nhóm Nghiên cứu Kỹ thuật Hệ thống Tìm kiếm Vector  
-**Đơn vị:** Phòng Thí nghiệm Khoa học Máy tính & Trí tuệ Nhân tạo  
-**Dự án:** Approximate Nearest Neighbor (ANN) trên Quy mô 10 Triệu đến 16.45 triệu Bản ghi  
-**Thời gian:** Tháng 8 - Tháng 9 năm 2026  
+# BÃO CÃO NGHIÃŠN Cá»¨U Ká»¸ THUáº¬T: Tá»I Æ¯U HÃ“A Bá»˜ NHá»š VÃ€ Äá»˜ TRá»„ TÃŒM KIáº¾M VECTOR Lá»šN Báº°NG THUáº¬T TOÃN HNSW LÆ¯á»¢NG Tá»¬ HÃ“A HAI Táº¦NG (TWO-TIER QUANTIZED HNSW)
 
----
-
-## TÓM TẮT (ABSTRACT)
-
-Báo cáo này trình bày nghiên cứu, thiết kế kiến trúc và kết quả thực nghiệm của thuật toán tìm kiếm láng giềng gần xấp xỉ hai tầng (**Two-Tier Quantized HNSW**) trên tập dữ liệu văn bản tiếng Việt quy mô lớn (mốc cơ sở 10 triệu và mở rộng Siêu kho 16.459.486 vector chiều $D = 384$). 
-
-Trên các hệ thống phần cứng giới hạn (RAM máy chủ phổ thông từ 16GB đến 32GB), cấu trúc đồ thị HNSW truyền thống đòi hỏi từ 46 GB đến 33.7 GB RAM, vượt quá dung lượng vật lý và dẫn đến lỗi tràn bộ nhớ (Out-Of-Memory). Các phương pháp nén dữ liệu như IVF-PQ tiết kiệm bộ nhớ nhưng làm suy giảm độ chính xác Recall@10 xuống mức 35% - 40%. 
-
-Để giải quyết tam giác đánh đổi giữa Bộ nhớ - Độ trễ - Độ chính xác (The ANN Trilemma), giải pháp đề xuất kết hợp:
-1. **Tier 1 (In-Memory)**: Lượng tử hóa vô hướng 8-bit (SQ8 uint8) giảm 75% kích thước vector trong RAM kết hợp bộ điều khiển dừng sớm thích ứng (**Adaptive Early-Exit Controller** với tham số $\tau = 3, \varepsilon = 10^{-4}$) loại bỏ 35% - 40% (lên tới 64% trên tập tối ưu) số bước duyệt đồ thị dư thừa.
-2. **Tier 2 (SSD Memmap)**: Lưu trữ mảng nhị phân `float32` nguyên bản trên đĩa SSD (dung lượng 15.36 GB cho 10 triệu vector và 24.11 GB cho 16.45 triệu vector) qua cơ chế `np.memmap` và thực thi tái xếp hạng chính xác (**Exact Float32 Re-ranking**) trên Top-$K_{\text{rerank}}$ ứng viên.
-
-Kết quả đo đạc thực nghiệm trên bộ 91 bài kiểm thử tự động xác nhận: Two-Tier Quantized HNSW cắt giảm chính xác **50% đến 75% tổng dung lượng RAM** ở mọi mốc quy mô, đạt thông lượng **365.0 QPS** (đạt tới 1.250 QPS với bộ đệm cân bằng), độ trễ trung vị $p_{50} = 2.37$ ms (đạt 1.25 ms trên tập cân bằng), và duy trì độ chính xác Recall@10 đạt trên **94% - 95.4%** sau bước tái xếp hạng.
+**TÃ¡c giáº£:** NhÃ³m NghiÃªn cá»©u Ká»¹ thuáº­t Há»‡ thá»‘ng TÃ¬m kiáº¿m Vector  
+**ÄÆ¡n vá»‹:** PhÃ²ng ThÃ­ nghiá»‡m Khoa há»c MÃ¡y tÃ­nh & TrÃ­ tuá»‡ NhÃ¢n táº¡o  
+**Dá»± Ã¡n:** Approximate Nearest Neighbor (ANN) trÃªn Quy mÃ´ 10 Triá»‡u Ä‘áº¿n 16.45 triá»‡u Báº£n ghi  
+**Thá»i gian:** ThÃ¡ng 8 - ThÃ¡ng 9 nÄƒm 2026  
 
 ---
 
-## CHƯƠNG 1: ĐẶT VẤN ĐỀ VÀ MỤC TIÊU NGHIÊN CỨU
+## TÃ“M Táº®T (ABSTRACT)
 
-### 1.1. Bối cảnh Nghiên cứu
-Trong các hệ thống tìm kiếm ngữ nghĩa hiện đại (Semantic Search, RAG - Retrieval-Augmented Generation), dữ liệu văn bản được ánh xạ thành các vector đặc trưng nhiều chiều (Dense Embeddings) thông qua mô hình học sâu. Khi quy mô cơ sở dữ liệu đạt $N = 10.000.000$ tài liệu với số chiều $D = 384$ (chuẩn Sentence-BERT), tổng lượng vector thô ở định dạng `float32` tiêu tốn:
+BÃ¡o cÃ¡o nÃ y trÃ¬nh bÃ y nghiÃªn cá»©u, thiáº¿t káº¿ kiáº¿n trÃºc vÃ  káº¿t quáº£ thá»±c nghiá»‡m cá»§a thuáº­t toÃ¡n tÃ¬m kiáº¿m lÃ¡ng giá»ng gáº§n xáº¥p xá»‰ hai táº§ng (**Two-Tier Quantized HNSW**) trÃªn táº­p dá»¯ liá»‡u vÄƒn báº£n tiáº¿ng Viá»‡t quy mÃ´ lá»›n (má»‘c cÆ¡ sá»Ÿ 10 triá»‡u vÃ  má»Ÿ rá»™ng SiÃªu kho 16.459.486 vector chiá»u $D = 384$). 
+
+TrÃªn cÃ¡c há»‡ thá»‘ng pháº§n cá»©ng giá»›i háº¡n (RAM mÃ¡y chá»§ phá»• thÃ´ng tá»« 16GB Ä‘áº¿n 32GB), cáº¥u trÃºc Ä‘á»“ thá»‹ HNSW truyá»n thá»‘ng Ä‘Ã²i há»i tá»« 46 GB Ä‘áº¿n 33.7 GB RAM, vÆ°á»£t quÃ¡ dung lÆ°á»£ng váº­t lÃ½ vÃ  dáº«n Ä‘áº¿n lá»—i trÃ n bá»™ nhá»› (Out-Of-Memory). CÃ¡c phÆ°Æ¡ng phÃ¡p nÃ©n dá»¯ liá»‡u nhÆ° IVF-PQ tiáº¿t kiá»‡m bá»™ nhá»› nhÆ°ng lÃ m suy giáº£m Ä‘á»™ chÃ­nh xÃ¡c Recall@10 xuá»‘ng má»©c 35% - 40%. 
+
+Äá»ƒ giáº£i quyáº¿t tam giÃ¡c Ä‘Ã¡nh Ä‘á»•i giá»¯a Bá»™ nhá»› - Äá»™ trá»… - Äá»™ chÃ­nh xÃ¡c (The ANN Trilemma), giáº£i phÃ¡p Ä‘á» xuáº¥t káº¿t há»£p:
+1. **Tier 1 (In-Memory)**: LÆ°á»£ng tá»­ hÃ³a vÃ´ hÆ°á»›ng 8-bit (SQ8 uint8) giáº£m 75% kÃ­ch thÆ°á»›c vector trong RAM káº¿t há»£p bá»™ Ä‘iá»u khiá»ƒn dá»«ng sá»›m thÃ­ch á»©ng (**Adaptive Early-Exit Controller** vá»›i tham sá»‘ $\tau = 3, \varepsilon = 10^{-4}$) loáº¡i bá» 35% - 40% (lÃªn tá»›i 64% trÃªn táº­p tá»‘i Æ°u) sá»‘ bÆ°á»›c duyá»‡t Ä‘á»“ thá»‹ dÆ° thá»«a.
+2. **Tier 2 (SSD Memmap)**: LÆ°u trá»¯ máº£ng nhá»‹ phÃ¢n `float32` nguyÃªn báº£n trÃªn Ä‘Ä©a SSD (dung lÆ°á»£ng 15.36 GB cho 10 triá»‡u vector vÃ  24.11 GB cho 16.45 triá»‡u vector) qua cÆ¡ cháº¿ `np.memmap` vÃ  thá»±c thi tÃ¡i xáº¿p háº¡ng chÃ­nh xÃ¡c (**Exact Float32 Re-ranking**) trÃªn Top-$K_{\text{rerank}}$ á»©ng viÃªn.
+
+Káº¿t quáº£ Ä‘o Ä‘áº¡c thá»±c nghiá»‡m trÃªn bá»™ 91 bÃ i kiá»ƒm thá»­ tá»± Ä‘á»™ng xÃ¡c nháº­n: Two-Tier Quantized HNSW cáº¯t giáº£m chÃ­nh xÃ¡c **50% Ä‘áº¿n 75% tá»•ng dung lÆ°á»£ng RAM** á»Ÿ má»i má»‘c quy mÃ´, Ä‘áº¡t thÃ´ng lÆ°á»£ng **365.0 QPS** (Ä‘áº¡t tá»›i 1.250 QPS vá»›i bá»™ Ä‘á»‡m cÃ¢n báº±ng), Ä‘á»™ trá»… trung vá»‹ $p_{50} = 2.37$ ms (Ä‘áº¡t 1.25 ms trÃªn táº­p cÃ¢n báº±ng), vÃ  duy trÃ¬ Ä‘á»™ chÃ­nh xÃ¡c Recall@10 Ä‘áº¡t trÃªn **94% - 95.4%** sau bÆ°á»›c tÃ¡i xáº¿p háº¡ng.
+
+---
+
+## CHÆ¯Æ NG 1: Äáº¶T Váº¤N Äá»€ VÃ€ Má»¤C TIÃŠU NGHIÃŠN Cá»¨U
+
+### 1.1. Bá»‘i cáº£nh NghiÃªn cá»©u
+Trong cÃ¡c há»‡ thá»‘ng tÃ¬m kiáº¿m ngá»¯ nghÄ©a hiá»‡n Ä‘áº¡i (Semantic Search, RAG - Retrieval-Augmented Generation), dá»¯ liá»‡u vÄƒn báº£n Ä‘Æ°á»£c Ã¡nh xáº¡ thÃ nh cÃ¡c vector Ä‘áº·c trÆ°ng nhiá»u chiá»u (Dense Embeddings) thÃ´ng qua mÃ´ hÃ¬nh há»c sÃ¢u. Khi quy mÃ´ cÆ¡ sá»Ÿ dá»¯ liá»‡u Ä‘áº¡t $N = 10.000.000$ tÃ i liá»‡u vá»›i sá»‘ chiá»u $D = 384$ (chuáº©n Sentence-BERT), tá»•ng lÆ°á»£ng vector thÃ´ á»Ÿ Ä‘á»‹nh dáº¡ng `float32` tiÃªu tá»‘n:
 
 $$S_{\text{raw}} = 10.000.000 \times 384 \times 4 \text{ bytes} = 15.360.000.000 \text{ bytes} \approx 15.36 \text{ GB}$$
 
-Tuy nhiên, trong các thuật toán đồ thị xấp xỉ như HNSW (Hierarchical Navigable Small World), ngoài vector dữ liệu, hệ thống cần duy trì danh sách kề phân tầng với số liên kết trung bình $M = 16$ đến $M = 32$. Tổng dung lượng RAM thực tế tăng lên mức 46 GB. Trên máy trạm hoặc máy chủ tầm trung chỉ có 16GB - 32GB RAM, việc nạp toàn bộ chỉ mục HNSW vào bộ nhớ là bất khả thi.
+Tuy nhiÃªn, trong cÃ¡c thuáº­t toÃ¡n Ä‘á»“ thá»‹ xáº¥p xá»‰ nhÆ° HNSW (Hierarchical Navigable Small World), ngoÃ i vector dá»¯ liá»‡u, há»‡ thá»‘ng cáº§n duy trÃ¬ danh sÃ¡ch ká» phÃ¢n táº§ng vá»›i sá»‘ liÃªn káº¿t trung bÃ¬nh $M = 16$ Ä‘áº¿n $M = 32$. Tá»•ng dung lÆ°á»£ng RAM thá»±c táº¿ tÄƒng lÃªn má»©c 46 GB. TrÃªn mÃ¡y tráº¡m hoáº·c mÃ¡y chá»§ táº§m trung chá»‰ cÃ³ 16GB - 32GB RAM, viá»‡c náº¡p toÃ n bá»™ chá»‰ má»¥c HNSW vÃ o bá»™ nhá»› lÃ  báº¥t kháº£ thi.
 
-### 1.2. Tam giác Đánh đổi trong Tìm kiếm Vector (The ANN Trilemma)
-Các tiếp cận hiện nay đối mặt với tam giác đánh đổi gồm 3 đỉnh mâu thuẫn trực tiếp:
+### 1.2. Tam giÃ¡c ÄÃ¡nh Ä‘á»•i trong TÃ¬m kiáº¿m Vector (The ANN Trilemma)
+CÃ¡c tiáº¿p cáº­n hiá»‡n nay Ä‘á»‘i máº·t vá»›i tam giÃ¡c Ä‘Ã¡nh Ä‘á»•i gá»“m 3 Ä‘á»‰nh mÃ¢u thuáº«n trá»±c tiáº¿p:
 
 ```text
-                 [ Bộ nhớ RAM (Memory Wall) ]
+                 [ Bá»™ nhá»› RAM (Memory Wall) ]
                            /     \
                           /       \
                          /         \
-    [ Độ trễ (Latency) ] ----------- [ Độ chính xác (Recall) ]
+    [ Äá»™ trá»… (Latency) ] ----------- [ Äá»™ chÃ­nh xÃ¡c (Recall) ]
 ```
 
-1. **Memory Wall**: Đồ thị HNSW chuẩn giữ Recall cao (>98%) và độ trễ thấp (<3ms), nhưng đòi hỏi bộ nhớ vật lý khổng lồ (46 GB).
-2. **Latency Constraint**: Thuật toán quét tuần tự chính xác (Flat Search) không tốn thêm bộ nhớ đồ thị, nhưng có độ phức tạp thời gian $O(N \cdot D)$. Ở $N = 10^7$, một câu truy vấn mất hàng giây, không đáp ứng được yêu cầu thời gian thực.
-3. **Recall Degradation**: Thuật toán lượng tử hóa tích (IVF-PQ) nén vector xuống vài byte và tra cứu qua bảng ADC, giảm dung lượng RAM xuống dưới 5 GB nhưng Recall@10 bị tụt dốc xuống 35% - 40% do biến dạng cụm Voronoi và sai số lượng tử hóa tích lũy.
+1. **Memory Wall**: Äá»“ thá»‹ HNSW chuáº©n giá»¯ Recall cao (>98%) vÃ  Ä‘á»™ trá»… tháº¥p (<3ms), nhÆ°ng Ä‘Ã²i há»i bá»™ nhá»› váº­t lÃ½ khá»•ng lá»“ (46 GB).
+2. **Latency Constraint**: Thuáº­t toÃ¡n quÃ©t tuáº§n tá»± chÃ­nh xÃ¡c (Flat Search) khÃ´ng tá»‘n thÃªm bá»™ nhá»› Ä‘á»“ thá»‹, nhÆ°ng cÃ³ Ä‘á»™ phá»©c táº¡p thá»i gian $O(N \cdot D)$. á»ž $N = 10^7$, má»™t cÃ¢u truy váº¥n máº¥t hÃ ng giÃ¢y, khÃ´ng Ä‘Ã¡p á»©ng Ä‘Æ°á»£c yÃªu cáº§u thá»i gian thá»±c.
+3. **Recall Degradation**: Thuáº­t toÃ¡n lÆ°á»£ng tá»­ hÃ³a tÃ­ch (IVF-PQ) nÃ©n vector xuá»‘ng vÃ i byte vÃ  tra cá»©u qua báº£ng ADC, giáº£m dung lÆ°á»£ng RAM xuá»‘ng dÆ°á»›i 5 GB nhÆ°ng Recall@10 bá»‹ tá»¥t dá»‘c xuá»‘ng 35% - 40% do biáº¿n dáº¡ng cá»¥m Voronoi vÃ  sai sá»‘ lÆ°á»£ng tá»­ hÃ³a tÃ­ch lÅ©y.
 
-### 1.3. Hệ thống Chỉ số Mục tiêu (Target KPIs)
-Nghiên cứu đặt ra 4 chỉ số kỹ thuật cam kết:
-- **Tiết kiệm RAM**: Giảm $\ge 50\%$ tổng dung lượng bộ nhớ so với Standard HNSW trên cùng quy mô vector.
-- **Độ trễ truy vấn**: Đạt $p_{50} < 3.0$ ms và kiểm soát đỉnh đuôi $p_{99} < 8.0$ ms dưới tải đơn luồng.
-- **Độ chính xác Recall@10**: Đạt $\ge 90\%$ sau khi khôi phục độ chính xác bằng tầng tái xếp hạng.
-- **Dung lượng RAM nạp luồng**: Giữ mức tiêu thụ bộ nhớ phẳng ($< 150$ MB) khi nạp luồng dữ liệu liên tục tới 10 triệu vector.
+### 1.3. Há»‡ thá»‘ng Chá»‰ sá»‘ Má»¥c tiÃªu (Target KPIs)
+NghiÃªn cá»©u Ä‘áº·t ra 4 chá»‰ sá»‘ ká»¹ thuáº­t cam káº¿t:
+- **Tiáº¿t kiá»‡m RAM**: Giáº£m $\ge 50\%$ tá»•ng dung lÆ°á»£ng bá»™ nhá»› so vá»›i Standard HNSW trÃªn cÃ¹ng quy mÃ´ vector.
+- **Äá»™ trá»… truy váº¥n**: Äáº¡t $p_{50} < 3.0$ ms vÃ  kiá»ƒm soÃ¡t Ä‘á»‰nh Ä‘uÃ´i $p_{99} < 8.0$ ms dÆ°á»›i táº£i Ä‘Æ¡n luá»“ng.
+- **Äá»™ chÃ­nh xÃ¡c Recall@10**: Äáº¡t $\ge 90\%$ sau khi khÃ´i phá»¥c Ä‘á»™ chÃ­nh xÃ¡c báº±ng táº§ng tÃ¡i xáº¿p háº¡ng.
+- **Dung lÆ°á»£ng RAM náº¡p luá»“ng**: Giá»¯ má»©c tiÃªu thá»¥ bá»™ nhá»› pháº³ng ($< 150$ MB) khi náº¡p luá»“ng dá»¯ liá»‡u liÃªn tá»¥c tá»›i 10 triá»‡u vector.
 
 ---
 
-## CHƯƠNG 2: CƠ SỞ LÝ THUYẾT VÀ CÁC THUẬT TOÁN ĐỐI CHUẨN
+## CHÆ¯Æ NG 2: CÆ  Sá»ž LÃ THUYáº¾T VÃ€ CÃC THUáº¬T TOÃN Äá»I CHUáº¨N
 
-### 2.1. Không gian Metric và Độ đo Khoảng cách
-Cho không gian vector $\mathbb{R}^D$. Khoảng cách Euclid ($L_2$) giữa vector truy vấn $q$ và vector dữ liệu $x$ được xác định bởi:
+### 2.1. KhÃ´ng gian Metric vÃ  Äá»™ Ä‘o Khoáº£ng cÃ¡ch
+Cho khÃ´ng gian vector $\mathbb{R}^D$. Khoáº£ng cÃ¡ch Euclid ($L_2$) giá»¯a vector truy váº¥n $q$ vÃ  vector dá»¯ liá»‡u $x$ Ä‘Æ°á»£c xÃ¡c Ä‘á»‹nh bá»Ÿi:
 
 $$d_{L_2}(q, x) = \sqrt{\sum_{i=1}^D (q_i - x_i)^2}$$
 
-Độ tương đồng Cosine được xác định bởi:
+Äá»™ tÆ°Æ¡ng Ä‘á»“ng Cosine Ä‘Æ°á»£c xÃ¡c Ä‘á»‹nh bá»Ÿi:
 
 $$\text{Sim}_{\cos}(q, x) = \frac{q \cdot x}{\|q\|_2 \|x\|_2} = \frac{\sum_{i=1}^D q_i x_i}{\sqrt{\sum_{i=1}^D q_i^2} \sqrt{\sum_{i=1}^D x_i^2}}$$
 
-Khi các vector đã được chuẩn hóa $\|x\|_2 = 1$, khoảng cách $L_2$ bình phương tương đương với độ tương đồng Cosine qua đẳng thức:
+Khi cÃ¡c vector Ä‘Ã£ Ä‘Æ°á»£c chuáº©n hÃ³a $\|x\|_2 = 1$, khoáº£ng cÃ¡ch $L_2$ bÃ¬nh phÆ°Æ¡ng tÆ°Æ¡ng Ä‘Æ°Æ¡ng vá»›i Ä‘á»™ tÆ°Æ¡ng Ä‘á»“ng Cosine qua Ä‘áº³ng thá»©c:
 
 $$\|q - x\|_2^2 = \|q\|_2^2 + \|x\|_2^2 - 2(q \cdot x) = 2 - 2 \cdot \text{Sim}_{\cos}(q, x)$$
 
 ### 2.2. Flat Exact Search (Ground Truth)
-Thuật toán tính toán ma trận khoảng cách giữa $q$ và toàn bộ $N$ vector trong cơ sở dữ liệu:
+Thuáº­t toÃ¡n tÃ­nh toÃ¡n ma tráº­n khoáº£ng cÃ¡ch giá»¯a $q$ vÃ  toÃ n bá»™ $N$ vector trong cÆ¡ sá»Ÿ dá»¯ liá»‡u:
 
 $$D_{i} = \|q - X_i\|_2, \quad \forall i \in \{0, \dots, N-1\}$$
 
-Sau đó áp dụng giải thuật chọn Top-$K$ phần tử nhỏ nhất:
+Sau Ä‘Ã³ Ã¡p dá»¥ng giáº£i thuáº­t chá»n Top-$K$ pháº§n tá»­ nhá» nháº¥t:
 
 $$\text{TopK}(q) = \text{argpartition}(D, K)[:K]$$
 
-Kết quả của Flat Search đạt Recall 100%, được sử dụng làm chuẩn đối sánh tuyệt đối (Ground Truth) cho mọi phép đo Recall@K.
+Káº¿t quáº£ cá»§a Flat Search Ä‘áº¡t Recall 100%, Ä‘Æ°á»£c sá»­ dá»¥ng lÃ m chuáº©n Ä‘á»‘i sÃ¡nh tuyá»‡t Ä‘á»‘i (Ground Truth) cho má»i phÃ©p Ä‘o Recall@K.
 
 ### 2.3. Hierarchical Navigable Small World (HNSW)
-HNSW tổ chức dữ liệu thành đồ thị nhiều tầng $L \in \{0, \dots, L_{\text{max}}\}$. Tầng trên cùng $L_{\text{max}}$ có số lượng nút thưa thớt với các liên kết dài giúp nhảy nhanh qua không gian metric. Càng xuống các tầng dưới, mật độ nút tăng dần cho đến tầng cơ sở $L_0$ chứa toàn bộ $N$ vector.
+HNSW tá»• chá»©c dá»¯ liá»‡u thÃ nh Ä‘á»“ thá»‹ nhiá»u táº§ng $L \in \{0, \dots, L_{\text{max}}\}$. Táº§ng trÃªn cÃ¹ng $L_{\text{max}}$ cÃ³ sá»‘ lÆ°á»£ng nÃºt thÆ°a thá»›t vá»›i cÃ¡c liÃªn káº¿t dÃ i giÃºp nháº£y nhanh qua khÃ´ng gian metric. CÃ ng xuá»‘ng cÃ¡c táº§ng dÆ°á»›i, máº­t Ä‘á»™ nÃºt tÄƒng dáº§n cho Ä‘áº¿n táº§ng cÆ¡ sá»Ÿ $L_0$ chá»©a toÃ n bá»™ $N$ vector.
 
-Quá trình tìm kiếm sử dụng thuật toán duyệt theo chùm (Greedy Beam Search):
-- Tại mỗi bước nhảy, thuật toán kiểm tra tập láng giềng $\mathcal{N}(v)$ của nút hiện tại $v$.
-- Nếu tìm thấy nút $u \in \mathcal{N}(v)$ thỏa mãn $d(q, u) < d(q, v)$, thuật toán cập nhật vị trí hiện tại sang $u$.
-- Thuật toán dừng khi không tìm thấy nút nào gần $q$ hơn trong danh sách ứng viên kích thước $ef\_search$.
+QuÃ¡ trÃ¬nh tÃ¬m kiáº¿m sá»­ dá»¥ng thuáº­t toÃ¡n duyá»‡t theo chÃ¹m (Greedy Beam Search):
+- Táº¡i má»—i bÆ°á»›c nháº£y, thuáº­t toÃ¡n kiá»ƒm tra táº­p lÃ¡ng giá»ng $\mathcal{N}(v)$ cá»§a nÃºt hiá»‡n táº¡i $v$.
+- Náº¿u tÃ¬m tháº¥y nÃºt $u \in \mathcal{N}(v)$ thá»a mÃ£n $d(q, u) < d(q, v)$, thuáº­t toÃ¡n cáº­p nháº­t vá»‹ trÃ­ hiá»‡n táº¡i sang $u$.
+- Thuáº­t toÃ¡n dá»«ng khi khÃ´ng tÃ¬m tháº¥y nÃºt nÃ o gáº§n $q$ hÆ¡n trong danh sÃ¡ch á»©ng viÃªn kÃ­ch thÆ°á»›c $ef\_search$.
 
 ### 2.4. Inverted File with Product Quantization (IVF-PQ)
-IVF-PQ gồm hai giai đoạn nén:
-1. **Phân vùng cụm (Inverted File)**: Sử dụng K-Means chia không gian thành $K_{\text{list}}$ cụm Voronoi với các tâm cụm $C_1, \dots, C_{K_{\text{list}}}$. Khi truy vấn, chỉ thăm dò $nprobe$ cụm gần nhất.
-2. **Lượng tử hóa tích (Product Quantization)**: Chia vector $D$ chiều thành $M$ không gian con chiều $d' = D / M$. Với mỗi không gian con, huấn luyện 256 tâm cụm con (1 byte codebook). Vector được nén thành $M$ byte.
-3. **Tính khoảng cách bất đối xứng (ADC - Asymmetric Distance Computation)**: Tính trước khoảng cách giữa vector truy vấn $q$ và 256 tâm cụm con trong $M$ bảng tra cứu, sau đó tính khoảng cách xấp xỉ bằng phép cộng bảng tra cứu:
+IVF-PQ gá»“m hai giai Ä‘oáº¡n nÃ©n:
+1. **PhÃ¢n vÃ¹ng cá»¥m (Inverted File)**: Sá»­ dá»¥ng K-Means chia khÃ´ng gian thÃ nh $K_{\text{list}}$ cá»¥m Voronoi vá»›i cÃ¡c tÃ¢m cá»¥m $C_1, \dots, C_{K_{\text{list}}}$. Khi truy váº¥n, chá»‰ thÄƒm dÃ² $nprobe$ cá»¥m gáº§n nháº¥t.
+2. **LÆ°á»£ng tá»­ hÃ³a tÃ­ch (Product Quantization)**: Chia vector $D$ chiá»u thÃ nh $M$ khÃ´ng gian con chiá»u $d' = D / M$. Vá»›i má»—i khÃ´ng gian con, huáº¥n luyá»‡n 256 tÃ¢m cá»¥m con (1 byte codebook). Vector Ä‘Æ°á»£c nÃ©n thÃ nh $M$ byte.
+3. **TÃ­nh khoáº£ng cÃ¡ch báº¥t Ä‘á»‘i xá»©ng (ADC - Asymmetric Distance Computation)**: TÃ­nh trÆ°á»›c khoáº£ng cÃ¡ch giá»¯a vector truy váº¥n $q$ vÃ  256 tÃ¢m cá»¥m con trong $M$ báº£ng tra cá»©u, sau Ä‘Ã³ tÃ­nh khoáº£ng cÃ¡ch xáº¥p xá»‰ báº±ng phÃ©p cá»™ng báº£ng tra cá»©u:
 
 $$d_{\text{ADC}}(q, x) \approx \sum_{m=1}^M \text{LUT}_m [c_m(x)]$$
 
 ---
 
-## CHƯƠNG 3: THIẾT KẾ KIẾN TRÚC HỆ THỐNG TWO-TIER QUANTIZED HNSW
+## CHÆ¯Æ NG 3: THIáº¾T Káº¾ KIáº¾N TRÃšC Há»† THá»NG TWO-TIER QUANTIZED HNSW
 
-### 3.1. Sơ đồ Khối Tổng thể Hệ thống
+### 3.1. SÆ¡ Ä‘á»“ Khá»‘i Tá»•ng thá»ƒ Há»‡ thá»‘ng
 
 ```text
-[ Dữ liệu Đầu vào (Hugging Face Hub / RSS News Stream) ]
+[ Dá»¯ liá»‡u Äáº§u vÃ o (Hugging Face Hub / RSS News Stream) ]
                          |
                          v
-[ Tầng Tiền xử lý: NFC -> Tách từ tiếng Việt -> MinHash LSH Dedup ]
+[ Táº§ng Tiá»n xá»­ lÃ½: NFC -> TÃ¡ch tá»« tiáº¿ng Viá»‡t -> MinHash LSH Dedup ]
                          |
            +-------------+-------------+
            |                           |
            v                           v
   [ Tier 1: In-Memory ]       [ Tier 2: SSD Storage ]
   Scalar Quantizer (SQ8 uint8)   Memmap Binary float32
-           |                     (15.36 GB file trên đĩa)
+           |                     (15.36 GB file trÃªn Ä‘Ä©a)
            v                           |
-  Đồ thị Điều hướng HNSW               |
+  Äá»“ thá»‹ Äiá»u hÆ°á»›ng HNSW               |
   + Adaptive Early-Exit                |
            |                           |
            v                           v
-  Top-K ứng viên (Indices) ---> [ Re-ranking Tái xếp hạng ]
+  Top-K á»©ng viÃªn (Indices) ---> [ Re-ranking TÃ¡i xáº¿p háº¡ng ]
                                        |
                                        v
-                             [ Kết quả Top-K & Metrics ]
+                             [ Káº¿t quáº£ Top-K & Metrics ]
 ```
 
-### 3.2. Pipeline Thu thập và Tiền xử lý Dữ liệu Luồng
-Nhằm giữ bộ nhớ RAM phẳng ($< 150$ MB) khi nạp đến 10 triệu bản ghi, hệ thống xây dựng pipeline hướng luồng với các module độc lập:
-1. **TextCleaner**: Chuẩn hóa văn bản sang mã Unicode dựng sẵn (NFC), bóc tách mã HTML và loại bỏ liên kết URL.
-2. **VietnameseTokenizer**: Tách từ ghép tiếng Việt (hỗ trợ PyVi và cơ chế fallback khoảng trắng nhanh).
-3. **StreamDeduplicator**: Sử dụng MinHash LSH với 128 hàm băm hoán vị và kích thước 3-shingle. Các bản ghi có độ tương đồng Jaccard $\ge 0.8$ bị loại bỏ trực tiếp trên luồng dữ liệu, ngăn ngừa rác dữ liệu làm phình to chỉ mục.
-4. **MemmapStorage**: Định dạng trước tệp nhị phân float32 trên đĩa SSD kích thước $N \times D \times 4$ byte. Dữ liệu được nhúng và xả đĩa theo từng lô ($10.000$ vector/lô). Sau khi xả đĩa, bộ nhớ RAM được giải phóng ngay lập tức.
-5. **CheckpointManager**: Ghi nhận trạng thái `processed_count`, `last_doc_id`, `duplicates_filtered` vào tệp JSON sau mỗi lô, cho phép khôi phục tiến trình (`--resume`) khi xảy ra sự cố mạng.
+### 3.2. Pipeline Thu tháº­p vÃ  Tiá»n xá»­ lÃ½ Dá»¯ liá»‡u Luá»“ng
+Nháº±m giá»¯ bá»™ nhá»› RAM pháº³ng ($< 150$ MB) khi náº¡p Ä‘áº¿n 10 triá»‡u báº£n ghi, há»‡ thá»‘ng xÃ¢y dá»±ng pipeline hÆ°á»›ng luá»“ng vá»›i cÃ¡c module Ä‘á»™c láº­p:
+1. **TextCleaner**: Chuáº©n hÃ³a vÄƒn báº£n sang mÃ£ Unicode dá»±ng sáºµn (NFC), bÃ³c tÃ¡ch mÃ£ HTML vÃ  loáº¡i bá» liÃªn káº¿t URL.
+2. **VietnameseTokenizer**: TÃ¡ch tá»« ghÃ©p tiáº¿ng Viá»‡t (há»— trá»£ PyVi vÃ  cÆ¡ cháº¿ fallback khoáº£ng tráº¯ng nhanh).
+3. **StreamDeduplicator**: Sá»­ dá»¥ng MinHash LSH vá»›i 128 hÃ m bÄƒm hoÃ¡n vá»‹ vÃ  kÃ­ch thÆ°á»›c 3-shingle. CÃ¡c báº£n ghi cÃ³ Ä‘á»™ tÆ°Æ¡ng Ä‘á»“ng Jaccard $\ge 0.8$ bá»‹ loáº¡i bá» trá»±c tiáº¿p trÃªn luá»“ng dá»¯ liá»‡u, ngÄƒn ngá»«a rÃ¡c dá»¯ liá»‡u lÃ m phÃ¬nh to chá»‰ má»¥c.
+4. **MemmapStorage**: Äá»‹nh dáº¡ng trÆ°á»›c tá»‡p nhá»‹ phÃ¢n float32 trÃªn Ä‘Ä©a SSD kÃ­ch thÆ°á»›c $N \times D \times 4$ byte. Dá»¯ liá»‡u Ä‘Æ°á»£c nhÃºng vÃ  xáº£ Ä‘Ä©a theo tá»«ng lÃ´ ($10.000$ vector/lÃ´). Sau khi xáº£ Ä‘Ä©a, bá»™ nhá»› RAM Ä‘Æ°á»£c giáº£i phÃ³ng ngay láº­p tá»©c.
+5. **CheckpointManager**: Ghi nháº­n tráº¡ng thÃ¡i `processed_count`, `last_doc_id`, `duplicates_filtered` vÃ o tá»‡p JSON sau má»—i lÃ´, cho phÃ©p khÃ´i phá»¥c tiáº¿n trÃ¬nh (`--resume`) khi xáº£y ra sá»± cá»‘ máº¡ng.
 
-### 3.3. Tầng 1: Lượng tử hóa Vô hướng SQ8 Trong Bộ nhớ (Tier 1 In-Memory)
-Thay vì lưu trữ vector dạng `float32` (4 byte/chiều), bộ lượng tử hóa `ScalarQuantizer` ánh xạ từng giá trị thực vào số nguyên không dấu 1 byte `uint8` ($[0, 255]$).
+### 3.3. Táº§ng 1: LÆ°á»£ng tá»­ hÃ³a VÃ´ hÆ°á»›ng SQ8 Trong Bá»™ nhá»› (Tier 1 In-Memory)
+Thay vÃ¬ lÆ°u trá»¯ vector dáº¡ng `float32` (4 byte/chiá»u), bá»™ lÆ°á»£ng tá»­ hÃ³a `ScalarQuantizer` Ã¡nh xáº¡ tá»«ng giÃ¡ trá»‹ thá»±c vÃ o sá»‘ nguyÃªn khÃ´ng dáº¥u 1 byte `uint8` ($[0, 255]$).
 
-Với chiều thứ $j \in \{0, \dots, D-1\}$, xác định giá trị cực tiểu $x_{\min}^{(j)}$ và cực đại $x_{\max}^{(j)}$ trên tập huấn luyện. Bước lượng tử hóa được tính bởi:
+Vá»›i chiá»u thá»© $j \in \{0, \dots, D-1\}$, xÃ¡c Ä‘á»‹nh giÃ¡ trá»‹ cá»±c tiá»ƒu $x_{\min}^{(j)}$ vÃ  cá»±c Ä‘áº¡i $x_{\max}^{(j)}$ trÃªn táº­p huáº¥n luyá»‡n. BÆ°á»›c lÆ°á»£ng tá»­ hÃ³a Ä‘Æ°á»£c tÃ­nh bá»Ÿi:
 
 $$\Delta_j = \frac{x_{\max}^{(j)} - x_{\min}^{(j)}}{255}$$
 
-Hàm lượng tử hóa từ vector thực $x$ sang vector nguyên $q$:
+HÃ m lÆ°á»£ng tá»­ hÃ³a tá»« vector thá»±c $x$ sang vector nguyÃªn $q$:
 
 $$q_j = \text{clip}\left( \text{round}\left( \frac{x_j - x_{\min}^{(j)}}{\Delta_j} \right), 0, 255 \right), \quad q_j \in \text{uint8}$$
 
-Hàm khôi phục xấp xỉ (De-quantization):
+HÃ m khÃ´i phá»¥c xáº¥p xá»‰ (De-quantization):
 
 $$\hat{x}_j = x_{\min}^{(j)} + q_j \cdot \Delta_j$$
 
-**Hiệu quả**: Kích thước lưu trữ vector giảm đúng **75%** (từ 1.536 byte xuống 384 byte cho một vector $D=384$). Phép tính khoảng cách trên mảng `uint8` sử dụng số nguyên nhanh hơn đáng kể so với phép tính dấu phẩy động trên CPU.
+**Hiá»‡u quáº£**: KÃ­ch thÆ°á»›c lÆ°u trá»¯ vector giáº£m Ä‘Ãºng **75%** (tá»« 1.536 byte xuá»‘ng 384 byte cho má»™t vector $D=384$). PhÃ©p tÃ­nh khoáº£ng cÃ¡ch trÃªn máº£ng `uint8` sá»­ dá»¥ng sá»‘ nguyÃªn nhanh hÆ¡n Ä‘Ã¡ng ká»ƒ so vá»›i phÃ©p tÃ­nh dáº¥u pháº©y Ä‘á»™ng trÃªn CPU.
 
-### 3.4. Cơ chế Ngắt Duyệt Sớm Thích ứng (Adaptive Early-Exit Controller)
-Trong quá trình duyệt đồ thị chùm, các bước nhảy cuối cùng thường chỉ mang lại mức cải thiện khoảng cách rất nhỏ khi đã tiệm cận cực tiểu cục bộ.
+### 3.4. CÆ¡ cháº¿ Ngáº¯t Duyá»‡t Sá»›m ThÃ­ch á»©ng (Adaptive Early-Exit Controller)
+Trong quÃ¡ trÃ¬nh duyá»‡t Ä‘á»“ thá»‹ chÃ¹m, cÃ¡c bÆ°á»›c nháº£y cuá»‘i cÃ¹ng thÆ°á»ng chá»‰ mang láº¡i má»©c cáº£i thiá»‡n khoáº£ng cÃ¡ch ráº¥t nhá» khi Ä‘Ã£ tiá»‡m cáº­n cá»±c tiá»ƒu cá»¥c bá»™.
 
-Bộ điều khiển `AdaptiveEarlyExitController` giám sát độ giảm khoảng cách qua từng bước duyệt $t$. Giả sử khoảng cách tốt nhất hiện tại là $d_t$. Độ cải thiện tương đối được tính bởi:
+Bá»™ Ä‘iá»u khiá»ƒn `AdaptiveEarlyExitController` giÃ¡m sÃ¡t Ä‘á»™ giáº£m khoáº£ng cÃ¡ch qua tá»«ng bÆ°á»›c duyá»‡t $t$. Giáº£ sá»­ khoáº£ng cÃ¡ch tá»‘t nháº¥t hiá»‡n táº¡i lÃ  $d_t$. Äá»™ cáº£i thiá»‡n tÆ°Æ¡ng Ä‘á»‘i Ä‘Æ°á»£c tÃ­nh bá»Ÿi:
 
 $$\delta_t = \frac{d_{t-1} - d_t}{d_{t-1} + 10^{-12}}$$
 
-Hệ thống duy trì biến đếm số bước bão hòa $c$:
+Há»‡ thá»‘ng duy trÃ¬ biáº¿n Ä‘áº¿m sá»‘ bÆ°á»›c bÃ£o hÃ²a $c$:
 
-$$c \leftarrow \begin{cases} c + 1 & \text{nếu } \delta_t < \varepsilon \\ 0 & \text{nếu } \delta_t \ge \varepsilon \end{cases}$$
+$$c \leftarrow \begin{cases} c + 1 & \text{náº¿u } \delta_t < \varepsilon \\ 0 & \text{náº¿u } \delta_t \ge \varepsilon \end{cases}$$
 
-**Điều kiện ngắt sớm**: Thuật toán lập tức dừng việc duyệt đồ thị và trả về tập ứng viên hiện có khi:
+**Äiá»u kiá»‡n ngáº¯t sá»›m**: Thuáº­t toÃ¡n láº­p tá»©c dá»«ng viá»‡c duyá»‡t Ä‘á»“ thá»‹ vÃ  tráº£ vá» táº­p á»©ng viÃªn hiá»‡n cÃ³ khi:
 
-$$c \ge \tau \quad \text{với } \tau = 3, \; \varepsilon = 10^{-4}$$
+$$c \ge \tau \quad \text{vá»›i } \tau = 3, \; \varepsilon = 10^{-4}$$
 
-Cơ chế này loại bỏ từ **35% đến 40%** số phép tính khoảng cách dư thừa, giúp tăng thông lượng xử lý câu truy vấn trên giây (QPS).
+CÆ¡ cháº¿ nÃ y loáº¡i bá» tá»« **35% Ä‘áº¿n 40%** sá»‘ phÃ©p tÃ­nh khoáº£ng cÃ¡ch dÆ° thá»«a, giÃºp tÄƒng thÃ´ng lÆ°á»£ng xá»­ lÃ½ cÃ¢u truy váº¥n trÃªn giÃ¢y (QPS).
 
-### 3.5. Tầng 2: Lưu trữ SSD và Tái Xếp hạng (Tier 2 Re-ranking)
-Để khắc phục hoàn toàn sai số lượng tử hóa của Tier 1, hệ thống triển khai tầng Re-ranking:
-- Sau khi Tier 1 dừng, hệ thống thu được tập chỉ số $K_{\text{rerank}}$ ứng viên tốt nhất ($K_{\text{rerank}} = \max(K \cdot 3, 30)$).
-- Hệ thống thực hiện phép đọc lát cắt ngẫu nhiên (Random Slice) trên tệp vector nhị phân float32 nguyên bản thông qua con trỏ `np.memmap`. Vì chỉ đọc $K_{\text{rerank}}$ vector ($30 \times 384 \times 4 \text{ bytes} \approx 45 \text{ KB}$), thời gian truy xuất đĩa qua bộ đệm trang (Page Cache) chỉ mất **$0.004$ ms - $0.12$ ms**.
-- Tính khoảng cách $L_2$ hoặc Cosine chính xác giữa $q$ gốc và $K_{\text{rerank}}$ vector gốc `float32`.
-- Sắp xếp và trả về Top-$K$ kết quả cuối cùng.
+### 3.5. Táº§ng 2: LÆ°u trá»¯ SSD vÃ  TÃ¡i Xáº¿p háº¡ng (Tier 2 Re-ranking)
+Äá»ƒ kháº¯c phá»¥c hoÃ n toÃ n sai sá»‘ lÆ°á»£ng tá»­ hÃ³a cá»§a Tier 1, há»‡ thá»‘ng triá»ƒn khai táº§ng Re-ranking:
+- Sau khi Tier 1 dá»«ng, há»‡ thá»‘ng thu Ä‘Æ°á»£c táº­p chá»‰ sá»‘ $K_{\text{rerank}}$ á»©ng viÃªn tá»‘t nháº¥t ($K_{\text{rerank}} = \max(K \cdot 3, 30)$).
+- Há»‡ thá»‘ng thá»±c hiá»‡n phÃ©p Ä‘á»c lÃ¡t cáº¯t ngáº«u nhiÃªn (Random Slice) trÃªn tá»‡p vector nhá»‹ phÃ¢n float32 nguyÃªn báº£n thÃ´ng qua con trá» `np.memmap`. VÃ¬ chá»‰ Ä‘á»c $K_{\text{rerank}}$ vector ($30 \times 384 \times 4 \text{ bytes} \approx 45 \text{ KB}$), thá»i gian truy xuáº¥t Ä‘Ä©a qua bá»™ Ä‘á»‡m trang (Page Cache) chá»‰ máº¥t **$0.004$ ms - $0.12$ ms**.
+- TÃ­nh khoáº£ng cÃ¡ch $L_2$ hoáº·c Cosine chÃ­nh xÃ¡c giá»¯a $q$ gá»‘c vÃ  $K_{\text{rerank}}$ vector gá»‘c `float32`.
+- Sáº¯p xáº¿p vÃ  tráº£ vá» Top-$K$ káº¿t quáº£ cuá»‘i cÃ¹ng.
 
 ---
 
-## CHƯƠNG 4: KẾT QUẢ THỰC NGHIỆM VÀ PHÂN TÍCH ĐÁNH ĐỔI
+## CHÆ¯Æ NG 4: Káº¾T QUáº¢ THá»°C NGHIá»†M VÃ€ PHÃ‚N TÃCH ÄÃNH Äá»”I
 
-### 4.1. Môi trường Thực nghiệm
-- **Hệ điều hành**: Microsoft Windows 11 64-bit.
-- **CPU**: Đa nhân x86_64, vi kiến trúc hỗ trợ AVX2.
-- **RAM vật lý**: Giới hạn đo đạc trong phạm vi tài nguyên khả dụng.
-- **Ổ cứng**: Solid-State Drive (NVMe SSD).
-- **Môi trường phần mềm**: Python 3.14.6, NumPy 2.x, Node.js v24.18.0.
+### 4.1. MÃ´i trÆ°á»ng Thá»±c nghiá»‡m
+- **Há»‡ Ä‘iá»u hÃ nh**: Microsoft Windows 11 64-bit.
+- **CPU**: Äa nhÃ¢n x86_64, vi kiáº¿n trÃºc há»— trá»£ AVX2.
+- **RAM váº­t lÃ½**: Giá»›i háº¡n Ä‘o Ä‘áº¡c trong pháº¡m vi tÃ i nguyÃªn kháº£ dá»¥ng.
+- **á»” cá»©ng**: Solid-State Drive (NVMe SSD).
+- **MÃ´i trÆ°á»ng pháº§n má»m**: Python 3.14.6, NumPy 2.x, Node.js v24.18.0.
 
-### 4.2. Bảng Đối sánh Toàn diện 4 Thuật toán
-Bảng dưới đây tổng hợp kết quả đo đạc thực nghiệm trên tập kiểm thử chuẩn ($D = 64, N = 1.000$, Top-$K = 10$, 100 câu truy vấn đánh giá):
+### 4.2. Báº£ng Äá»‘i sÃ¡nh ToÃ n diá»‡n 4 Thuáº­t toÃ¡n
+Báº£ng dÆ°á»›i Ä‘Ã¢y tá»•ng há»£p káº¿t quáº£ Ä‘o Ä‘áº¡c thá»±c nghiá»‡m trÃªn táº­p kiá»ƒm thá»­ chuáº©n ($D = 64, N = 1.000$, Top-$K = 10$, 100 cÃ¢u truy váº¥n Ä‘Ã¡nh giÃ¡):
 
-| Thuật toán | Trường phái | RAM (MB) | Recall@10 | Latency p50 | Latency p95 | QPS | Ưu điểm cốt lõi |
+| Thuáº­t toÃ¡n | TrÆ°á»ng phÃ¡i | RAM (MB) | Recall@10 | Latency p50 | Latency p95 | QPS | Æ¯u Ä‘iá»ƒm cá»‘t lÃµi |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :--- |
-| **Flat Exact Search** | Baseline (Ground Truth) | 0.25 | **100.0%** | 0.02 ms | 0.03 ms | 46,579 | Độ chính xác tuyệt đối 100% |
-| **Standard HNSW** | Graph Baseline | 0.37 | 98.33% | 2.90 ms | 5.49 ms | 303.7 | Độ chính xác cao, hội tụ nhanh |
-| **IVF-PQ** | Subspace Quantization | **0.08** | 40.00% | **0.34 ms** | **0.67 ms** | **2,590.9** | RAM thấp nhất, tính khoảng cách bằng ADC |
-| **Two-Tier Quantized HNSW** | **Thuật toán Đề xuất** | **0.18** | **94.00%** | **2.37 ms** | **5.12 ms** | **365.0** | **Tiết kiệm 50% RAM, QPS tăng 20%, phục hồi Recall** |
+| **Flat Exact Search** | Baseline (Ground Truth) | 0.25 | **100.0%** | 0.02 ms | 0.03 ms | 46,579 | Äá»™ chÃ­nh xÃ¡c tuyá»‡t Ä‘á»‘i 100% |
+| **Standard HNSW** | Graph Baseline | 0.37 | 98.33% | 2.90 ms | 5.49 ms | 303.7 | Äá»™ chÃ­nh xÃ¡c cao, há»™i tá»¥ nhanh |
+| **IVF-PQ** | Subspace Quantization | **0.08** | 40.00% | **0.34 ms** | **0.67 ms** | **2,590.9** | RAM tháº¥p nháº¥t, tÃ­nh khoáº£ng cÃ¡ch báº±ng ADC |
+| **Two-Tier Quantized HNSW** | **Thuáº­t toÃ¡n Äá» xuáº¥t** | **0.18** | **94.00%** | **2.37 ms** | **5.12 ms** | **365.0** | **Tiáº¿t kiá»‡m 50% RAM, QPS tÄƒng 20%, phá»¥c há»“i Recall** |
 
-### 4.3. Thí nghiệm Mở rộng Quy mô (Scalability Stress Tests)
-Hệ thống được kiểm thử độ co giãn khi mở rộng quy mô dữ liệu từ $N = 1.000$ lên $N = 2.500$ và $N = 5.000$ vector:
+### 4.3. ThÃ­ nghiá»‡m Má»Ÿ rá»™ng Quy mÃ´ (Scalability Stress Tests)
+Há»‡ thá»‘ng Ä‘Æ°á»£c kiá»ƒm thá»­ Ä‘á»™ co giÃ£n khi má»Ÿ rá»™ng quy mÃ´ dá»¯ liá»‡u tá»« $N = 1.000$ lÃªn $N = 2.500$ vÃ  $N = 5.000$ vector:
 
 ```text
-Mức tiêu thụ RAM (MB) theo Quy mô N:
-N = 1.000: Standard HNSW = 0.37 MB  |  Two-Tier HNSW = 0.18 MB  (Giảm 51.4%)
-N = 2.500: Standard HNSW = 0.91 MB  |  Two-Tier HNSW = 0.46 MB  (Giảm 49.5%)
-N = 5.000: Standard HNSW = 1.83 MB  |  Two-Tier HNSW = 0.92 MB  (Giảm 49.7%)
+Má»©c tiÃªu thá»¥ RAM (MB) theo Quy mÃ´ N:
+N = 1.000: Standard HNSW = 0.37 MB  |  Two-Tier HNSW = 0.18 MB  (Giáº£m 51.4%)
+N = 2.500: Standard HNSW = 0.91 MB  |  Two-Tier HNSW = 0.46 MB  (Giáº£m 49.5%)
+N = 5.000: Standard HNSW = 1.83 MB  |  Two-Tier HNSW = 0.92 MB  (Giáº£m 49.7%)
 ```
 
-**Nhận xét**: 
-- Ở mọi mốc quy mô, Two-Tier HNSW luôn duy trì mức tiết kiệm đúng **50% RAM** nhờ cấu trúc lưu trữ đồ thị trên mảng `uint8`.
-- Khi phóng chiếu lên quy mô 10 triệu vector, dung lượng RAM ước tính của Two-Tier HNSW giảm từ **46 GB xuống còn ~22 GB**, nằm gọn trong giới hạn phần cứng của máy chủ 32GB RAM.
+**Nháº­n xÃ©t**: 
+- á»ž má»i má»‘c quy mÃ´, Two-Tier HNSW luÃ´n duy trÃ¬ má»©c tiáº¿t kiá»‡m Ä‘Ãºng **50% RAM** nhá» cáº¥u trÃºc lÆ°u trá»¯ Ä‘á»“ thá»‹ trÃªn máº£ng `uint8`.
+- Khi phÃ³ng chiáº¿u lÃªn quy mÃ´ 10 triá»‡u vector, dung lÆ°á»£ng RAM Æ°á»›c tÃ­nh cá»§a Two-Tier HNSW giáº£m tá»« **46 GB xuá»‘ng cÃ²n ~22 GB**, náº±m gá»n trong giá»›i háº¡n pháº§n cá»©ng cá»§a mÃ¡y chá»§ 32GB RAM.
 
-### 4.4. Phân rã Vi-giai đoạn Thời gian Truy vấn (Latency Micro-Breakdown)
-Đo đạc chi tiết thời gian tiêu thụ của từng vi-giai đoạn trong một câu truy vấn của Two-Tier HNSW:
+### 4.4. PhÃ¢n rÃ£ Vi-giai Ä‘oáº¡n Thá»i gian Truy váº¥n (Latency Micro-Breakdown)
+Äo Ä‘áº¡c chi tiáº¿t thá»i gian tiÃªu thá»¥ cá»§a tá»«ng vi-giai Ä‘oáº¡n trong má»™t cÃ¢u truy váº¥n cá»§a Two-Tier HNSW:
 
 ```text
-Tổng Thời gian Truy vấn (p50 = 2.37 ms):
+Tá»•ng Thá»i gian Truy váº¥n (p50 = 2.37 ms):
 |====================================|========|===|====|
           Tier-1 uint8 Routing       Embed    SSD ReRank
                (1.82 ms)            (0.18ms) (0.12ms) (0.25ms)
 ```
 
-- **Query Embedding**: $0.18$ ms (nhúng câu hỏi thành vector).
-- **Tier 1 Graph Routing (uint8)**: $1.82$ ms (chiếm 76.8% thời gian, điều hướng trên đồ thị số nguyên).
-- **Tier 2 SSD Memmap Access**: $0.12$ ms (chiếm 5.1%, đọc ngẫu nhiên $K_{\text{rerank}}$ vector từ SSD).
-- **Float32 Re-ranking & Sorting**: $0.25$ ms (chiếm 10.5%, tính toán chính xác và sắp xếp kết quả).
+- **Query Embedding**: $0.18$ ms (nhÃºng cÃ¢u há»i thÃ nh vector).
+- **Tier 1 Graph Routing (uint8)**: $1.82$ ms (chiáº¿m 76.8% thá»i gian, Ä‘iá»u hÆ°á»›ng trÃªn Ä‘á»“ thá»‹ sá»‘ nguyÃªn).
+- **Tier 2 SSD Memmap Access**: $0.12$ ms (chiáº¿m 5.1%, Ä‘á»c ngáº«u nhiÃªn $K_{\text{rerank}}$ vector tá»« SSD).
+- **Float32 Re-ranking & Sorting**: $0.25$ ms (chiáº¿m 10.5%, tÃ­nh toÃ¡n chÃ­nh xÃ¡c vÃ  sáº¯p xáº¿p káº¿t quáº£).
 
-Thời gian truy xuất SSD chỉ tốn $0.12$ ms là minh chứng rõ ràng cho tính khả thi của kiến trúc Two-Tier: việc phân tầng dữ liệu xuống SSD không gây nghẽn cổ chai độ trễ.
+Thá»i gian truy xuáº¥t SSD chá»‰ tá»‘n $0.12$ ms lÃ  minh chá»©ng rÃµ rÃ ng cho tÃ­nh kháº£ thi cá»§a kiáº¿n trÃºc Two-Tier: viá»‡c phÃ¢n táº§ng dá»¯ liá»‡u xuá»‘ng SSD khÃ´ng gÃ¢y ngháº½n cá»• chai Ä‘á»™ trá»….
 
-### 4.5. Phân tích Ma trận Phân vị Độ trễ (Percentiles Matrix)
-Đo lường độ ổn định thời gian thực qua 50 câu truy vấn độc lập:
-- $p_{50}$ (Trung vị): $0.18$ ms (với tập dữ liệu thử nghiệm tại chỗ) / $2.37$ ms (với tập benchmark đầy đủ).
+### 4.5. PhÃ¢n tÃ­ch Ma tráº­n PhÃ¢n vá»‹ Äá»™ trá»… (Percentiles Matrix)
+Äo lÆ°á»ng Ä‘á»™ á»•n Ä‘á»‹nh thá»i gian thá»±c qua 50 cÃ¢u truy váº¥n Ä‘á»™c láº­p:
+- $p_{50}$ (Trung vá»‹): $0.18$ ms (vá»›i táº­p dá»¯ liá»‡u thá»­ nghiá»‡m táº¡i chá»—) / $2.37$ ms (vá»›i táº­p benchmark Ä‘áº§y Ä‘á»§).
 - $p_{90}$: $0.22$ ms / $4.20$ ms.
 - $p_{95}$: $0.25$ ms / $5.12$ ms.
-- $p_{99}$ (Đỉnh đuôi - Tail Latency): $0.31$ ms / $7.85$ ms.
-- Toàn bộ các phân vị độ trễ đều nằm dưới ngưỡng cam kết $8.0$ ms.
+- $p_{99}$ (Äá»‰nh Ä‘uÃ´i - Tail Latency): $0.31$ ms / $7.85$ ms.
+- ToÃ n bá»™ cÃ¡c phÃ¢n vá»‹ Ä‘á»™ trá»… Ä‘á»u náº±m dÆ°á»›i ngÆ°á»¡ng cam káº¿t $8.0$ ms.
 
 ---
 
-## CHƯƠNG 5: HỆ THỐNG WEB DASHBOARD VÀ MÔ HÌNH GRAPH KIẾN TRÚC
+## CHÆ¯Æ NG 5: Há»† THá»NG WEB DASHBOARD VÃ€ MÃ” HÃŒNH GRAPH KIáº¾N TRÃšC
 
-### 5.1. Kiến trúc Backend Node.js
-Ứng dụng Web Dashboard được xây dựng bằng Node.js (Express Framework) hoạt động tại cổng `http://localhost:3000`, cung cấp các REST API:
-- `GET /api/status`: Đọc trạng thái checkpoint và manifest, báo cáo số lượng vector đã nạp, dung lượng đĩa và RAM.
-- `GET /api/architecture`: Cung cấp cấu trúc hình học (Topology) của mô hình đồ thị khối kiến trúc thực tế.
-- `GET /api/speed-analytics`: Trả về dữ liệu phân rã vi-giai đoạn và bảng đối sánh 4 thuật toán.
-- `POST /api/search`: Thực thi truy vấn vector kèm bộ lọc chuyên mục và siêu tham số linh hoạt.
-- `POST /api/eval/run`: Chạy kịch bản đánh giá đối chuẩn tự động 4 thuật toán (Flat, Standard HNSW, IVF-PQ, Two-Tier HNSW).
-- `GET /api/eval/history`: Trả về danh sách tệp báo cáo đánh giá và nhật ký truy vấn đã lưu.
-- `GET /api/eval/download/:type/:filename`: Tải tệp báo cáo Markdown/JSON hoặc log truy vấn.
-- `POST /api/upload-search`: Tiếp nhận tệp văn bản tùy chỉnh (`.txt`, `.md`, `.json`, `.csv`), trích xuất nội dung và tìm kiếm Top-K bài viết liên quan.
-- `POST /api/run-latency-benchmark`: Kích hoạt bài đo tốc độ 50 câu truy vấn trực tiếp trên CPU và trả về phân phối độ trễ thời gian thực.
+### 5.1. Kiáº¿n trÃºc Backend Node.js
+á»¨ng dá»¥ng Web Dashboard Ä‘Æ°á»£c xÃ¢y dá»±ng báº±ng Node.js (Express Framework) hoáº¡t Ä‘á»™ng táº¡i cá»•ng `http://localhost:3000`, cung cáº¥p cÃ¡c REST API:
+- `GET /api/status`: Äá»c tráº¡ng thÃ¡i checkpoint vÃ  manifest, bÃ¡o cÃ¡o sá»‘ lÆ°á»£ng vector Ä‘Ã£ náº¡p, dung lÆ°á»£ng Ä‘Ä©a vÃ  RAM.
+- `GET /api/architecture`: Cung cáº¥p cáº¥u trÃºc hÃ¬nh há»c (Topology) cá»§a mÃ´ hÃ¬nh Ä‘á»“ thá»‹ khá»‘i kiáº¿n trÃºc thá»±c táº¿.
+- `GET /api/speed-analytics`: Tráº£ vá» dá»¯ liá»‡u phÃ¢n rÃ£ vi-giai Ä‘oáº¡n vÃ  báº£ng Ä‘á»‘i sÃ¡nh 4 thuáº­t toÃ¡n.
+- `POST /api/search`: Thá»±c thi truy váº¥n vector kÃ¨m bá»™ lá»c chuyÃªn má»¥c vÃ  siÃªu tham sá»‘ linh hoáº¡t.
+- `POST /api/eval/run`: Cháº¡y ká»‹ch báº£n Ä‘Ã¡nh giÃ¡ Ä‘á»‘i chuáº©n tá»± Ä‘á»™ng 4 thuáº­t toÃ¡n (Flat, Standard HNSW, IVF-PQ, Two-Tier HNSW).
+- `GET /api/eval/history`: Tráº£ vá» danh sÃ¡ch tá»‡p bÃ¡o cÃ¡o Ä‘Ã¡nh giÃ¡ vÃ  nháº­t kÃ½ truy váº¥n Ä‘Ã£ lÆ°u.
+- `GET /api/eval/download/:type/:filename`: Táº£i tá»‡p bÃ¡o cÃ¡o Markdown/JSON hoáº·c log truy váº¥n.
+- `POST /api/upload-search`: Tiáº¿p nháº­n tá»‡p vÄƒn báº£n tÃ¹y chá»‰nh (`.txt`, `.md`, `.json`, `.csv`), trÃ­ch xuáº¥t ná»™i dung vÃ  tÃ¬m kiáº¿m Top-K bÃ i viáº¿t liÃªn quan.
+- `POST /api/run-latency-benchmark`: KÃ­ch hoáº¡t bÃ i Ä‘o tá»‘c Ä‘á»™ 50 cÃ¢u truy váº¥n trá»±c tiáº¿p trÃªn CPU vÃ  tráº£ vá» phÃ¢n phá»‘i Ä‘á»™ trá»… thá»i gian thá»±c.
 
-### 5.2. Mô hình Graph Biểu diễn Kiến trúc Thực tế
-Giao diện Tab 1 trực quan hóa sơ đồ khối tương tác qua đồ họa véc-tơ SVG:
-- **Tầng 1 (Nguồn Dữ liệu)**: Stream Báo chí từ Crawler RSS Báo chí & Pháp luật .
-- **Tầng 2 (Tiền xử lý & Lọc trùng)**: Unicode NFC Cleaner -> Tách từ tiếng Việt (PyVi) -> MinHash LSH Deduplicator.
-- **Tầng 3 (Tier 1 In-Memory)**: Scalar Quantizer (SQ8) -> Adaptive Early-Exit Controller -> Beam Search Routing.
-- **Tầng 4 (Tier 2 SSD Storage)**: Binary Memmap Storage (24.11 GB thô float32 / 6.02 GB int8) -> Top-K Exact Re-Ranking Engine.
-- **Tầng 5 (Phục vụ & Đánh giá)**: Query Serving & Universal Retrieval Benchmark Engine.
-- **Tính năng tương tác**: Các đường kết nối dữ liệu có hiệu ứng chuyển động luồng (`flow-edge`). Nhấp vào từng khối kiến trúc sẽ mở bảng hiển thị tham số hoạt động ($M, ef\_search, \tau, \varepsilon, K_{\text{rerank}}$) và số liệu đo đạc thực tế.
+### 5.2. MÃ´ hÃ¬nh Graph Biá»ƒu diá»…n Kiáº¿n trÃºc Thá»±c táº¿
+Giao diá»‡n Tab 1 trá»±c quan hÃ³a sÆ¡ Ä‘á»“ khá»‘i tÆ°Æ¡ng tÃ¡c qua Ä‘á»“ há»a vÃ©c-tÆ¡ SVG:
+- **Táº§ng 1 (Nguá»“n Dá»¯ liá»‡u)**: Stream BÃ¡o chÃ­ tá»« Crawler RSS BÃ¡o chÃ­ & PhÃ¡p luáº­t .
+- **Táº§ng 2 (Tiá»n xá»­ lÃ½ & Lá»c trÃ¹ng)**: Unicode NFC Cleaner -> TÃ¡ch tá»« tiáº¿ng Viá»‡t (PyVi) -> MinHash LSH Deduplicator.
+- **Táº§ng 3 (Tier 1 In-Memory)**: Scalar Quantizer (SQ8) -> Adaptive Early-Exit Controller -> Beam Search Routing.
+- **Táº§ng 4 (Tier 2 SSD Storage)**: Binary Memmap Storage (24.11 GB thÃ´ float32 / 6.02 GB int8) -> Top-K Exact Re-Ranking Engine.
+- **Táº§ng 5 (Phá»¥c vá»¥ & ÄÃ¡nh giÃ¡)**: Query Serving & Universal Retrieval Benchmark Engine.
+- **TÃ­nh nÄƒng tÆ°Æ¡ng tÃ¡c**: CÃ¡c Ä‘Æ°á»ng káº¿t ná»‘i dá»¯ liá»‡u cÃ³ hiá»‡u á»©ng chuyá»ƒn Ä‘á»™ng luá»“ng (`flow-edge`). Nháº¥p vÃ o tá»«ng khá»‘i kiáº¿n trÃºc sáº½ má»Ÿ báº£ng hiá»ƒn thá»‹ tham sá»‘ hoáº¡t Ä‘á»™ng ($M, ef\_search, \tau, \varepsilon, K_{\text{rerank}}$) vÃ  sá»‘ liá»‡u Ä‘o Ä‘áº¡c thá»±c táº¿.
 
 ---
 
-## CHƯƠNG 6: KẾT LUẬN VÀ ĐỊNH HƯỚNG KỸ THUẬT
+## CHÆ¯Æ NG 6: Káº¾T LUáº¬N VÃ€ Äá»ŠNH HÆ¯á»šNG Ká»¸ THUáº¬T
 
-### 6.1. Đánh giá Mức độ Đạt mục tiêu KPI
+### 6.1. ÄÃ¡nh giÃ¡ Má»©c Ä‘á»™ Äáº¡t má»¥c tiÃªu KPI
 
-| Mục tiêu Kỹ thuật | Chỉ số Cam kết | Kết quả Thực nghiệm Đạt được | Đánh giá |
+| Má»¥c tiÃªu Ká»¹ thuáº­t | Chá»‰ sá»‘ Cam káº¿t | Káº¿t quáº£ Thá»±c nghiá»‡m Äáº¡t Ä‘Æ°á»£c | ÄÃ¡nh giÃ¡ |
 | :--- | :---: | :---: | :---: |
-| Tiết kiệm RAM | Giảm $\ge 50\%$ | **Giảm 50.0% - 75.0%** trên mọi quy mô | **Đạt** |
-| Độ trễ Trung vị ($p_{50}$) | $< 3.0$ ms | **$1.25$ ms - $2.37$ ms** (nhanh hơn Standard HNSW $2.90$ ms) | **Đạt** |
-| Thông lượng Hệ thống | $> 300$ QPS | **$365.0$ - $1.250.0$ QPS** | **Đạt** |
-| Độ chính xác Recall@10 | $\ge 90\%$ | **$94.0\% - 95.4\%$** sau tầng Re-ranking | **Đạt** |
-| RAM Nạp luồng Quy mô Lớn | $< 150$ MB | **Phẳng $< 150$ MB** nhờ Memmap Disk Flush | **Đạt** |
-| Kiểm thử Tự động | 100% Passed | **91 / 91 Unit Tests Passed** | **Đạt** |
+| Tiáº¿t kiá»‡m RAM | Giáº£m $\ge 50\%$ | **Giáº£m 50.0% - 75.0%** trÃªn má»i quy mÃ´ | **Äáº¡t** |
+| Äá»™ trá»… Trung vá»‹ ($p_{50}$) | $< 3.0$ ms | **$1.25$ ms - $2.37$ ms** (nhanh hÆ¡n Standard HNSW $2.90$ ms) | **Äáº¡t** |
+| ThÃ´ng lÆ°á»£ng Há»‡ thá»‘ng | $> 300$ QPS | **$365.0$ - $1.250.0$ QPS** | **Äáº¡t** |
+| Äá»™ chÃ­nh xÃ¡c Recall@10 | $\ge 90\%$ | **$94.0\% - 95.4\%$** sau táº§ng Re-ranking | **Äáº¡t** |
+| RAM Náº¡p luá»“ng Quy mÃ´ Lá»›n | $< 150$ MB | **Pháº³ng $< 150$ MB** nhá» Memmap Disk Flush | **Äáº¡t** |
+| Kiá»ƒm thá»­ Tá»± Ä‘á»™ng | 100% Passed | **91 / 91 Unit Tests Passed** | **Äáº¡t** |
 
-### 6.2. Kết luận
-Nghiên cứu đã chứng minh tính khả thi và hiệu quả vượt trội của kiến trúc **Two-Tier Quantized HNSW**. Bằng cách phân tách ranh giới rõ ràng giữa nhiệm vụ định hướng đường đi (Routing trên RAM bằng mảng `uint8` có dừng sớm thích ứng) và nhiệm vụ tính toán độ chính xác (Re-ranking trên đĩa SSD qua `np.memmap`), hệ thống đã giải quyết thành công bài toán nghẽn bộ nhớ của HNSW truyền thống mà không làm suy giảm độ chính xác như IVF-PQ.
+### 6.2. Káº¿t luáº­n
+NghiÃªn cá»©u Ä‘Ã£ chá»©ng minh tÃ­nh kháº£ thi vÃ  hiá»‡u quáº£ vÆ°á»£t trá»™i cá»§a kiáº¿n trÃºc **Two-Tier Quantized HNSW**. Báº±ng cÃ¡ch phÃ¢n tÃ¡ch ranh giá»›i rÃµ rÃ ng giá»¯a nhiá»‡m vá»¥ Ä‘á»‹nh hÆ°á»›ng Ä‘Æ°á»ng Ä‘i (Routing trÃªn RAM báº±ng máº£ng `uint8` cÃ³ dá»«ng sá»›m thÃ­ch á»©ng) vÃ  nhiá»‡m vá»¥ tÃ­nh toÃ¡n Ä‘á»™ chÃ­nh xÃ¡c (Re-ranking trÃªn Ä‘Ä©a SSD qua `np.memmap`), há»‡ thá»‘ng Ä‘Ã£ giáº£i quyáº¿t thÃ nh cÃ´ng bÃ i toÃ¡n ngháº½n bá»™ nhá»› cá»§a HNSW truyá»n thá»‘ng mÃ  khÃ´ng lÃ m suy giáº£m Ä‘á»™ chÃ­nh xÃ¡c nhÆ° IVF-PQ.
 
-### 6.3. Định hướng Tối ưu Phần cứng Tiếp theo
-1. **Tối ưu hóa Lệnh SIMD AVX-512 / VNNI**: Cài đặt nhân tính khoảng cách số nguyên `uint8` sử dụng tập lệnh `_mm512_dpbusd_epi32` (Vector Neural Network Instructions), cho phép tính toán 64 phép nhân-cộng số nguyên đồng thời trong một chu kỳ xung nhịp CPU.
-2. **Cơ chế Caching Thích ứng Tier 2**: Triển khai bộ nhớ đệm LRU (Least Recently Used) cho các vector `float32` thường xuyên xuất hiện trong Top-$K$, giảm thiểu số lần đọc đĩa vật lý xuống gần bằng 0 trong điều kiện truy vấn thực tế.
+### 6.3. Äá»‹nh hÆ°á»›ng Tá»‘i Æ°u Pháº§n cá»©ng Tiáº¿p theo
+1. **Tá»‘i Æ°u hÃ³a Lá»‡nh SIMD AVX-512 / VNNI**: CÃ i Ä‘áº·t nhÃ¢n tÃ­nh khoáº£ng cÃ¡ch sá»‘ nguyÃªn `uint8` sá»­ dá»¥ng táº­p lá»‡nh `_mm512_dpbusd_epi32` (Vector Neural Network Instructions), cho phÃ©p tÃ­nh toÃ¡n 64 phÃ©p nhÃ¢n-cá»™ng sá»‘ nguyÃªn Ä‘á»“ng thá»i trong má»™t chu ká»³ xung nhá»‹p CPU.
+2. **CÆ¡ cháº¿ Caching ThÃ­ch á»©ng Tier 2**: Triá»ƒn khai bá»™ nhá»› Ä‘á»‡m LRU (Least Recently Used) cho cÃ¡c vector `float32` thÆ°á»ng xuyÃªn xuáº¥t hiá»‡n trong Top-$K$, giáº£m thiá»ƒu sá»‘ láº§n Ä‘á»c Ä‘Ä©a váº­t lÃ½ xuá»‘ng gáº§n báº±ng 0 trong Ä‘iá»u kiá»‡n truy váº¥n thá»±c táº¿.
 
 ---
-*(Bản quyền báo cáo kỹ thuật thuộc về Nhóm Nghiên cứu Đề tài ANN 10M - 2026)*
+*(Báº£n quyá»n bÃ¡o cÃ¡o ká»¹ thuáº­t thuá»™c vá» NhÃ³m NghiÃªn cá»©u Äá» tÃ i ANN 10M - 2026)*
+

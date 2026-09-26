@@ -1,3 +1,5 @@
+﻿> **LƯU Ý:** Tài liệu này đã cũ và được thay thế toàn bộ bởi [BAO_CAO_LUAN_VAN_CHIT_TIET.md](BAO_CAO_LUAN_VAN_CHIT_TIET.md). Xin vui lòng tham khảo file báo cáo chính thức để xem kiến trúc Two-Tier HNSW lượng tử hóa SQ8 mới nhất.
+
 # Project: Distributed Sharded IVF-HNSW & Dashboard Optimization
 
 ## Architecture
@@ -102,33 +104,34 @@ The system transitions from a single-node flat/monolithic search into a high-per
 ## Code Layout
 ```
 f:\ANN/
-├── configs/
-│   └── default_pipeline.json          # Untouched (R3)
-├── data/                              # Untouched (R3)
-├── dashboard/
-│   ├── package.json
-│   ├── server.js                      # Updated search routes & removed 3D endpoints
-│   ├── public/
-│   │   ├── index.html                 # Removed 3D markup, added Shard ID display
-│   │   ├── css/
-│   │   │   ├── custom.css             # Removed 3D styles
-│   │   │   └── data_product.css
-│   │   └── js/
-│   │       ├── app.js                 # Removed 3D controllers, renders Shard ID & latency
-│   │       ├── data_product_studio.js # Optimized canvas, removed 3D calls
-│   │       ├── architecture.js
-│   │       └── charts.js              # Visibility-aware polling
-│   └── scripts/
-│       ├── search_service.py          # Hosts ShardedIVFHNSW router
-│       ├── search_bridge.py           # CLI fallback with ShardedIVFHNSW router
-│       └── build_search_cache.py
-├── src/
-│   ├── ann_data/                      # Untouched ingestion logic (R3), guarded import
-│   ├── ann_index/
-│   │   ├── io_manager.py              # NEW: DirectIOManager & ApplicationLRUCache
-│   │   ├── hnsw_quantized.py          # NEW: quantize_adc & distance_adc
-│   │   └── two_tier_hnsw.py           # NEW: ShardedIVFHNSW & LocalShard with id_map
-│   ├── crawler/                       # Untouched (R3)
-│   └── quantizer/                     # Untouched (R3)
-└── tests/                             # Unit, integration, and E2E tests
+â”œâ”€â”€ configs/
+â”‚   â””â”€â”€ default_pipeline.json          # Untouched (R3)
+â”œâ”€â”€ data/                              # Untouched (R3)
+â”œâ”€â”€ dashboard/
+â”‚   â”œâ”€â”€ package.json
+â”‚   â”œâ”€â”€ server.js                      # Updated search routes & removed 3D endpoints
+â”‚   â”œâ”€â”€ public/
+â”‚   â”‚   â”œâ”€â”€ index.html                 # Removed 3D markup, added Shard ID display
+â”‚   â”‚   â”œâ”€â”€ css/
+â”‚   â”‚   â”‚   â”œâ”€â”€ custom.css             # Removed 3D styles
+â”‚   â”‚   â”‚   â””â”€â”€ data_product.css
+â”‚   â”‚   â””â”€â”€ js/
+â”‚   â”‚       â”œâ”€â”€ app.js                 # Removed 3D controllers, renders Shard ID & latency
+â”‚   â”‚       â”œâ”€â”€ data_product_studio.js # Optimized canvas, removed 3D calls
+â”‚   â”‚       â”œâ”€â”€ architecture.js
+â”‚   â”‚       â””â”€â”€ charts.js              # Visibility-aware polling
+â”‚   â””â”€â”€ scripts/
+â”‚       â”œâ”€â”€ search_service.py          # Hosts ShardedIVFHNSW router
+â”‚       â”œâ”€â”€ search_bridge.py           # CLI fallback with ShardedIVFHNSW router
+â”‚       â””â”€â”€ build_search_cache.py
+â”œâ”€â”€ src/
+â”‚   â”œâ”€â”€ ann_data/                      # Untouched ingestion logic (R3), guarded import
+â”‚   â”œâ”€â”€ ann_index/
+â”‚   â”‚   â”œâ”€â”€ io_manager.py              # NEW: DirectIOManager & ApplicationLRUCache
+â”‚   â”‚   â”œâ”€â”€ hnsw_quantized.py          # NEW: quantize_adc & distance_adc
+â”‚   â”‚   â””â”€â”€ two_tier_hnsw.py           # NEW: ShardedIVFHNSW & LocalShard with id_map
+â”‚   â”œâ”€â”€ crawler/                       # Untouched (R3)
+â”‚   â””â”€â”€ quantizer/                     # Untouched (R3)
+â””â”€â”€ tests/                             # Unit, integration, and E2E tests
 ```
+

@@ -19,7 +19,7 @@ class ApplicationLRUCache:
     """
 
     def __init__(self, capacity: int = 10000) -> None:
-        """Initialize cache with specified maximum capacity.
+        """Khởi tạo cache with specified maximum capacity.
 
         Args:
             capacity: Maximum number of vectors to retain in cache.
@@ -74,7 +74,7 @@ class DirectIOManager:
     """
 
     def __init__(self, filepath: str, dim: int = 384, cache_capacity: int = 10000) -> None:
-        """Initialize direct I/O manager.
+        """Khởi tạo direct I/O manager.
 
         Args:
             filepath: Path to raw binary storage file.
@@ -145,7 +145,7 @@ class DirectIOManager:
         results: Dict[int, np.ndarray] = {}
         unique_ids = list(dict.fromkeys(vector_ids))
 
-        # Check in-memory cache first
+        # Kiểm tra cache LRU trên RAM trước để tránh I/O penalty
         missing_ids: List[int] = []
         for vid in unique_ids:
             cached = self.lru_cache.get(vid)

@@ -1,40 +1,42 @@
-# Báo cáo Kỹ thuật Chi tiết: Luồng Thu thập Dữ liệu (Crawler Pipeline)
+﻿> **LƯU Ý:** Tài liệu này đã cũ và được thay thế toàn bộ bởi [BAO_CAO_LUAN_VAN_CHIT_TIET.md](BAO_CAO_LUAN_VAN_CHIT_TIET.md). Xin vui lòng tham khảo file báo cáo chính thức để xem kiến trúc Two-Tier HNSW lượng tử hóa SQ8 mới nhất.
 
-Tài liệu này được biên soạn dành cho kỹ sư mới nhằm giải thích chi tiết cấu trúc, nguyên lý thiết kế, mã nguồn từng hàm và lý do lựa chọn các giải pháp kỹ thuật trong hệ thống thu thập dữ liệu toàn văn quy mô lớn.
+# BÃ¡o cÃ¡o Ká»¹ thuáº­t Chi tiáº¿t: Luá»“ng Thu tháº­p Dá»¯ liá»‡u (Crawler Pipeline)
+
+TÃ i liá»‡u nÃ y Ä‘Æ°á»£c biÃªn soáº¡n dÃ nh cho ká»¹ sÆ° má»›i nháº±m giáº£i thÃ­ch chi tiáº¿t cáº¥u trÃºc, nguyÃªn lÃ½ thiáº¿t káº¿, mÃ£ nguá»“n tá»«ng hÃ m vÃ  lÃ½ do lá»±a chá»n cÃ¡c giáº£i phÃ¡p ká»¹ thuáº­t trong há»‡ thá»‘ng thu tháº­p dá»¯ liá»‡u toÃ n vÄƒn quy mÃ´ lá»›n.
 
 ---
 
-## 1. Tổng quan Kiến trúc Hệ thống Thu thập
+## 1. Tá»•ng quan Kiáº¿n trÃºc Há»‡ thá»‘ng Thu tháº­p
 
-Hệ thống thu thập được thiết kế theo mô hình kiến trúc dạng ống dẫn (Pipeline Architecture) với các nguyên tắc cốt lõi:
+Há»‡ thá»‘ng thu tháº­p Ä‘Æ°á»£c thiáº¿t káº¿ theo mÃ´ hÃ¬nh kiáº¿n trÃºc dáº¡ng á»‘ng dáº«n (Pipeline Architecture) vá»›i cÃ¡c nguyÃªn táº¯c cá»‘t lÃµi:
 
-1. **Bảo toàn 100% nội dung toàn văn:** Không cắt cụt thân bài, không chỉ lấy tiêu đề hay tóm tắt.
-2. **Không tràn bộ nhớ RAM (Zero-OOM Streaming):** Sử dụng `Generator` (`yield`) và ghi luồng trực tiếp ra đĩa SSD. Không bao giờ gom hàng triệu bản ghi vào một mảng Python trong bộ nhớ.
-3. **Phân đoạn Shard chuẩn hóa (Chunked Storage):** Dữ liệu được chia nhỏ thành các tệp `shard_XXXXX.jsonl` cố định 50.000 bản ghi/tệp, giúp việc đọc song song, nén và lập chỉ mục không bị nghẽn I/O.
-4. **Khả năng tự phục hồi (Resumability & Checkpointing):** Khi tiến trình gặp sự cố mạng hoặc khởi động lại máy, hệ thống tự động nhận diện shard đã hoàn thành và tiếp tục công việc từ điểm dừng gần nhất.
+1. **Báº£o toÃ n 100% ná»™i dung toÃ n vÄƒn:** KhÃ´ng cáº¯t cá»¥t thÃ¢n bÃ i, khÃ´ng chá»‰ láº¥y tiÃªu Ä‘á» hay tÃ³m táº¯t.
+2. **KhÃ´ng trÃ n bá»™ nhá»› RAM (Zero-OOM Streaming):** Sá»­ dá»¥ng `Generator` (`yield`) vÃ  ghi luá»“ng trá»±c tiáº¿p ra Ä‘Ä©a SSD. KhÃ´ng bao giá» gom hÃ ng triá»‡u báº£n ghi vÃ o má»™t máº£ng Python trong bá»™ nhá»›.
+3. **PhÃ¢n Ä‘oáº¡n Shard chuáº©n hÃ³a (Chunked Storage):** Dá»¯ liá»‡u Ä‘Æ°á»£c chia nhá» thÃ nh cÃ¡c tá»‡p `shard_XXXXX.jsonl` cá»‘ Ä‘á»‹nh 50.000 báº£n ghi/tá»‡p, giÃºp viá»‡c Ä‘á»c song song, nÃ©n vÃ  láº­p chá»‰ má»¥c khÃ´ng bá»‹ ngháº½n I/O.
+4. **Kháº£ nÄƒng tá»± phá»¥c há»“i (Resumability & Checkpointing):** Khi tiáº¿n trÃ¬nh gáº·p sá»± cá»‘ máº¡ng hoáº·c khá»Ÿi Ä‘á»™ng láº¡i mÃ¡y, há»‡ thá»‘ng tá»± Ä‘á»™ng nháº­n diá»‡n shard Ä‘Ã£ hoÃ n thÃ nh vÃ  tiáº¿p tá»¥c cÃ´ng viá»‡c tá»« Ä‘iá»ƒm dá»«ng gáº§n nháº¥t.
 
 ```mermaid
 flowchart TD
-    subgraph Sources ["Nguồn Dữ liệu"]
-        S1["Báo điện tử Việt Nam (VNExpress, Dân Trí, Tuổi Trẻ...)"]
-        S2["Kho ngữ liệu văn bản Pháp luật"]
+    subgraph Sources ["Nguá»“n Dá»¯ liá»‡u"]
+        S1["BÃ¡o Ä‘iá»‡n tá»­ Viá»‡t Nam (VNExpress, DÃ¢n TrÃ­, Tuá»•i Tráº»...)"]
+        S2["Kho ngá»¯ liá»‡u vÄƒn báº£n PhÃ¡p luáº­t"]
         
     end
 
-    subgraph Network ["Tầng Mạng & Kết nối"]
-        HC["HttpClient (src/crawler/http_client.py)<br/>• Exponential Backoff<br/>• Rate Limiting<br/>• User-Agent Rotation"]
+    subgraph Network ["Táº§ng Máº¡ng & Káº¿t ná»‘i"]
+        HC["HttpClient (src/crawler/http_client.py)<br/>â€¢ Exponential Backoff<br/>â€¢ Rate Limiting<br/>â€¢ User-Agent Rotation"]
     end
 
-    subgraph Parsing ["Tầng Bóc tách & Chuẩn hóa"]
-        AP["ArticleParser (src/crawler/extractors/article_parser.py)<br/>Trích xuất tiêu đề, tóm tắt, toàn văn thân bài"]
-        CW["Wikitext Cleaner (scripts/run_wiki_crawler.py)<br/>Bóc tách cấu trúc section và paragraph"]
-        TC["TextCleaner (src/crawler/extractors/text_cleaner.py)<br/>Chuẩn hóa Unicode NFC, xóa HTML, dọn khoảng trắng"]
+    subgraph Parsing ["Táº§ng BÃ³c tÃ¡ch & Chuáº©n hÃ³a"]
+        AP["ArticleParser (src/crawler/extractors/article_parser.py)<br/>TrÃ­ch xuáº¥t tiÃªu Ä‘á», tÃ³m táº¯t, toÃ n vÄƒn thÃ¢n bÃ i"]
+        CW["Wikitext Cleaner (scripts/run_wiki_crawler.py)<br/>BÃ³c tÃ¡ch cáº¥u trÃºc section vÃ  paragraph"]
+        TC["TextCleaner (src/crawler/extractors/text_cleaner.py)<br/>Chuáº©n hÃ³a Unicode NFC, xÃ³a HTML, dá»n khoáº£ng tráº¯ng"]
     end
 
-    subgraph Storage ["Tầng Lưu trữ Đĩa SSD"]
-        SW["ShardWriter (src/crawler/storage/shard_writer.py)<br/>• Ghi luồng JSONL<br/>• Tự động quay vòng Shard (50.000 bản ghi)<br/>• Xuất CRAWL_MANIFEST.json"]
-        D1[("data/crawl/<br/>200 shards, 10M bản ghi")]
-        D2[("data/crawl_wiki/<br/>200 shards, 10M bản ghi")]
+    subgraph Storage ["Táº§ng LÆ°u trá»¯ ÄÄ©a SSD"]
+        SW["ShardWriter (src/crawler/storage/shard_writer.py)<br/>â€¢ Ghi luá»“ng JSONL<br/>â€¢ Tá»± Ä‘á»™ng quay vÃ²ng Shard (50.000 báº£n ghi)<br/>â€¢ Xuáº¥t CRAWL_MANIFEST.json"]
+        D1[("data/crawl/<br/>200 shards, 10M báº£n ghi")]
+        D2[("data/crawl_wiki/<br/>200 shards, 10M báº£n ghi")]
     end
 
     S1 --> HC --> AP --> TC --> SW --> D1
@@ -44,14 +46,14 @@ flowchart TD
 
 ---
 
-## 2. Giải thích Chi tiết Từng Module và Tệp Mã Nguồn
+## 2. Giáº£i thÃ­ch Chi tiáº¿t Tá»«ng Module vÃ  Tá»‡p MÃ£ Nguá»“n
 
-### 2.1. Cấu hình hệ thống: `src/crawler/config.py`
+### 2.1. Cáº¥u hÃ¬nh há»‡ thá»‘ng: `src/crawler/config.py`
 
-#### Mục đích và vai trò
-Quản lý toàn bộ tham số môi trường tập trung, tránh tình trạng viết cứng (hardcode) các thông số mạng vào code xử lý logic.
+#### Má»¥c Ä‘Ã­ch vÃ  vai trÃ²
+Quáº£n lÃ½ toÃ n bá»™ tham sá»‘ mÃ´i trÆ°á»ng táº­p trung, trÃ¡nh tÃ¬nh tráº¡ng viáº¿t cá»©ng (hardcode) cÃ¡c thÃ´ng sá»‘ máº¡ng vÃ o code xá»­ lÃ½ logic.
 
-#### Các thành phần mã nguồn chính
+#### CÃ¡c thÃ nh pháº§n mÃ£ nguá»“n chÃ­nh
 ```python
 @dataclass
 class CrawlerConfig:
@@ -64,47 +66,47 @@ class CrawlerConfig:
     rss_feeds: Dict[str, List[str]] = field(default_factory=lambda: {...})
 ```
 
-#### Giải thích lý do thiết kế và quy tắc đặt tên cho nhân viên mới
-- **Tại sao dùng `@dataclass`?** Dataclass trong Python tự động tạo các hàm `__init__`, `__repr__`, giúp mã nguồn ngắn gọn, hỗ trợ type hinting chặt chẽ và dễ dàng serialize/deserialize khi cần.
-- **Tại sao đặt tên `retry_backoff_factor`?** Trong lập trình mạng, khi máy chủ quá tải và trả về mã lỗi 429 hoặc 503, việc gửi lại yêu cầu ngay lập tức sẽ làm sập máy chủ. Hệ số giãn cách lùi lũy thừa (Exponential Backoff Factor) sẽ nhân thời gian chờ sau mỗi lần thử lại: $t = \text{backoff} \times 2^{\text{retry}}$, giúp giảm áp lực lên máy chủ nguồn.
-- **Tại sao `rate_limit_delay = 0.5`?** Đây là nguyên tắc thu thập dữ liệu văn minh (Polite Crawling). Đảm bảo không gửi quá 2 yêu cầu/giây đến cùng một domain báo chí để không gây nghẽn dịch vụ của họ.
+#### Giáº£i thÃ­ch lÃ½ do thiáº¿t káº¿ vÃ  quy táº¯c Ä‘áº·t tÃªn cho nhÃ¢n viÃªn má»›i
+- **Táº¡i sao dÃ¹ng `@dataclass`?** Dataclass trong Python tá»± Ä‘á»™ng táº¡o cÃ¡c hÃ m `__init__`, `__repr__`, giÃºp mÃ£ nguá»“n ngáº¯n gá»n, há»— trá»£ type hinting cháº·t cháº½ vÃ  dá»… dÃ ng serialize/deserialize khi cáº§n.
+- **Táº¡i sao Ä‘áº·t tÃªn `retry_backoff_factor`?** Trong láº­p trÃ¬nh máº¡ng, khi mÃ¡y chá»§ quÃ¡ táº£i vÃ  tráº£ vá» mÃ£ lá»—i 429 hoáº·c 503, viá»‡c gá»­i láº¡i yÃªu cáº§u ngay láº­p tá»©c sáº½ lÃ m sáº­p mÃ¡y chá»§. Há»‡ sá»‘ giÃ£n cÃ¡ch lÃ¹i lÅ©y thá»«a (Exponential Backoff Factor) sáº½ nhÃ¢n thá»i gian chá» sau má»—i láº§n thá»­ láº¡i: $t = \text{backoff} \times 2^{\text{retry}}$, giÃºp giáº£m Ã¡p lá»±c lÃªn mÃ¡y chá»§ nguá»“n.
+- **Táº¡i sao `rate_limit_delay = 0.5`?** ÄÃ¢y lÃ  nguyÃªn táº¯c thu tháº­p dá»¯ liá»‡u vÄƒn minh (Polite Crawling). Äáº£m báº£o khÃ´ng gá»­i quÃ¡ 2 yÃªu cáº§u/giÃ¢y Ä‘áº¿n cÃ¹ng má»™t domain bÃ¡o chÃ­ Ä‘á»ƒ khÃ´ng gÃ¢y ngháº½n dá»‹ch vá»¥ cá»§a há».
 
 ---
 
-### 2.2. Giao tiếp mạng: `src/crawler/http_client.py`
+### 2.2. Giao tiáº¿p máº¡ng: `src/crawler/http_client.py`
 
-#### Mục đích và vai trò
-Bọc toàn bộ logic gọi mạng HTTP qua thư viện `requests`, xử lý tự động cơ chế kết nối lại, quản lý phiên làm việc (`requests.Session`) để tái sử dụng kết nối TCP/TLS Socket.
+#### Má»¥c Ä‘Ã­ch vÃ  vai trÃ²
+Bá»c toÃ n bá»™ logic gá»i máº¡ng HTTP qua thÆ° viá»‡n `requests`, xá»­ lÃ½ tá»± Ä‘á»™ng cÆ¡ cháº¿ káº¿t ná»‘i láº¡i, quáº£n lÃ½ phiÃªn lÃ m viá»‡c (`requests.Session`) Ä‘á»ƒ tÃ¡i sá»­ dá»¥ng káº¿t ná»‘i TCP/TLS Socket.
 
-#### Các hàm chính trong `HttpClient`
+#### CÃ¡c hÃ m chÃ­nh trong `HttpClient`
 1. `__init__(self, config: Optional[CrawlerConfig] = None)`
-   - *Mục đích:* Khởi tạo session và thiết lập `urllib3.util.retry.Retry`.
-   - *Lý do:* Tái sử dụng socket giúp giảm độ trễ từ 150ms xuống dưới 20ms cho mỗi lượt gọi, vì không phải bắt tay TLS (TLS Handshake) lại từ đầu.
+   - *Má»¥c Ä‘Ã­ch:* Khá»Ÿi táº¡o session vÃ  thiáº¿t láº­p `urllib3.util.retry.Retry`.
+   - *LÃ½ do:* TÃ¡i sá»­ dá»¥ng socket giÃºp giáº£m Ä‘á»™ trá»… tá»« 150ms xuá»‘ng dÆ°á»›i 20ms cho má»—i lÆ°á»£t gá»i, vÃ¬ khÃ´ng pháº£i báº¯t tay TLS (TLS Handshake) láº¡i tá»« Ä‘áº§u.
 2. `_enforce_rate_limit(self, domain: str)`
-   - *Mục đích:* Đo khoảng thời gian giữa hai lượt gọi kế tiếp đến cùng một domain. Nếu nhỏ hơn `rate_limit_delay`, tiến trình sẽ `time.sleep` phần thời gian chênh lệch.
-   - *Tên hàm:* Tiền tố `_` biểu thị hàm nội bộ (private method), tên `enforce_rate_limit` nói rõ hành vi bắt buộc tuân thủ hạn ngạch tốc độ.
+   - *Má»¥c Ä‘Ã­ch:* Äo khoáº£ng thá»i gian giá»¯a hai lÆ°á»£t gá»i káº¿ tiáº¿p Ä‘áº¿n cÃ¹ng má»™t domain. Náº¿u nhá» hÆ¡n `rate_limit_delay`, tiáº¿n trÃ¬nh sáº½ `time.sleep` pháº§n thá»i gian chÃªnh lá»‡ch.
+   - *TÃªn hÃ m:* Tiá»n tá»‘ `_` biá»ƒu thá»‹ hÃ m ná»™i bá»™ (private method), tÃªn `enforce_rate_limit` nÃ³i rÃµ hÃ nh vi báº¯t buá»™c tuÃ¢n thá»§ háº¡n ngáº¡ch tá»‘c Ä‘á»™.
 3. `get(self, url: str) -> Optional[requests.Response]`
-   - *Mục đích:* Thực hiện yêu cầu HTTP GET an toàn, tự động bắt tất cả các lỗi ngoại lệ `requests.RequestException` và trả về `None` thay vì làm sập toàn bộ luồng cào.
+   - *Má»¥c Ä‘Ã­ch:* Thá»±c hiá»‡n yÃªu cáº§u HTTP GET an toÃ n, tá»± Ä‘á»™ng báº¯t táº¥t cáº£ cÃ¡c lá»—i ngoáº¡i lá»‡ `requests.RequestException` vÃ  tráº£ vá» `None` thay vÃ¬ lÃ m sáº­p toÃ n bá»™ luá»“ng cÃ o.
 
 ---
 
-### 2.3. Bóc tách bài báo toàn văn: `src/crawler/extractors/article_parser.py`
+### 2.3. BÃ³c tÃ¡ch bÃ i bÃ¡o toÃ n vÄƒn: `src/crawler/extractors/article_parser.py`
 
-#### Mục đích và vai trò
-Chuyển đổi chuỗi HTML thô thành đối tượng bài viết có cấu trúc (`title`, `description`, `content_full`).
+#### Má»¥c Ä‘Ã­ch vÃ  vai trÃ²
+Chuyá»ƒn Ä‘á»•i chuá»—i HTML thÃ´ thÃ nh Ä‘á»‘i tÆ°á»£ng bÃ i viáº¿t cÃ³ cáº¥u trÃºc (`title`, `description`, `content_full`).
 
-#### Logic bóc tách DOM
+#### Logic bÃ³c tÃ¡ch DOM
 ```python
 def extract_full_article(self, html_content: str, url: str) -> Optional[Dict[str, str]]:
 ```
-- **Bộ chọn CSS chuyên biệt (Domain-Specific Selectors):** Mỗi tòa soạn sử dụng các thẻ div chứa thân bài khác nhau:
+- **Bá»™ chá»n CSS chuyÃªn biá»‡t (Domain-Specific Selectors):** Má»—i tÃ²a soáº¡n sá»­ dá»¥ng cÃ¡c tháº» div chá»©a thÃ¢n bÃ i khÃ¡c nhau:
   - VNExpress: `p.description`, `article.fck_detail p.Normal`
-  - Dân Trí: `h1.title-page`, `div.singular-content p`
-  - Tuổi Trẻ: `h1.article-title`, `div.content-fck p`
-  - Thanh Niên: `h1.detail-title`, `div.detail-cmain p`
+  - DÃ¢n TrÃ­: `h1.title-page`, `div.singular-content p`
+  - Tuá»•i Tráº»: `h1.article-title`, `div.content-fck p`
+  - Thanh NiÃªn: `h1.detail-title`, `div.detail-cmain p`
   - VietnamNet: `h1.content-detail-title`, `div.maincontent p`
-- **Loại bỏ thẻ rác trước khi lấy text:**
-  Hàm tự động quét và xóa các thành phần:
+- **Loáº¡i bá» tháº» rÃ¡c trÆ°á»›c khi láº¥y text:**
+  HÃ m tá»± Ä‘á»™ng quÃ©t vÃ  xÃ³a cÃ¡c thÃ nh pháº§n:
   ```python
   for junk in soup.find_all(["script", "style", "iframe", "table", "figure"]):
       junk.decompose()
@@ -112,110 +114,111 @@ def extract_full_article(self, html_content: str, url: str) -> Optional[Dict[str
       for el in soup.select(junk_class):
           el.decompose()
   ```
-  *Lý do:* Các khối bài viết liên quan, quảng cáo chèn giữa bài thường chứa văn bản lạc đề, nếu không lọc sẽ làm hỏng vector đặc trưng ngữ nghĩa của bài viết.
+  *LÃ½ do:* CÃ¡c khá»‘i bÃ i viáº¿t liÃªn quan, quáº£ng cÃ¡o chÃ¨n giá»¯a bÃ i thÆ°á»ng chá»©a vÄƒn báº£n láº¡c Ä‘á», náº¿u khÃ´ng lá»c sáº½ lÃ m há»ng vector Ä‘áº·c trÆ°ng ngá»¯ nghÄ©a cá»§a bÃ i viáº¿t.
 
 ---
 
-### 2.4. Chuẩn hóa văn bản: `src/crawler/extractors/text_cleaner.py`
+### 2.4. Chuáº©n hÃ³a vÄƒn báº£n: `src/crawler/extractors/text_cleaner.py`
 
-#### Mục đích và vai trò
-Đảm bảo tính đồng nhất của văn bản tiếng Việt trước khi đưa vào bộ chia đoạn và nhúng vector.
+#### Má»¥c Ä‘Ã­ch vÃ  vai trÃ²
+Äáº£m báº£o tÃ­nh Ä‘á»“ng nháº¥t cá»§a vÄƒn báº£n tiáº¿ng Viá»‡t trÆ°á»›c khi Ä‘Æ°a vÃ o bá»™ chia Ä‘oáº¡n vÃ  nhÃºng vector.
 
-#### Các hàm chính trong `TextCleaner`
+#### CÃ¡c hÃ m chÃ­nh trong `TextCleaner`
 1. `normalize_unicode(text: str) -> str`
-   - *Mã nguồn:* `unicodedata.normalize("NFC", text)`
-   - *Tại sao cực kỳ quan trọng đối với tiếng Việt?* Tiếng Việt có hai kiểu dựng mã Unicode:
-     - **Tổ hợp (NFD):** Ký tự gốc và dấu thanh tách rời (ví dụ: `a` + dấu huyền = `à`, tốn 2 codepoints).
-     - **Dựng sẵn (NFC):** Ký tự có dấu được mã hóa thành 1 codepoint duy nhất.
-     Nếu không đưa về NFC, hai từ cùng hiển thị giống nhau trên màn hình sẽ sinh ra hai vector đặc trưng hoàn toàn lệch nhau trong không gian vector.
+   - *MÃ£ nguá»“n:* `unicodedata.normalize("NFC", text)`
+   - *Táº¡i sao cá»±c ká»³ quan trá»ng Ä‘á»‘i vá»›i tiáº¿ng Viá»‡t?* Tiáº¿ng Viá»‡t cÃ³ hai kiá»ƒu dá»±ng mÃ£ Unicode:
+     - **Tá»• há»£p (NFD):** KÃ½ tá»± gá»‘c vÃ  dáº¥u thanh tÃ¡ch rá»i (vÃ­ dá»¥: `a` + dáº¥u huyá»n = `Ã `, tá»‘n 2 codepoints).
+     - **Dá»±ng sáºµn (NFC):** KÃ½ tá»± cÃ³ dáº¥u Ä‘Æ°á»£c mÃ£ hÃ³a thÃ nh 1 codepoint duy nháº¥t.
+     Náº¿u khÃ´ng Ä‘Æ°a vá» NFC, hai tá»« cÃ¹ng hiá»ƒn thá»‹ giá»‘ng nhau trÃªn mÃ n hÃ¬nh sáº½ sinh ra hai vector Ä‘áº·c trÆ°ng hoÃ n toÃ n lá»‡ch nhau trong khÃ´ng gian vector.
 2. `strip_html(text: str) -> str`
-   - Sử dụng regex `re.sub(r"<[^>]+>", " ", text)` để dọn dẹp các thẻ tag sót lại từ quá trình bóc tách.
+   - Sá»­ dá»¥ng regex `re.sub(r"<[^>]+>", " ", text)` Ä‘á»ƒ dá»n dáº¹p cÃ¡c tháº» tag sÃ³t láº¡i tá»« quÃ¡ trÃ¬nh bÃ³c tÃ¡ch.
 3. `remove_urls(text: str) -> str`
-   - Loại bỏ các đường dẫn `http://` hoặc `https://` nằm rải rác trong thân bài để tránh sinh nhiễu ngữ nghĩa.
+   - Loáº¡i bá» cÃ¡c Ä‘Æ°á»ng dáº«n `http://` hoáº·c `https://` náº±m ráº£i rÃ¡c trong thÃ¢n bÃ i Ä‘á»ƒ trÃ¡nh sinh nhiá»…u ngá»¯ nghÄ©a.
 4. `clean(text: str) -> str`
-   - Hàm tổng hợp chạy toàn bộ chuỗi làm sạch và nén khoảng trắng thừa (`\s+` $\to$ `" "`).
+   - HÃ m tá»•ng há»£p cháº¡y toÃ n bá»™ chuá»—i lÃ m sáº¡ch vÃ  nÃ©n khoáº£ng tráº¯ng thá»«a (`\s+` $\to$ `" "`).
 
 ---
 
-### 2.5. Phân mảnh lưu trữ Shard: `src/crawler/storage/shard_writer.py`
+### 2.5. PhÃ¢n máº£nh lÆ°u trá»¯ Shard: `src/crawler/storage/shard_writer.py`
 
-#### Mục đích và vai trò
-Nhận từng bản ghi dữ liệu đã làm sạch và ghi tuần tự vào các tệp JSONL theo kích thước cố định (50.000 dòng/shard), đồng thời tự động cập nhật tệp kê khai `CRAWL_MANIFEST.json`.
+#### Má»¥c Ä‘Ã­ch vÃ  vai trÃ²
+Nháº­n tá»«ng báº£n ghi dá»¯ liá»‡u Ä‘Ã£ lÃ m sáº¡ch vÃ  ghi tuáº§n tá»± vÃ o cÃ¡c tá»‡p JSONL theo kÃ­ch thÆ°á»›c cá»‘ Ä‘á»‹nh (50.000 dÃ²ng/shard), Ä‘á»“ng thá»i tá»± Ä‘á»™ng cáº­p nháº­t tá»‡p kÃª khai `CRAWL_MANIFEST.json`.
 
-#### Cơ chế hoạt động của `ShardWriter`
-- **Tại sao chọn định dạng JSONL (JSON Lines)?**
-  - Khác với JSON thông thường (bắt buộc phải có cặp ngoặc `[...]` bao toàn bộ file), định dạng JSONL lưu mỗi bản ghi trên đúng 1 dòng văn bản phân tách bằng dấu xuống dòng `\n`.
-  - *Lợi ích 1:* Cho phép mở file ở chế độ nối tiếp `append ("a")` và ghi ngay lập tức vào đĩa mà không cần nạp cả file cũ vào RAM.
-  - *Lợi ích 2:* Nếu tiến trình bị mất điện hoặc crash đột ngột, toàn bộ các dòng đã ghi trước đó vẫn nguyên vẹn 100%, không bị hỏng cấu trúc cú pháp JSON của toàn bộ file.
-  - *Lợi ích 3:* Cho phép các công cụ dòng lệnh Unix/Windows (`head`, `tail`, `wc -l`) và Python `line by line stream` đọc dữ liệu với độ phức tạp bộ nhớ $O(1)$.
-- **Hàm `write(self, record: Dict[str, Any])`:**
-  - Kiểm tra nếu `_current_file` chưa mở, tự động gọi `_get_shard_path(idx)` để mở file `shard_XXXXX.jsonl`.
-  - Khi `current_shard_count >= shard_size` (50.000), file hiện tại được gọi `.flush()` và `.close()`, sau đó tăng `current_shard_idx` để chuyển sang shard mới.
-- **Hàm `close(self)`:**
-  - Đóng tệp đang mở và quét toàn bộ thư mục để tính tổng số tài liệu, tổng dung lượng MB/GB và ghi ra `CRAWL_MANIFEST.json`.
+#### CÆ¡ cháº¿ hoáº¡t Ä‘á»™ng cá»§a `ShardWriter`
+- **Táº¡i sao chá»n Ä‘á»‹nh dáº¡ng JSONL (JSON Lines)?**
+  - KhÃ¡c vá»›i JSON thÃ´ng thÆ°á»ng (báº¯t buá»™c pháº£i cÃ³ cáº·p ngoáº·c `[...]` bao toÃ n bá»™ file), Ä‘á»‹nh dáº¡ng JSONL lÆ°u má»—i báº£n ghi trÃªn Ä‘Ãºng 1 dÃ²ng vÄƒn báº£n phÃ¢n tÃ¡ch báº±ng dáº¥u xuá»‘ng dÃ²ng `\n`.
+  - *Lá»£i Ã­ch 1:* Cho phÃ©p má»Ÿ file á»Ÿ cháº¿ Ä‘á»™ ná»‘i tiáº¿p `append ("a")` vÃ  ghi ngay láº­p tá»©c vÃ o Ä‘Ä©a mÃ  khÃ´ng cáº§n náº¡p cáº£ file cÅ© vÃ o RAM.
+  - *Lá»£i Ã­ch 2:* Náº¿u tiáº¿n trÃ¬nh bá»‹ máº¥t Ä‘iá»‡n hoáº·c crash Ä‘á»™t ngá»™t, toÃ n bá»™ cÃ¡c dÃ²ng Ä‘Ã£ ghi trÆ°á»›c Ä‘Ã³ váº«n nguyÃªn váº¹n 100%, khÃ´ng bá»‹ há»ng cáº¥u trÃºc cÃº phÃ¡p JSON cá»§a toÃ n bá»™ file.
+  - *Lá»£i Ã­ch 3:* Cho phÃ©p cÃ¡c cÃ´ng cá»¥ dÃ²ng lá»‡nh Unix/Windows (`head`, `tail`, `wc -l`) vÃ  Python `line by line stream` Ä‘á»c dá»¯ liá»‡u vá»›i Ä‘á»™ phá»©c táº¡p bá»™ nhá»› $O(1)$.
+- **HÃ m `write(self, record: Dict[str, Any])`:**
+  - Kiá»ƒm tra náº¿u `_current_file` chÆ°a má»Ÿ, tá»± Ä‘á»™ng gá»i `_get_shard_path(idx)` Ä‘á»ƒ má»Ÿ file `shard_XXXXX.jsonl`.
+  - Khi `current_shard_count >= shard_size` (50.000), file hiá»‡n táº¡i Ä‘Æ°á»£c gá»i `.flush()` vÃ  `.close()`, sau Ä‘Ã³ tÄƒng `current_shard_idx` Ä‘á»ƒ chuyá»ƒn sang shard má»›i.
+- **HÃ m `close(self)`:**
+  - ÄÃ³ng tá»‡p Ä‘ang má»Ÿ vÃ  quÃ©t toÃ n bá»™ thÆ° má»¥c Ä‘á»ƒ tÃ­nh tá»•ng sá»‘ tÃ i liá»‡u, tá»•ng dung lÆ°á»£ng MB/GB vÃ  ghi ra `CRAWL_MANIFEST.json`.
 
 ---
 
-#### Mục đích và vai trò
+#### Má»¥c Ä‘Ã­ch vÃ  vai trÃ²
 
-#### Các hàm chuyên biệt trong `run_wiki_crawler.py`
+#### CÃ¡c hÃ m chuyÃªn biá»‡t trong `run_wiki_crawler.py`
 1. `clean_wikitext(text: str) -> str`
-   - Sử dụng các biểu thức chính quy (Regex) tối ưu để loại bỏ toàn bộ cú pháp đánh dấu Wikitext:
-     - Xóa template hộp thông tin: `re.sub(r"\{\{[^}]*\}\}", " ", text)`
-     - Giữ lại nhãn liên kết nội bộ: `[[Hà Nội|thủ đô]]` $\to$ `thủ đô`
-     - Xóa thẻ tham chiếu nguồn học thuật: `<ref>...</ref>`
-     - Xóa bảng biểu wiki: `\{\|.*?\|\}`
+   - Sá»­ dá»¥ng cÃ¡c biá»ƒu thá»©c chÃ­nh quy (Regex) tá»‘i Æ°u Ä‘á»ƒ loáº¡i bá» toÃ n bá»™ cÃº phÃ¡p Ä‘Ã¡nh dáº¥u Wikitext:
+     - XÃ³a template há»™p thÃ´ng tin: `re.sub(r"\{\{[^}]*\}\}", " ", text)`
+     - Giá»¯ láº¡i nhÃ£n liÃªn káº¿t ná»™i bá»™: `[[HÃ  Ná»™i|thá»§ Ä‘Ã´]]` $\to$ `thá»§ Ä‘Ã´`
+     - XÃ³a tháº» tham chiáº¿u nguá»“n há»c thuáº­t: `<ref>...</ref>`
+     - XÃ³a báº£ng biá»ƒu wiki: `\{\|.*?\|\}`
 2. `is_boilerplate_header(header_name: str) -> bool`
-   - Kiểm tra các tiêu đề mục phụ lục như *"Tham khảo"*, *"Liên kết ngoài"*, *"Xem thêm"*, *"Tài liệu tham khảo"*.
-   - *Lý do:* Các mục này chỉ chứa đường link, tên sách hoặc số ISBN, không chứa tri thức thực sự, việc loại bỏ giúp nâng cao độ chính xác của ngữ liệu.
+   - Kiá»ƒm tra cÃ¡c tiÃªu Ä‘á» má»¥c phá»¥ lá»¥c nhÆ° *"Tham kháº£o"*, *"LiÃªn káº¿t ngoÃ i"*, *"Xem thÃªm"*, *"TÃ i liá»‡u tham kháº£o"*.
+   - *LÃ½ do:* CÃ¡c má»¥c nÃ y chá»‰ chá»©a Ä‘Æ°á»ng link, tÃªn sÃ¡ch hoáº·c sá»‘ ISBN, khÃ´ng chá»©a tri thá»©c thá»±c sá»±, viá»‡c loáº¡i bá» giÃºp nÃ¢ng cao Ä‘á»™ chÃ­nh xÃ¡c cá»§a ngá»¯ liá»‡u.
 
-   - Sử dụng `datasets.load_dataset(..., streaming=True)` để kết nối trực tiếp đến các tệp lưu trữ Parquet trên Hugging Face.
-   - Trích xuất từng bài viết và phân tách thành các mục ngữ cảnh độc lập theo định dạng header `== ... ==`.
-   - Mỗi mục có độ dài $\ge 15$ từ được sinh ra (`yield`) thành một bản ghi hoàn chỉnh:
+   - Sá»­ dá»¥ng `datasets.load_dataset(..., streaming=True)` Ä‘á»ƒ káº¿t ná»‘i trá»±c tiáº¿p Ä‘áº¿n cÃ¡c tá»‡p lÆ°u trá»¯ Parquet trÃªn Hugging Face.
+   - TrÃ­ch xuáº¥t tá»«ng bÃ i viáº¿t vÃ  phÃ¢n tÃ¡ch thÃ nh cÃ¡c má»¥c ngá»¯ cáº£nh Ä‘á»™c láº­p theo Ä‘á»‹nh dáº¡ng header `== ... ==`.
+   - Má»—i má»¥c cÃ³ Ä‘á»™ dÃ i $\ge 15$ tá»« Ä‘Æ°á»£c sinh ra (`yield`) thÃ nh má»™t báº£n ghi hoÃ n chá»‰nh:
      ```json
      {
        "doc_id": "wiki_291b11bddbdb8fe4",
-       "title": "Internet Society - Mục tiêu hoạt động",
+       "title": "Internet Society - Má»¥c tiÃªu hoáº¡t Ä‘á»™ng",
        
-       "content_full": "Nội dung văn bản toàn văn của mục...",
+       "content_full": "Ná»™i dung vÄƒn báº£n toÃ n vÄƒn cá»§a má»¥c...",
        
      }
      ```
 4. `main()`
-   - Quản lý vòng lặp thu thập tới mốc 10.000.000 bản ghi.
-   - Ghi checkpoint định kỳ mỗi 10.000 bản ghi vào `data/crawl_wiki/crawl_checkpoint.json`.
-   - Tự động duy trì bộ nhớ đệm băm `seen_hashes` để loại trừ trùng lặp nội dung khi chuyển giữa các nguồn dữ liệu.
+   - Quáº£n lÃ½ vÃ²ng láº·p thu tháº­p tá»›i má»‘c 10.000.000 báº£n ghi.
+   - Ghi checkpoint Ä‘á»‹nh ká»³ má»—i 10.000 báº£n ghi vÃ o `data/crawl_wiki/crawl_checkpoint.json`.
+   - Tá»± Ä‘á»™ng duy trÃ¬ bá»™ nhá»› Ä‘á»‡m bÄƒm `seen_hashes` Ä‘á»ƒ loáº¡i trá»« trÃ¹ng láº·p ná»™i dung khi chuyá»ƒn giá»¯a cÃ¡c nguá»“n dá»¯ liá»‡u.
 
 ---
 
-## 3. Tổng kết Cấu trúc Thư mục và Tập Dữ liệu Cào
+## 3. Tá»•ng káº¿t Cáº¥u trÃºc ThÆ° má»¥c vÃ  Táº­p Dá»¯ liá»‡u CÃ o
 
 ```text
 ANN/
-├── data/
-│   ├── crawl/                                # Dữ liệu Báo chí & Pháp luật (16.459.486 bản ghi)
-│   │   ├── CRAWL_MANIFEST.json               # Kê khai 200 shards, 20.45 GB
-│   │   ├── shard_00000.jsonl                 # Phân đoạn bản ghi toàn văn
-│   │   └── ... (shard_00001 -> shard_00199)
-│   │
-│       ├── crawl_checkpoint.json             # Lưu vết tiến độ thu thập
-│       ├── shard_00000.jsonl                 # Phân đoạn bách khoa toàn thư
-│       └── ... (shard_00001 -> shard_00199)
-│
-├── src/crawler/                              # Thư viện crawler dùng chung
-│   ├── config.py                             # Cấu hình tham số mạng
-│   ├── http_client.py                        # Client HTTP có backoff retry
-│   ├── extractors/
-│   │   ├── article_parser.py                 # Bóc tách DOM HTML
-│   │   └── text_cleaner.py                   # Chuẩn hóa Unicode NFC
-│   ├── sources/
-│   │   ├── rss_crawler.py                    # Cào RSS báo chí
-│   │   ├── hf_streamer.py                    # Truyền phát dữ liệu mở
-│   │   └── drive_downloader.py               # Tải tệp lớn từ đám mây
-│   ├── storage/
-│   │   └── shard_writer.py                   # Bộ phân đoạn ghi đĩa JSONL
-│   └── pipeline.py                           # Điều phối cào Báo chí
-│
-└── scripts/
-    ├── run_crawler.py                        # CLI cào tin tức & pháp luật
+â”œâ”€â”€ data/
+â”‚   â”œâ”€â”€ crawl/                                # Dá»¯ liá»‡u BÃ¡o chÃ­ & PhÃ¡p luáº­t (16.459.486 báº£n ghi)
+â”‚   â”‚   â”œâ”€â”€ CRAWL_MANIFEST.json               # KÃª khai 200 shards, 20.45 GB
+â”‚   â”‚   â”œâ”€â”€ shard_00000.jsonl                 # PhÃ¢n Ä‘oáº¡n báº£n ghi toÃ n vÄƒn
+â”‚   â”‚   â””â”€â”€ ... (shard_00001 -> shard_00199)
+â”‚   â”‚
+â”‚       â”œâ”€â”€ crawl_checkpoint.json             # LÆ°u váº¿t tiáº¿n Ä‘á»™ thu tháº­p
+â”‚       â”œâ”€â”€ shard_00000.jsonl                 # PhÃ¢n Ä‘oáº¡n bÃ¡ch khoa toÃ n thÆ°
+â”‚       â””â”€â”€ ... (shard_00001 -> shard_00199)
+â”‚
+â”œâ”€â”€ src/crawler/                              # ThÆ° viá»‡n crawler dÃ¹ng chung
+â”‚   â”œâ”€â”€ config.py                             # Cáº¥u hÃ¬nh tham sá»‘ máº¡ng
+â”‚   â”œâ”€â”€ http_client.py                        # Client HTTP cÃ³ backoff retry
+â”‚   â”œâ”€â”€ extractors/
+â”‚   â”‚   â”œâ”€â”€ article_parser.py                 # BÃ³c tÃ¡ch DOM HTML
+â”‚   â”‚   â””â”€â”€ text_cleaner.py                   # Chuáº©n hÃ³a Unicode NFC
+â”‚   â”œâ”€â”€ sources/
+â”‚   â”‚   â”œâ”€â”€ rss_crawler.py                    # CÃ o RSS bÃ¡o chÃ­
+â”‚   â”‚   â”œâ”€â”€ hf_streamer.py                    # Truyá»n phÃ¡t dá»¯ liá»‡u má»Ÿ
+â”‚   â”‚   â””â”€â”€ drive_downloader.py               # Táº£i tá»‡p lá»›n tá»« Ä‘Ã¡m mÃ¢y
+â”‚   â”œâ”€â”€ storage/
+â”‚   â”‚   â””â”€â”€ shard_writer.py                   # Bá»™ phÃ¢n Ä‘oáº¡n ghi Ä‘Ä©a JSONL
+â”‚   â””â”€â”€ pipeline.py                           # Äiá»u phá»‘i cÃ o BÃ¡o chÃ­
+â”‚
+â””â”€â”€ scripts/
+    â”œâ”€â”€ run_crawler.py                        # CLI cÃ o tin tá»©c & phÃ¡p luáº­t
 ```
+
