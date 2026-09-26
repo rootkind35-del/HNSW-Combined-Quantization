@@ -133,7 +133,9 @@ search_k = min(num_vectors, max(top_k * 4, min_rerank_k, 25))
     total_latency_ms = round((time.perf_counter() - t_start) * 1000, 2)
 
     algo_name = ""
-    if algorithm == "two_tier":
+    if algorithm == "cf_distributed":
+        algo_name = "Distributed Collaborative Filtering (MIPS)"
+    elif algorithm == "two_tier":
         algo_name = f"Two-Tier Quantized HNSW (M={m_param}, ef={ef_search}, τ={tau})"
     elif algorithm == "pure_sq8":
         algo_name = f"Pure SQ8 HNSW (uint8 Không Re-rank, M={m_param}, ef={ef_search})"
@@ -159,7 +161,10 @@ search_k = min(num_vectors, max(top_k * 4, min_rerank_k, 25))
             continue
 
         used_indices.add(global_id)
-        sim_val = max(0.0, min(1.0, 1.0 - (exact_dist ** 2) / 2.0))
+        if algorithm == "cf_distributed":
+            sim_val = max(0.0, min(1.0, -exact_dist))
+        else:
+            sim_val = max(0.0, min(1.0, 1.0 - (exact_dist ** 2) / 2.0))
         dist_val = float(exact_dist)
 
         if G_COORDS_3D is not None and global_id < len(G_COORDS_3D):

@@ -134,7 +134,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--query", type=str, required=True, help="Search query text")
     parser.add_argument("--top-k", type=int, default=5, help="Number of neighbors")
-    parser.add_argument("--algorithm", type=str, default="two_tier", choices=["two_tier", "hnsw", "ivf_pq", "flat", "pure_sq8"])
+    parser.add_argument("--algorithm", type=str, default="two_tier", choices=["two_tier", "hnsw", "ivf_pq", "flat", "pure_sq8", "cf_distributed"])
     parser.add_argument("--category", type=str, default="Tất cả", help="Category filter")
     parser.add_argument("--m-param", type=int, default=16, help="HNSW connectivity M")
     parser.add_argument("--ef-search", type=int, default=30, help="Beam search size efSearch")
