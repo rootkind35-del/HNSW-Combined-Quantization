@@ -252,6 +252,23 @@ Vấn đề lớn nhất của SQ8 là làm méo mó không gian. Để chứng 
 
 ---
 
+### 1.4.15. Phân tích Dữ liệu lớn với Dask và Parquet (Nâng cao)
+
+Để đáp ứng quy mô dữ liệu ngày càng tăng, hệ thống đã được tích hợp luồng xử lý Big Data học hỏi từ các tiêu chuẩn công nghiệp mới nhất:
+1. **Lưu trữ Parquet**: Dữ liệu vector được nén và lưu trữ định dạng Parquet (data_384d.parquet), giúp giảm thiểu I/O bottleneck khi đọc từ đĩa cứng.
+2. **Xử lý phân tán Dask**: Sử dụng dask.dataframe để tải và tính toán thống kê song song (out-of-core) cho hàng triệu vector mà không gây tràn RAM.
+3. **Phân tích Phân phối khoảng cách**: Khảo sát phân bố giá trị L2 norm để tinh chỉnh các siêu tham số lượng tử hóa SQ8.
+
+![Phân bố L2 Norm](assets/figs/eda_dist.png)
+
+4. **Giảm chiều dữ liệu PCA**: Trích xuất các cụm phân bố vector xuống không gian 2D, hỗ trợ trực quan hóa đánh giá mật độ quần thể.
+
+![Phân cụm PCA 2D](assets/figs/pca_clusters.png)
+
+Kết hợp cùng biểu đồ so sánh thông lượng truy vấn, Two-Tier SQ8 cho thấy khả năng duy trì Recall cao trong khi tăng cường độ trễ và QPS:
+![Thông lượng và độ trễ](assets/figs/perf_latency_qps.png)
+
+
 ## 1.5. Xây dựng và kiểm thử
 
 Tài liệu này đi sâu vào chi tiết kỹ thuật của Phần 1.5, giải phẫu 100% dựa trên mã nguồn thực tế đang tồn tại trong dự án (không sử dụng thông tin giả lập). Đây là cẩm nang để lập trình viên hoặc nhà nghiên cứu có thể đọc, hiểu và trực tiếp thao tác chạy dự án.
