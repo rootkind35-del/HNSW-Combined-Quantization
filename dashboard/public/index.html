@@ -1389,6 +1389,137 @@
     </div>
   </div>
 
+  <!-- DATABASE MANAGEMENT CRUD SECTION -->
+  <div id="view-database-management" class="p-5 space-y-4 mt-6 bg-white border border-slate-200 rounded-xl shadow-sm">
+    <div class="flex items-center justify-between pb-3 border-b border-slate-200">
+      <h3 class="text-lg font-bold text-slate-800"><i class="fa-solid fa-database text-blue-600 mr-2"></i>Quản trị Dữ liệu (16.45M Bản ghi) & Big Data Analytics</h3>
+      <div class="flex gap-2">
+        <input type="text" id="db-search-input" placeholder="Tìm kiếm tiêu đề, danh mục..." class="px-3 py-1.5 border border-slate-300 rounded-lg text-sm w-64 focus:outline-none focus:border-blue-500">
+        <button onclick="loadDatabaseData()" class="px-3 py-1.5 bg-blue-50 text-blue-700 font-semibold rounded-lg border border-blue-200 hover:bg-blue-100 cursor-pointer"><i class="fa-solid fa-search"></i> Lọc</button>
+      </div>
+    </div>
+    
+    <!-- BIG DATA CHARTS -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
+      <div class="border border-slate-200 rounded-lg p-3 bg-slate-50">
+        <h4 class="font-semibold text-slate-700 text-sm mb-2 text-center">Phân bổ Vector & Phân cụm PCA</h4>
+        <img src="../../assets/figs/pca_clusters.png" alt="PCA" class="w-full h-auto rounded border border-slate-200" onerror="this.src='https://via.placeholder.com/600x300?text=No+Data'">
+      </div>
+      <div class="border border-slate-200 rounded-lg p-3 bg-slate-50">
+        <h4 class="font-semibold text-slate-700 text-sm mb-2 text-center">Hiệu năng Thuật toán (QPS & Latency)</h4>
+        <img src="../../assets/figs/perf_latency_qps.png" alt="Perf" class="w-full h-auto rounded border border-slate-200" onerror="this.src='https://via.placeholder.com/600x300?text=No+Data'">
+      </div>
+    </div>
+
+    <!-- CRUD TABLE -->
+    <div class="overflow-x-auto rounded-lg border border-slate-200">
+      <table class="w-full text-left text-sm text-slate-600">
+        
+        <thead class="bg-slate-100 text-slate-700 font-semibold border-b border-slate-200">
+          <tr>
+            <th class="px-4 py-3">Doc ID / Chunk</th>
+            <th class="px-4 py-3 w-1/4">Tiêu đề (Title)</th>
+            <th class="px-4 py-3 w-1/3">Nội dung (Preview)</th>
+            <th class="px-4 py-3 text-center">Tokens</th>
+            <th class="px-4 py-3 text-center">Vec IDX</th>
+            <th class="px-4 py-3 text-right">Thao tác</th>
+          </tr>
+        </thead>
+
+        <tbody id="db-table-body" class="divide-y divide-slate-100">
+          <!-- Rendered by JS -->
+        </tbody>
+      </table>
+    </div>
+    
+    <div class="flex justify-between items-center text-xs text-slate-500 pt-2">
+      <span id="db-table-info">Đang hiển thị dữ liệu trích xuất.</span>
+      <div class="flex gap-1">
+        <button class="px-2 py-1 border border-slate-200 rounded hover:bg-slate-50 cursor-pointer">Trước</button>
+        <button class="px-2 py-1 border border-slate-200 rounded bg-blue-50 text-blue-700 font-bold">1</button>
+        <button class="px-2 py-1 border border-slate-200 rounded hover:bg-slate-50 cursor-pointer">Sau</button>
+      </div>
+    </div>
+  </div>
+
+  
+  <!-- VIEW DOC MODAL -->
+  <div id="view-doc-modal" class="fixed inset-0 bg-slate-900/50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-xl shadow-lg w-[700px] overflow-hidden flex flex-col max-h-[90vh]">
+      <div class="px-5 py-3 border-b border-slate-100 font-bold text-slate-800 flex justify-between items-center bg-slate-50">
+        <span class="flex items-center gap-2"><i class="fa-solid fa-file-lines text-emerald-600"></i> Nội dung Chi tiết Bản ghi</span>
+        <button onclick="closeViewModal()" class="text-slate-400 hover:text-slate-700 cursor-pointer"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+      <div class="p-5 space-y-4 overflow-y-auto custom-scrollbar">
+        <div class="grid grid-cols-2 gap-4 text-sm">
+          <div class="bg-slate-50 p-3 rounded-lg border border-slate-100">
+            <div class="text-[10px] uppercase font-bold text-slate-400 mb-1">Document ID</div>
+            <div class="font-mono text-blue-700 font-semibold" id="view-doc-id"></div>
+          </div>
+          <div class="bg-slate-50 p-3 rounded-lg border border-slate-100">
+            <div class="text-[10px] uppercase font-bold text-slate-400 mb-1">Chunk ID</div>
+            <div class="font-mono text-emerald-700 font-semibold" id="view-chunk-id"></div>
+          </div>
+        </div>
+        
+        <div>
+          <div class="text-[11px] uppercase font-bold text-slate-400 mb-1">Tiêu đề (Title)</div>
+          <div class="text-slate-800 font-semibold text-lg" id="view-doc-title"></div>
+        </div>
+
+        <div class="flex gap-4 border-y border-slate-100 py-3">
+            <div>
+                <div class="text-[11px] uppercase font-bold text-slate-400 mb-0.5">Danh mục (Category)</div>
+                <span class="px-2.5 py-1 bg-amber-100 text-amber-800 rounded-md text-xs font-semibold" id="view-doc-category"></span>
+            </div>
+            <div>
+                <div class="text-[11px] uppercase font-bold text-slate-400 mb-0.5">Token Count</div>
+                <span class="px-2.5 py-1 bg-indigo-100 text-indigo-800 rounded-md text-xs font-mono font-semibold" id="view-doc-tokens"></span>
+            </div>
+            <div>
+                <div class="text-[11px] uppercase font-bold text-slate-400 mb-0.5">Vector Index</div>
+                <span class="px-2.5 py-1 bg-rose-100 text-rose-800 rounded-md text-xs font-mono font-semibold" id="view-doc-vecidx"></span>
+            </div>
+        </div>
+
+        <div>
+          <div class="text-[11px] uppercase font-bold text-slate-400 mb-2">Nội dung đầy đủ (Text Content)</div>
+          <div class="bg-white text-slate-800 border border-slate-200 p-4 rounded-xl text-sm leading-relaxed whitespace-pre-wrap" id="view-doc-text"></div>
+        </div>
+      </div>
+      <div class="px-5 py-3 border-t border-slate-100 bg-slate-50 flex justify-end">
+        <button onclick="closeViewModal()" class="px-5 py-2 bg-slate-800 text-white rounded-lg text-sm font-semibold hover:bg-slate-900 cursor-pointer shadow-sm">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- EDIT MODAL -->
+
+  <div id="edit-doc-modal" class="fixed inset-0 bg-slate-900/50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-xl shadow-lg w-[500px] overflow-hidden flex flex-col">
+      <div class="px-5 py-3 border-b border-slate-100 font-bold text-slate-800 flex justify-between items-center">
+        <span>Sửa tài liệu</span>
+        <button onclick="closeEditModal()" class="text-slate-400 hover:text-slate-700 cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="p-5 space-y-4">
+        <input type="hidden" id="edit-doc-id">
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Tiêu đề</label>
+          <input type="text" id="edit-doc-title" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-blue-500">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Danh mục</label>
+          <input type="text" id="edit-doc-category" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-blue-500">
+        </div>
+      </div>
+      <div class="px-5 py-3 border-t border-slate-100 bg-slate-50 flex justify-end gap-2">
+        <button onclick="closeEditModal()" class="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-50 cursor-pointer">Hủy</button>
+        <button onclick="saveDocument()" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 cursor-pointer">Lưu thay đổi</button>
+      </div>
+    </div>
+  </div>
+
+
   <!-- VIEW 2: TOP-K RESULTS LIST -->
   <div id="view-execution-results" class="p-6 space-y-4 hidden">
     <div class="flex items-center justify-between pb-2 border-b border-slate-200 text-sm">
@@ -1961,5 +2092,160 @@
 <script src="js/charts.js"></script>
 <script src="js/wandb_dashboard.js"></script>
 <script src="js/app.js"></script>
+
+
+<script>
+  let currentDocs = [];
+  let currentPage = 1;
+  const ITEMS_PER_PAGE = 10;
+
+  async function loadDatabaseData() {
+    const q = document.getElementById('db-search-input').value;
+    try {
+      const res = await fetch('/api/documents?q=' + encodeURIComponent(q));
+      currentDocs = await res.json();
+      currentPage = 1;
+      renderTable();
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  function changePage(delta) {
+    const totalPages = Math.ceil(currentDocs.length / ITEMS_PER_PAGE);
+    if (currentPage + delta > 0 && currentPage + delta <= totalPages) {
+        currentPage += delta;
+        renderTable();
+    }
+  }
+
+  function renderTable() {
+    const tbody = document.getElementById('db-table-body');
+    tbody.innerHTML = '';
+    
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    const end = start + ITEMS_PER_PAGE;
+    const paginatedDocs = currentDocs.slice(start, end);
+
+    paginatedDocs.forEach(doc => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="px-4 py-3 font-mono text-xs text-slate-500">
+            <div>${doc.id.substring(0,12)}</div>
+            <div class="text-blue-500">${doc.chunk_id}</div>
+        </td>
+        <td class="px-4 py-3 font-medium text-slate-800 text-xs">${doc.title}</td>
+        <td class="px-4 py-3 text-slate-500 text-[11px] truncate max-w-xs">${doc.text}</td>
+        <td class="px-4 py-3 font-mono text-xs text-center">${doc.token_count}</td>
+        <td class="px-4 py-3 font-mono text-xs text-emerald-600 text-center font-bold">#${doc.vector_idx}</td>
+        <td class="px-4 py-3 text-right">
+          <button onclick="viewDocument('${doc.id}')" class="text-emerald-600 hover:text-emerald-800 px-2 cursor-pointer" title="Xem chi tiết"><i class="fa-solid fa-eye"></i></button>
+          <button onclick="editDocument('${doc.id}')" class="text-blue-600 hover:text-blue-800 px-2 cursor-pointer" title="Sửa"><i class="fa-solid fa-pen"></i></button>
+          <button onclick="deleteDocument('${doc.id}')" class="text-red-500 hover:text-red-700 px-2 cursor-pointer" title="Xóa"><i class="fa-solid fa-trash"></i></button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    const totalPages = Math.ceil(currentDocs.length / ITEMS_PER_PAGE);
+    document.getElementById('db-table-info').innerText = `Đang hiển thị ${start + 1} - ${Math.min(end, currentDocs.length)} bản ghi sau xử lý lượng tử hóa. (Tổng: ${currentDocs.length})`;
+    
+    // Update pagination buttons
+    const btnContainer = document.getElementById('db-table-info').nextElementSibling;
+    btnContainer.innerHTML = `
+        <button onclick="changePage(-1)" class="px-2 py-1 border border-slate-200 rounded hover:bg-slate-50 cursor-pointer ${currentPage === 1 ? 'opacity-50 cursor-not-allowed' : ''}">Trước</button>
+        <button class="px-2 py-1 border border-slate-200 rounded bg-blue-50 text-blue-700 font-bold">${currentPage} / ${totalPages}</button>
+        <button onclick="changePage(1)" class="px-2 py-1 border border-slate-200 rounded hover:bg-slate-50 cursor-pointer ${currentPage === totalPages ? 'opacity-50 cursor-not-allowed' : ''}">Sau</button>
+    `;
+  }
+
+  
+  function viewDocument(id) {
+    const doc = currentDocs.find(d => d.id === id);
+    if (!doc) return;
+    
+    document.getElementById('view-doc-id').innerText = doc.id || 'N/A';
+    document.getElementById('view-chunk-id').innerText = doc.chunk_id || 'N/A';
+    document.getElementById('view-doc-title').innerText = doc.title || 'N/A';
+    document.getElementById('view-doc-category').innerText = doc.category || 'N/A';
+    document.getElementById('view-doc-tokens').innerText = doc.token_count || '0';
+    document.getElementById('view-doc-vecidx').innerText = doc.vector_idx !== undefined ? '#' + doc.vector_idx : 'N/A';
+    document.getElementById('view-doc-text').innerText = doc.text || 'Không có nội dung.';
+    
+    document.getElementById('view-doc-modal').classList.remove('hidden');
+    document.getElementById('view-doc-modal').classList.add('flex');
+  }
+
+  function closeViewModal() {
+    document.getElementById('view-doc-modal').classList.add('hidden');
+    document.getElementById('view-doc-modal').classList.remove('flex');
+  }
+
+  function editDocument
+(id) {
+    const doc = currentDocs.find(d => d.id === id);
+    if (!doc) return;
+    document.getElementById('edit-doc-id').value = doc.id;
+    document.getElementById('edit-doc-title').value = doc.title;
+    // Assuming edit modal has title input. If you want to edit text, you can add it, but title is fine for MVP.
+    const catInput = document.getElementById('edit-doc-category');
+    if(catInput) catInput.value = doc.chunk_id; // reuse category field for chunk_id
+    
+    document.getElementById('edit-doc-modal').classList.remove('hidden');
+    document.getElementById('edit-doc-modal').classList.add('flex');
+  }
+
+  function closeEditModal() {
+    document.getElementById('edit-doc-modal').classList.add('hidden');
+    document.getElementById('edit-doc-modal').classList.remove('flex');
+  }
+
+  async function saveDocument() {
+    const id = document.getElementById('edit-doc-id').value;
+    const updates = {
+      title: document.getElementById('edit-doc-title').value
+    };
+    try {
+      const res = await fetch('/api/documents/' + id, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(updates)
+      });
+      if (res.ok) {
+        closeEditModal();
+        loadDatabaseData();
+      } else {
+        alert('Có lỗi khi lưu');
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  async function deleteDocument(id) {
+    if(!confirm('Bạn có chắc muốn xóa bản ghi này? Hệ thống sẽ cập nhật DB.')) return;
+    try {
+      const res = await fetch('/api/documents/' + id, { method: 'DELETE' });
+      if (res.ok) {
+        loadDatabaseData();
+      } else {
+        alert('Có lỗi khi xóa');
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    loadDatabaseData();
+    document.getElementById('db-search-input').addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') {
+            loadDatabaseData();
+        }
+    });
+  });
+</script>
+
+
 </body>
 </html>

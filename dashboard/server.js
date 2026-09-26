@@ -1128,6 +1128,60 @@ function ensureSearchService() {
   });
 }
 
+
+// ==========================================
+// CRUD API FOR DATABASE MANAGEMENT UI
+// ==========================================
+const crudDbPath = path.join(__dirname, '../data/processed/crud_db.json');
+
+app.get('/api/documents', (req, res) => {
+    try {
+        if (!fs.existsSync(crudDbPath)) return res.json([]);
+        const data = JSON.parse(fs.readFileSync(crudDbPath, 'utf8'));
+        const query = req.query.q ? req.query.q.toLowerCase() : '';
+        if (query) {
+            const filtered = data.filter(d => d.title.toLowerCase().includes(query) || d.category.toLowerCase().includes(query));
+            return res.json(filtered);
+        }
+        res.json(data);
+    } catch (e) {
+        res.status(500).json({error: e.message});
+    }
+});
+
+app.put('/api/documents/:id', (req, res) => {
+    try {
+        const id = req.params.id;
+        const updates = req.body;
+        const data = JSON.parse(fs.readFileSync(crudDbPath, 'utf8'));
+        const docIndex = data.findIndex(d => d.id === id);
+        if (docIndex > -1) {
+            data[docIndex] = { ...data[docIndex], ...updates };
+            fs.writeFileSync(crudDbPath, JSON.stringify(data, null, 2));
+            return res.json({success: true, doc: data[docIndex]});
+        }
+        res.status(404).json({error: 'Document not found'});
+    } catch (e) {
+        res.status(500).json({error: e.message});
+    }
+});
+
+app.delete('/api/documents/:id', (req, res) => {
+    try {
+        const id = req.params.id;
+        let data = JSON.parse(fs.readFileSync(crudDbPath, 'utf8'));
+        const initialLen = data.length;
+        data = data.filter(d => d.id !== id);
+        if (data.length < initialLen) {
+            fs.writeFileSync(crudDbPath, JSON.stringify(data, null, 2));
+            return res.json({success: true});
+        }
+        res.status(404).json({error: 'Document not found'});
+    } catch (e) {
+        res.status(500).json({error: e.message});
+    }
+});
+
 if (require.main === module) {
   app.listen(PORT, () => {
     console.log(`[ANN-10M Dashboard] Node.js server running on http://localhost:${PORT}`);

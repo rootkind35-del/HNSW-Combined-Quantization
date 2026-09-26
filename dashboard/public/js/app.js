@@ -646,6 +646,13 @@ function renderSearchResults(data) {
               >
                 <i class="fa-solid fa-cube"></i> Xem 3D
               </button>
+              <button 
+                type="button" 
+                onclick="showSearchResultDetail('${encodeURIComponent(JSON.stringify(result)).replace(/'/g, '%27')}')"
+                class="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-[13px] font-bold transition flex items-center gap-1.5 shadow-md cursor-pointer shrink-0"
+              >
+              <i class="fa-solid fa-file-lines"></i> Xem nội dung chi tiết
+              </button>
             </div>
           </div>
           <p class="text-[13px] text-slate-600 line-clamp-2 leading-relaxed font-sans">${item.preview}...</p>
@@ -1775,3 +1782,29 @@ document.addEventListener('DOMContentLoaded', () => {
 window.addEventListener('load', () => {
   setTimeout(renderAcademicMath, 150);
 });
+
+
+window.showSearchResultDetail = function(resultStr) {
+  try {
+    const result = JSON.parse(decodeURIComponent(resultStr));
+    
+    // Attempt to reuse the view-doc-modal if it exists (from the CRUD section)
+    const modalIdElem = document.getElementById('view-doc-id');
+    if (modalIdElem) {
+      document.getElementById('view-doc-id').innerText = result.doc_id || 'N/A';
+      document.getElementById('view-chunk-id').innerText = result.shard_id ? `Shard ${result.shard_id}` : 'N/A';
+      document.getElementById('view-doc-title').innerText = result.title || 'N/A';
+      document.getElementById('view-doc-category').innerText = result.category || 'N/A';
+      document.getElementById('view-doc-tokens').innerText = result.token_count || '0';
+      document.getElementById('view-doc-vecidx').innerText = result.node_id !== undefined ? '#' + result.node_id : 'N/A';
+      document.getElementById('view-doc-text').innerText = (result.text || result.preview || 'Không có nội dung preview.') + "\n\n[Similarity Score: " + (result.similarity_score || result.distance) + "]";
+      
+      document.getElementById('view-doc-modal').classList.remove('hidden');
+      document.getElementById('view-doc-modal').classList.add('flex');
+    } else {
+      alert("Nội dung chi tiết:\n\nTiêu đề: " + result.title + "\nDanh mục: " + result.category + "\nPreview: " + result.preview);
+    }
+  } catch (e) {
+    console.error("Failed to parse result details", e);
+  }
+};
