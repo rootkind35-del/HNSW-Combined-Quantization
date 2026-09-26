@@ -164,7 +164,7 @@ class RetrievalBenchmarkEngine:
         if queries:
             benchmark_queries = [{"text": q, "category": "Custom"} for q in queries]
 
-        algorithms = ['hnsw', 'two_tier', 'cf_distributed']
+        algorithms = ['hnsw', 'pure_sq8', 'two_tier']
         report = {}
 
         for algo in algorithms:

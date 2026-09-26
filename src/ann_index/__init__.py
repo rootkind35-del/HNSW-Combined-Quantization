@@ -10,7 +10,6 @@ from ann_index.metrics import compute_latency_stats, compute_recall_at_k
 from ann_index.pq import ProductQuantizer
 from ann_index.quantizer import ScalarQuantizer
 from ann_index.two_tier_hnsw import LocalShard, ShardedIVFHNSW, TwoTierQuantizedHNSW
-from ann_index.collaborative_filtering import DistributedCFIndex
 
 __all__ = [
     "BaseIndex",
@@ -18,7 +17,6 @@ __all__ = [
     "StandardHNSWIndex",
     "IVFPQIndex",
     "TwoTierQuantizedHNSW",
-    "DistributedCFIndex",
     "LocalShard",
     "ShardedIVFHNSW",
     "DirectIOManager",

@@ -32,7 +32,6 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 from ann_data.embedder import SentenceTransformerEmbedder
 from ann_index.two_tier_hnsw import ShardedIVFHNSW
-from ann_index.collaborative_filtering import DistributedCFIndex
 from search_bridge import load_dataset_and_metadata, project_vector_to_3d
 
 # Biến toàn cục lưu trữ trong RAM
@@ -43,11 +42,10 @@ G_GLOBAL_INDICES = None
 G_DATASET_SOURCE = ""
 G_EMBEDDER = None
 G_ROUTER = None
-G_CF_INDEX = None
 
 
 def initialize_service():
-    global G_VECTORS, G_METADATA, G_COORDS_3D, G_GLOBAL_INDICES, G_DATASET_SOURCE, G_EMBEDDER, G_ROUTER, G_CF_INDEX
+    global G_VECTORS, G_METADATA, G_COORDS_3D, G_GLOBAL_INDICES, G_DATASET_SOURCE, G_EMBEDDER, G_ROUTER
 
     print("[SearchService] Đang nạp bộ đệm vector và metadata 5.000 bản ghi...")
     res = load_dataset_and_metadata()
@@ -121,20 +119,8 @@ def perform_search(query_text: str, top_k: int = 5, algorithm: str = "two_tier",
     t_search_0 = time.perf_counter()
     num_vectors = G_VECTORS.shape[0]
     shards_probed = 1
-    
-    if algorithm == "cf_distributed":
-        # Search via Distributed CF
-        search_k = min(num_vectors, max(top_k, 25))
-        query_vecs_2d = np.expand_dims(query_vec, axis=0)
-        cf_indices, cf_distances = G_CF_INDEX.search(query_vecs_2d, top_k=search_k)
-        router_results = []
-        if cf_indices.size > 0:
-            for dist, idx in zip(cf_distances[0], cf_indices[0]):
-                router_results.append((dist, idx, 0)) # shard_id mock as 0
-        shards_probed = G_CF_INDEX.num_shards
-    else:
-        # HNSW Routing
-        search_k = min(num_vectors, max(top_k * 4, min_rerank_k, 25))
+    # HNSW Routing
+search_k = min(num_vectors, max(top_k * 4, min_rerank_k, 25))
         router_results, shards_probed = G_ROUTER.distributed_search(
             query=query_vec,
             top_k=search_k,
@@ -149,8 +135,6 @@ def perform_search(query_text: str, top_k: int = 5, algorithm: str = "two_tier",
     algo_name = ""
     if algorithm == "two_tier":
         algo_name = f"Two-Tier Quantized HNSW (M={m_param}, ef={ef_search}, τ={tau})"
-    elif algorithm == "cf_distributed":
-        algo_name = f"Distributed Collaborative Filtering (Shards={G_CF_INDEX.num_shards})"
     elif algorithm == "pure_sq8":
         algo_name = f"Pure SQ8 HNSW (uint8 Không Re-rank, M={m_param}, ef={ef_search})"
     elif algorithm == "hnsw":
@@ -175,12 +159,8 @@ def perform_search(query_text: str, top_k: int = 5, algorithm: str = "two_tier",
             continue
 
         used_indices.add(global_id)
-        if algorithm == "cf_distributed":
-            sim_val = max(0.0, min(1.0, float(-exact_dist)))
-            dist_val = float(exact_dist)
-        else:
-            sim_val = max(0.0, min(1.0, 1.0 - (exact_dist ** 2) / 2.0))
-            dist_val = float(exact_dist)
+        sim_val = max(0.0, min(1.0, 1.0 - (exact_dist ** 2) / 2.0))
+        dist_val = float(exact_dist)
 
         if G_COORDS_3D is not None and global_id < len(G_COORDS_3D):
             vec_3d = {
