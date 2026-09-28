@@ -1,105 +1,105 @@
 > **LƯU Ý:** Tài liệu này đã cũ và được thay thế toàn bộ bởi [BAO_CAO_LUAN_VAN_CHIT_TIET.md](BAO_CAO_LUAN_VAN_CHIT_TIET.md). Xin vui lòng tham khảo file báo cáo chính thức để xem kiến trúc Two-Tier HNSW lượng tử hóa SQ8 mới nhất.
 
-# HÆ°á»›ng dáº«n Thá»±c hiá»‡n â€” HNSW Combined Quantization
+# Hướng dẫn Thực hiện — HNSW Combined Quantization
 
-**PhiÃªn báº£n:** v1.0.0  
-**Cáºp nháºt:** ThÃ¡ng 9, 2026  
-**Pháº¡m vi:** CÃ i Ä‘áº·t, cháº¡y thá», sá» dá»¥ng dashboard vÃ  Ä‘Ã¡nh giÃ¡ káº¿t quáº£
+**Phiên bản:** v1.0.0  
+**Cáºp nháºt:** Tháng 9, 2026  
+**Phạm vi:** CÃ i đặt, chạy thá», sá» dụng dashboard vÃ  đánh giá kết quả
 
 ---
 
-## Má»¥c lá»¥c
+## Mục lục
 
-1. [YÃªu cáº§u Pháº§n cá»©ng & Pháº§n má»m](#1-yÃªu-cáº§u-pháº§n-cá»©ng--pháº§n-má»m)
-2. [Táº£i Dá»¯ liá»‡u (Báº¯t buá»™c)](#2-táº£i-dá»¯-liá»‡u-báº¯t-buá»™c)
-3. [CÃ i Ä‘áº·t Dá»± Ã¡n](#3-cÃ i-Ä‘áº·t-dá»±-Ã¡n)
-4. [Cháº¡y Dashboard Trá»±c quan](#4-cháº¡y-dashboard-trá»±c-quan)
-5. [HÆ°á»›ng dáº«n Sá» dá»¥ng Tá»«ng Tab](#5-hÆ°á»›ng-dáº«n-sá»-dá»¥ng-tá»«ng-tab)
-6. [Cháº¡y ÄÃ¡nh giÃ¡ Thuáºt toÃ¡n](#6-cháº¡y-Ä‘Ã¡nh-giÃ¡-thuáºt-toÃ¡n)
-7. [Cháº¡y Pipeline Tá»« Äáº§u](#7-cháº¡y-pipeline-tá»«-Ä‘áº§u)
-8. [Cáº¥u hÃ¬nh SiÃªu tham sá»‘](#8-cáº¥u-hÃ¬nh-siÃªu-tham-sá»‘)
-9. [Cháº¡y Bá»™ Kiá»ƒm thá»](#9-cháº¡y-bá»™-kiá»ƒm-thá»)
+1. [Yêu cầu Phần cứng & Phần mềm](#1-yêu-cầu-phần-cứng--phần-mềm)
+2. [Tải Dữ liệu (Bắt buộc)](#2-tải-dữ-liệu-bắt-buộc)
+3. [CÃ i đặt Dự Ã¡n](#3-cÃ i-đặt-dự-án)
+4. [Chạy Dashboard Trực quan](#4-chạy-dashboard-trực-quan)
+5. [Hướng dẫn Sá» dụng Từng Tab](#5-hÆ°á»›ng-dáº«n-sá»-dá»¥ng-tá»«ng-tab)
+6. [Chạy Đánh giá Thuáºt toÃ¡n](#6-cháº¡y-Ä‘Ã¡nh-giÃ¡-thuáºt-toÃ¡n)
+7. [Chạy Pipeline Từ Đầu](#7-chạy-pipeline-từ-đầu)
+8. [Cấu hình Siêu tham số](#8-cấu-hình-siêu-tham-số)
+9. [Chạy Bộ Kiểm thá»](#9-cháº¡y-bá»™-kiá»ƒm-thá»)
 10. [API Reference](#10-api-reference)
-11. [Xá» lÃ½ Sá»± cá»‘ ThÆ°á»ng gáº·p](#11-xá»-lÃ½-sá»±-cá»‘-thÆ°á»ng-gáº·p)
+11. [Xá» lý Sự cố Thường gáº·p](#11-xá»-lÃ½-sá»±-cá»‘-thÆ°á»ng-gáº·p)
 
 ---
 
-## 1. YÃªu cáº§u Pháº§n cá»©ng & Pháº§n má»m
+## 1. Yêu cầu Phần cứng & Phần mềm
 
-### Tá»‘i thiá»ƒu
+### Tối thiểu
 
-| ThÃ nh pháº§n | YÃªu cáº§u |
+| ThÃ nh phần | Yêu cầu |
 |:---|:---|
-| RAM | 16 GB (Ä‘á»§ cháº¡y Two-Tier HNSW) |
-| Storage | 15 GB NVMe SSD trá»‘ng (cho index SQ8) |
-| CPU | x86_64 vá»›i AVX2 |
-| Python | 3.11 hoáº·c cao hÆ¡n |
-| Node.js | 20 hoáº·c cao hÆ¡n |
+| RAM | 16 GB (đủ chạy Two-Tier HNSW) |
+| Storage | 15 GB NVMe SSD trống (cho index SQ8) |
+| CPU | x86_64 với AVX2 |
+| Python | 3.11 hoặc cao hơn |
+| Node.js | 20 hoặc cao hơn |
 
-### Khuyáº¿n nghá»‹
+### Khuyến nghị
 
-| ThÃ nh pháº§n | Khuyáº¿n nghá»‹ |
+| ThÃ nh phần | Khuyến nghị |
 |:---|:---|
 | RAM | 32 GB+ |
-| Storage | 50 GB+ SSD (cho dá»¯ liá»‡u float32 + SQ8 + cache) |
-| CPU | Há»— trá»£ AVX-512 cho hiá»‡u suáº¥t SIMD tá»‘t hÆ¡n |
+| Storage | 50 GB+ SSD (cho dữ liệu float32 + SQ8 + cache) |
+| CPU | Hỗ trợ AVX-512 cho hiệu suất SIMD tốt hơn |
 
-> **LÆ°u Ã½:** Standard HNSW trÃªn 16.45M vector cáº§n ~64 GB RAM. Chá»‰ Two-Tier Quantized HNSW má»›i cháº¡y Ä‘Æ°á»£c trÃªn mÃ¡y 16-32 GB.
+> **Lưu ý:** Standard HNSW trên 16.45M vector cần ~64 GB RAM. Chỉ Two-Tier Quantized HNSW mới chạy được trên máy 16-32 GB.
 
 ---
 
-## 2. Táº£i Dá»¯ liá»‡u (Báº¯t buá»™c)
+## 2. Tải Dữ liệu (Bắt buộc)
 
-Do giá»›i háº¡n vá» dung lÆ°á»£ng cá»§a GitHub, dá»¯ liá»‡u khÃ´ng Ä‘Æ°á»£c Ä‘Ãnh kÃ¨m trong mÃ£ nguá»“n. Báº¡n cáº§n táº£i dá»¯ liá»‡u vÃ  Ä‘áº·t Ä‘Ãºng vÃ o thÆ° má»¥c `data/`.
+Do giới hạn về dung lượng của GitHub, dữ liệu không được Ä‘Ãnh kèm trong mã nguồn. Bạn cần tải dữ liệu vÃ  đặt đúng vÃ o thư mục `data/`.
 
-ðŸ‘‰ **Link táº£i trá»n bá»™ dá»¯ liá»‡u (Google Drive):**  
+👉 **Link tải trọn bộ dữ liệu (Google Drive):**  
 [https://drive.google.com/drive/folders/1b2yiq6Ly5cl3VdNW2LuM1EqdaZNdpbPW?usp=sharing](https://drive.google.com/drive/folders/1b2yiq6Ly5cl3VdNW2LuM1EqdaZNdpbPW?usp=sharing)
 
-**CÃ¡ch bá»‘ trÃ thÆ° má»¥c dá»¯ liá»‡u sau khi táº£i:**
+**Cách bố trÃ thư mục dữ liệu sau khi tải:**
 ```text
 HNSW-Combined-Quantization/
-â”œâ”€â”€ data/
-â”‚   â”œâ”€â”€ processed/
-â”‚   â”‚   â”œâ”€â”€ search_index_cache.npz          # 5,000 vector Ä‘Ã£ chuáº©n hÃ³a
-â”‚   â”‚   â”œâ”€â”€ search_index_metadata.json      # Metadata 5,000 tÃ i liá»‡u
-â”‚   â”‚   â”œâ”€â”€ pca_3d_projection.json          # Tá»a Ä‘á»™ PCA 3D
-â”‚   â”‚   â””â”€â”€ vectors_3d_cache.json           # Cache Ä‘á»“ thá»‹ 3D cho Dashboard
-â”‚   â”œâ”€â”€ raw/
-â”‚   â”‚   â”œâ”€â”€ raw_crawled_news.jsonl          # Dá»¯ liá»‡u vÄƒn báº£n thÃ´
-â”‚   â”‚   â””â”€â”€ RAW_DATASET_MANIFEST.json
+├── data/
+│   ├── processed/
+│   │   ├── search_index_cache.npz          # 5,000 vector đã chuẩn hóa
+│   │   ├── search_index_metadata.json      # Metadata 5,000 tÃ i liệu
+│   │   ├── pca_3d_projection.json          # Tọa độ PCA 3D
+│   │   └── vectors_3d_cache.json           # Cache đồ thị 3D cho Dashboard
+│   ├── raw/
+│   │   ├── raw_crawled_news.jsonl          # Dữ liệu văn bản thô
+│   │   └── RAW_DATASET_MANIFEST.json
 ```
-*(Chi tiáº¿t thÃªm vui lÃ²ng xem file `data/README.md`)*
+*(Chi tiết thêm vui lòng xem file `data/README.md`)*
 
 ---
 
-## 3. CÃ i Ä‘áº·t Dá»± Ã¡n
+## 3. CÃ i đặt Dự án
 
-### BÆ°á»›c 1 â€” Clone vÃ  mÃ´i trÆ°á»ng
+### Bước 1 — Clone vÃ  môi trường
 
 ```bash
 git clone git@github.com:rootkind35-del/HNSW-Combined-Quantization.git
 cd HNSW-Combined-Quantization
 
-# Táº¡o virtual environment
+# Tạo virtual environment
 python -m venv.venv
 
-# KÃch hoáº¡t (Windows)
+# KÃch hoạt (Windows)
 .venv\Scripts\activate
-# KÃch hoáº¡t (Linux/macOS)
+# KÃch hoạt (Linux/macOS)
 source.venv/bin/activate
 ```
 
-### BÆ°á»›c 2 â€” CÃ i Ä‘áº·t thÆ° viá»‡n Python
+### Bước 2 — CÃ i đặt thư viện Python
 
 ```bash
-# CÃ i Ä‘áº·t cÆ¡ báº£n
+# CÃ i đặt cơ bản
 pip install -e.
 
-# CÃ i Ä‘áº·t thÃªm ML + dev tools
+# CÃ i đặt thêm ML + dev tools
 pip install -e ".[ml,dev]"
 ```
 
-### BÆ°á»›c 3 â€” CÃ i Ä‘áº·t Node.js cho Dashboard
+### Bước 3 — CÃ i đặt Node.js cho Dashboard
 
 ```bash
 cd dashboard
@@ -107,7 +107,7 @@ npm install
 cd..
 ```
 
-### BÆ°á»›c 4 â€” Kiá»ƒm tra cÃ i Ä‘áº·t
+### Bước 4 — Kiểm tra cÃ i đặt
 
 ```bash
 python -c "import numpy, sentence_transformers; print('Python OK')"
@@ -116,220 +116,220 @@ node -e "console.log('Node OK')"
 
 ---
 
-## 4. Cháº¡y Dashboard Trá»±c quan
+## 4. Chạy Dashboard Trực quan
 
-HÃ£y cháº¯c cháº¯n ráº±ng báº¡n Ä‘Ã£ lÃ m bÆ°á»›c **2. Táº£i Dá»¯ liá»‡u** vÃ  Ä‘áº·t chÃºng vÃ o thÆ° má»¥c `data/processed/`.
+Hãy chắc chắn rằng bạn đã lÃ m bước **2. Tải Dữ liệu** vÃ  đặt chúng vÃ o thư mục `data/processed/`.
 
-### Khá»Ÿi Ä‘á»™ng Server
+### Khởi động Server
 
 ```bash
-# Má»Ÿ terminal 1 â€” Python search microservice
+# Mở terminal 1 — Python search microservice
 cd dashboard
 python scripts/search_service.py
-# Service cháº¡y trÃªn port 5005
+# Service chạy trên port 5005
 
-# Má»Ÿ terminal 2 â€” Node.js dashboard server
+# Mở terminal 2 — Node.js dashboard server
 cd dashboard
 npm start
-# Server cháº¡y trÃªn port 3000
+# Server chạy trên port 3000
 ```
 
-Má»Ÿ trÃ¬nh duyá»‡t, truy cáºp: **http://localhost:3000**
+Mở trình duyệt, truy cáºp: **http://localhost:3000**
 
 ---
 
-## 5. HÆ°á»›ng dáº«n Sá» dá»¥ng Tá»«ng Tab
+## 5. Hướng dẫn Sá» dụng Từng Tab
 
-### Tab 1 â€” TÃ¬m kiáº¿m & Execution Inspector
+### Tab 1 — Tìm kiếm & Execution Inspector
 
-**Má»¥c Ä‘Ãch:** Nháºp cÃ¢u truy váº¥n ngá»¯ nghÄ©a vÃ  xem káº¿t quáº£ tÃ¬m kiáº¿m cÃ¹ng vá»›i biá»ƒu Ä‘á»“ thá»±c thi 4 giai Ä‘oáº¡n.
+**Mục Ä‘Ãch:** Nháºp câu truy vấn ngữ nghĩa vÃ  xem kết quả tìm kiếm cùng với biểu đồ thực thi 4 giai đoạn.
 
-**CÃ¡ch sá» dá»¥ng:**
+**Cách sá» dụng:**
 
-1. Nháºp vÄƒn báº£n vÃ o Ã´ tÃ¬m kiáº¿m (vÃ dá»¥: `há»£p Ä‘á»“ng lao Ä‘á»™ng tá»‘i thiá»ƒu`).
-2. Chá»n thuáºt toÃ¡n: `Two-Tier Quantized HNSW`, `Standard HNSW` hoáº·c `Distributed Collaborative Filtering`.
-3. Chá»‰nh Top-K slider (5-20 káº¿t quáº£).
-4. Chá»n chip danh má»¥c náº¿u muá»‘n lá»c.
-5. Nháº¥n **TÃ¬m kiáº¿m** hoáº·c Enter.
+1. Nháºp văn bản vÃ o ô tìm kiếm (vÃ dụ: `hợp đồng lao động tối thiểu`).
+2. Chọn thuáºt toán: `Two-Tier Quantized HNSW`, `Standard HNSW` hoặc `Distributed Collaborative Filtering`.
+3. Chỉnh Top-K slider (5-20 kết quả).
+4. Chọn chip danh mục nếu muốn lọc.
+5. Nhấn **Tìm kiếm** hoặc Enter.
 
-**Giáº£i thÃch káº¿t quáº£ hiá»ƒn thá»‹:**
+**Giải thÃch kết quả hiển thị:**
 
-| Pháº§n | MÃ´ táº£ |
+| Phần | Mô tả |
 |:---|:---|
 | 4 KPI cards | Elapsed time, Slot time, Bytes shuffled, Bytes spilled |
-| S00 â€” Input | Thá»i gian chuáº©n hÃ³a vÃ  nhÃºng vector |
-| S01 â€” Aggregate | Thá»i gian duyá»‡t Ä‘á»“ thá»‹ SQ8 qua 200 shards |
-| S02 â€” Re-rank | Thá»i gian Ä‘á»c SSD vÃ  tÃnh láº¡i khoáº£ng cÃ¡ch float32 |
-| S03 â€” Output | Tá»•ng káº¿t quáº£ vÃ  thá»i gian phÃ¡t sinh response |
-| Graph Output | Danh sÃ¡ch káº¿t quáº£ (List view / JSON view) |
+| S00 — Input | Thời gian chuẩn hóa vÃ  nhúng vector |
+| S01 — Aggregate | Thời gian duyệt đồ thị SQ8 qua 200 shards |
+| S02 — Re-rank | Thời gian đọc SSD vÃ  tÃnh lại khoảng cách float32 |
+| S03 — Output | Tổng kết quả vÃ  thời gian phát sinh response |
+| Graph Output | Danh sách kết quả (List view / JSON view) |
 
-**Chuyá»ƒn Ä‘á»•i dáº¡ng xem káº¿t quáº£:**
+**Chuyển đổi dạng xem kết quả:**
 
-- Nháº¥n `[Dáº¡ng Danh SÃ¡ch]` Ä‘á»ƒ xem tháº» card.
-- Nháº¥n `[Dáº¡ng JSON]` Ä‘á»ƒ xem raw JSON.
-- Nháº¥n `Copy JSON` Ä‘á»ƒ sao chÃ©p vÃ o clipboard.
+- Nhấn `[Dạng Danh Sách]` để xem thẻ card.
+- Nhấn `[Dạng JSON]` để xem raw JSON.
+- Nhấn `Copy JSON` để sao chép vÃ o clipboard.
 
-**Dynamic SQL:** Pháº§n SQL dÆ°á»›i thanh tÃ¬m kiáº¿m tá»± Ä‘á»™ng cáºp nháºt khi Ä‘á»•i tham sá»‘ â€” Ä‘Ã¢y lÃ  SQL mÃ´ phá»ng logic truy váº¥n Ä‘á»™ng.
-
----
-
-### Tab 2 â€” KhÃ´ng gian Vector 3D (Three.js)
-
-**Má»¥c Ä‘Ãch:** Trá»±c quan hÃ³a khÃ´ng gian vector nhÃºng 384-D Ä‘Æ°á»£c chiáº¿u xuá»‘ng 3 chiá»u qua PCA.
-
-**CÃ¡ch sá» dá»¥ng:**
-
-1. Thá»±c hiá»‡n tÃ¬m kiáº¿m á»Ÿ Tab 1 trÆ°á»›c.
-2. Chuyá»ƒn sang Tab 2.
-3. CÃ¡c Ä‘iá»ƒm káº¿t quáº£ tÃ¬m kiáº¿m Ä‘Æ°á»£c tÃ´ mÃ u vÃ ng/Ä‘á», cÃ¡c Ä‘iá»ƒm ná»n mÃ u xanh.
-4. Di chuá»™t lÃªn Ä‘iá»ƒm báº¥t ká»³ Ä‘á»ƒ xem tooltip (tiÃªu Ä‘á», danh má»¥c, score, lÃ½ do).
-5. Nháº¥n **Xem trÃªn 3D** trÃªn má»™t káº¿t quáº£ Ä‘á»ƒ focus vÃ o Ä‘iá»ƒm Ä‘Ã³.
-6. Panel **HUD Detail** hiá»ƒn thá»‹ Ä‘áº§y Ä‘á»§ thÃ´ng tin tÃ i liá»‡u Ä‘Æ°á»£c chá»n.
-
-**Äiá»u hÆ°á»›ng:**
-- KÃ©o chuá»™t Ä‘á»ƒ xoay
-- Scroll Ä‘á»ƒ phÃ³ng to/thu nhá»
-- Click pháº£i + kÃ©o Ä‘á»ƒ dá»‹ch chuyá»ƒn
+**Dynamic SQL:** Phần SQL dưới thanh tìm kiếm tự động cáºp nháºt khi đổi tham số — đây lÃ  SQL mô phỏng logic truy vấn động.
 
 ---
 
-### Tab 3 â€” Danh sÃ¡ch Top-K
+### Tab 2 — Không gian Vector 3D (Three.js)
 
-**Má»¥c Ä‘Ãch:** Xem báº£ng káº¿t quáº£ tÃ¬m kiáº¿m Ä‘áº§y Ä‘á»§ vá»›i xáº¿p háº¡ng rÃµ rÃ ng.
+**Mục Ä‘Ãch:** Trực quan hóa không gian vector nhúng 384-D được chiếu xuống 3 chiều qua PCA.
 
-**Ná»™i dung hiá»ƒn thá»‹:**
-- Thá»© tá»± xáº¿p háº¡ng (Rank #1 = Ä‘á»™ tÆ°Æ¡ng Ä‘á»“ng cao nháº¥t)
-- Äá»™ tÆ°Æ¡ng Ä‘á»“ng (Similarity Score, thang 0-1)
-- TiÃªu Ä‘á» tÃ i liá»‡u
-- Äoáº¡n trÃch dáº«n vÄƒn báº£n
-- Danh má»¥c (News / Legal)
-- LÃ½ do xáº¿p háº¡ng (Reasoning badge)
+**Cách sá» dụng:**
 
-**LÆ°u Ã½:** Káº¿t quáº£ Ä‘Æ°á»£c sáº¯p xáº¿p giáº£m dáº§n theo `similarity_score`.
+1. Thực hiện tìm kiếm ở Tab 1 trước.
+2. Chuyển sang Tab 2.
+3. Các điểm kết quả tìm kiếm được tô mÃ u vÃ ng/đỏ, các điểm nền mÃ u xanh.
+4. Di chuột lên điểm bất kỳ để xem tooltip (tiêu đề, danh mục, score, lý do).
+5. Nhấn **Xem trên 3D** trên một kết quả để focus vÃ o điểm đó.
+6. Panel **HUD Detail** hiển thị đầy đủ thông tin tÃ i liệu được chọn.
 
----
-
-### Tab 4 â€” ÄÃ¡nh giÃ¡ Thuáºt toÃ¡n
-
-**Má»¥c Ä‘Ãch:** So sÃ¡nh Two-Tier Quantized HNSW vs Standard HNSW trÃªn cÃ¡c chá»‰ sá»‘ QPS, Recall, Latency.
-
-**CÃ¡ch sá» dá»¥ng:**
-
-1. Nháº¥n **Cháº¡y ÄÃ¡nh giÃ¡**.
-2. Há»‡ thá»‘ng cháº¡y 100 cÃ¢u truy váº¥n máº«u trÃªn cáº£ 2 thuáºt toÃ¡n.
-3. Biá»ƒu Ä‘á»“ QPS, Latency, Recall hiá»ƒn thá»‹ so sÃ¡nh trá»±c tiáº¿p.
-4. Biá»ƒu Ä‘á»“ HNSW SiÃªu tham sá»‘ cho phÃ©p thay Ä‘á»•i `M`, `ef_construction`, `ef_search` Ä‘á»ƒ xem áº£nh hÆ°á»Ÿng.
+**Điều hướng:**
+- Kéo chuột để xoay
+- Scroll để phóng to/thu nhỏ
+- Click phải + kéo để dịch chuyển
 
 ---
 
-## 6. Cháº¡y ÄÃ¡nh giÃ¡ Thuáºt toÃ¡n báº±ng CLI
+### Tab 3 — Danh sách Top-K
 
-NgoÃ i viá»‡c dÃ¹ng Dashboard, báº¡n cÃ³ thá»ƒ cháº¡y báº±ng dÃ²ng lá»‡nh:
+**Mục Ä‘Ãch:** Xem bảng kết quả tìm kiếm đầy đủ với xếp hạng rõ rÃ ng.
+
+**Nội dung hiển thị:**
+- Thứ tự xếp hạng (Rank #1 = độ tương đồng cao nhất)
+- Độ tương đồng (Similarity Score, thang 0-1)
+- Tiêu đề tÃ i liệu
+- Đoạn trÃch dẫn văn bản
+- Danh mục (News / Legal)
+- Lý do xếp hạng (Reasoning badge)
+
+**Lưu ý:** Kết quả được sắp xếp giảm dần theo `similarity_score`.
+
+---
+
+### Tab 4 — Đánh giá Thuáºt toán
+
+**Mục Ä‘Ãch:** So sánh Two-Tier Quantized HNSW vs Standard HNSW trên các chỉ số QPS, Recall, Latency.
+
+**Cách sá» dụng:**
+
+1. Nhấn **Chạy Đánh giá**.
+2. Hệ thống chạy 100 câu truy vấn mẫu trên cả 2 thuáºt toán.
+3. Biểu đồ QPS, Latency, Recall hiển thị so sánh trực tiếp.
+4. Biểu đồ HNSW Siêu tham số cho phép thay đổi `M`, `ef_construction`, `ef_search` để xem ảnh hưởng.
+
+---
+
+## 6. Chạy Đánh giá Thuáºt toán bằng CLI
+
+NgoÃ i việc dùng Dashboard, bạn có thể chạy bằng dòng lệnh:
 
 ```bash
-# Cháº¡y Ä‘Ã¡nh giÃ¡ truy xuáº¥t trÃªn 2 thuáºt toÃ¡n
+# Chạy đánh giá truy xuất trên 2 thuáºt toán
 python scripts/run_retrieval_evaluation.py --top-k 10
 
-# Káº¿t quáº£ lÆ°u táº¡i:
+# Kết quả lưu tại:
 #   data/processed/evaluation_results/benchmark_report_YYYYMMDD_HHMMSS.json
 #   data/processed/evaluation_results/benchmark_summary_YYYYMMDD_HHMMSS.md
 ```
 
-### Scale Stress Test (Chá»‹u táº£i)
+### Scale Stress Test (Chịu tải)
 
 ```bash
-# Kiá»ƒm tra hiá»‡u suáº¥t theo quy mÃ´ N = 1000, 2500, 5000
+# Kiểm tra hiệu suất theo quy mô N = 1000, 2500, 5000
 python scripts/run_scale_stress_test.py
 ```
 
 ---
 
-## 7. Cháº¡y Pipeline Tá»« Äáº§u
+## 7. Chạy Pipeline Từ Đầu
 
-Chá»‰ thá»±c hiá»‡n khi báº¡n muá»‘n lÃ m láº¡i toÃ n bá»™ quÃ¡ trÃ¬nh thu tháºp vÃ  lÆ°á»£ng tá» hÃ³a:
+Chỉ thực hiện khi bạn muốn lÃ m lại toÃ n bộ quá trình thu tháºp vÃ  lượng tá» hóa:
 
 ```bash
-# 1. Thu tháºp dá»¯ liá»‡u bÃ¡o chÃ & phÃ¡p luáºt
+# 1. Thu tháºp dữ liệu báo chÃ & pháp luáºt
 python scripts/run_crawler.py --target-records 100000 --batch-size 1000
 
-# 2. LÆ°á»£ng tá» hÃ³a SQ8
+# 2. Lượng tá» hóa SQ8
 python scripts/run_quantization.py
 
-# 3. XÃ¢y dá»±ng bá»™ Ä‘á»‡m tÃ¬m kiáº¿m cho Dashboard
+# 3. Xây dựng bộ đệm tìm kiếm cho Dashboard
 python scripts/build_clean_search_cache.py
 ```
 
 ---
 
-## 8. Cáº¥u hÃ¬nh SiÃªu tham sá»‘
+## 8. Cấu hình Siêu tham số
 
-File cáº¥u hÃ¬nh: `configs/default_pipeline.json`
+File cấu hình: `configs/default_pipeline.json`
 
-| Tham sá»‘ | Kiá»ƒu | Máº·c Ä‘á»‹nh | MÃ´ táº£ |
+| Tham số | Kiểu | Mặc định | Mô tả |
 |:---|:---|:---:|:---|
-| `dim` | int | 384 | Sá»‘ chiá»u vector (chuáº©n Sentence-BERT) |
-| `max_elements` | int | 10,000,000 | Dung lÆ°á»£ng tá»‘i Ä‘a má»—i phÃ¢n vÃ¹ng index |
-| `M` | int | 16 | Sá»‘ liÃªn káº¿t tá»‘i Ä‘a má»—i node trong HNSW |
-| `ef_construction` | int | 100 | KÃch thÆ°á»›c hÃ ng Ä‘á»£i á»©ng viÃªn khi xÃ¢y graph |
-| `ef_search` | int | 32 | KÃch thÆ°á»›c hÃ ng Ä‘á»£i á»©ng viÃªn khi truy váº¥n |
-| `tau` | int | 3 | Sá»‘ bÆ°á»›c bÃ£o hÃ²a dá»«ng sá»›m (Adaptive Early-Exit) |
-| `eps` | float | 0.0001 | NgÆ°á»¡ng cáº£i thiá»‡n tÆ°Æ¡ng Ä‘á»‘i Ä‘á»ƒ dá»«ng sá»›m |
-| `rerank_factor` | int | 3 | Há»‡ sá»‘ nhÃ¢n sá»‘ lÆ°á»£ng á»©ng viÃªn Tier 2 |
+| `dim` | int | 384 | Số chiều vector (chuẩn Sentence-BERT) |
+| `max_elements` | int | 10,000,000 | Dung lượng tối đa mỗi phân vùng index |
+| `M` | int | 16 | Số liên kết tối đa mỗi node trong HNSW |
+| `ef_construction` | int | 100 | KÃch thước hÃ ng đợi ứng viên khi xây graph |
+| `ef_search` | int | 32 | KÃch thước hÃ ng đợi ứng viên khi truy vấn |
+| `tau` | int | 3 | Số bước bão hòa dừng sớm (Adaptive Early-Exit) |
+| `eps` | float | 0.0001 | Ngưỡng cải thiện tương đối để dừng sớm |
+| `rerank_factor` | int | 3 | Hệ số nhân số lượng ứng viên Tier 2 |
 
 ---
 
-## 9. Cháº¡y Bá»™ Kiá»ƒm thá»
+## 9. Chạy Bộ Kiểm thá»
 
-### Kiá»ƒm thá» Backend Python
+### Kiểm thá» Backend Python
 
 ```bash
-# Cháº¡y toÃ n bá»™ 91 bÃ i kiá»ƒm thá» pytest
+# Chạy toÃ n bộ 91 bÃ i kiểm thá» pytest
 pytest tests/ -v
 ```
 
-### Kiá»ƒm thá» Frontend UI
+### Kiểm thá» Frontend UI
 
 ```bash
-# Kiá»ƒm thá» render vÃ  logic UI (Node.js)
+# Kiểm thá» render vÃ  logic UI (Node.js)
 node tests/test_ui_render_harness.js
-# Káº¿t quáº£: 19 passed, 0 failed
+# Kết quả: 19 passed, 0 failed
 
-# Kiá»ƒm thá» adversarial stress
+# Kiểm thá» adversarial stress
 node tests/test_adversarial_frontend_stress.js
-# Káº¿t quáº£: 3 adversarial cases, 0 findings
+# Kết quả: 3 adversarial cases, 0 findings
 ```
 
 ---
 
 ## 10. API Reference
 
-Server Express cá»§a Dashboard cháº¡y trÃªn port 3000.
+Server Express của Dashboard chạy trên port 3000.
 
-| Endpoint | Method | Body / Params | Chá»©c nÄƒng |
+| Endpoint | Method | Body / Params | Chức năng |
 |:---|:---|:---|:---|
-| `GET /api/status` | GET | â€” | Tráº¡ng thÃ¡i index, RAM usage, sá»‘ báº£n ghi |
-| `POST /api/search` | POST | `{ query, algorithm, top_k, category }` | Thá»±c thi tÃ¬m kiáº¿m ngá»¯ nghÄ©a |
-| `POST /api/eval/run` | POST | `{ top_k }` | Cháº¡y benchmark 2 thuáºt toÃ¡n |
-| `GET /api/eval/history` | GET | â€” | Danh sÃ¡ch cÃ¡c bÃ¡o cÃ¡o benchmark Ä‘Ã£ cháº¡y |
-| `GET /api/eval/download/:type/:file` | GET | type=report/query, file=filename | Táº£i JSON/Markdown report |
+| `GET /api/status` | GET | — | Trạng thái index, RAM usage, số bản ghi |
+| `POST /api/search` | POST | `{ query, algorithm, top_k, category }` | Thực thi tìm kiếm ngữ nghĩa |
+| `POST /api/eval/run` | POST | `{ top_k }` | Chạy benchmark 2 thuáºt toán |
+| `GET /api/eval/history` | GET | — | Danh sách các báo cáo benchmark đã chạy |
+| `GET /api/eval/download/:type/:file` | GET | type=report/query, file=filename | Tải JSON/Markdown report |
 
-### VÃ dá»¥ gá»i API tÃ¬m kiáº¿m
+### VÃ dụ gọi API tìm kiếm
 
 ```bash
 curl -X POST http://localhost:3000/api/search \
   -H "Content-Type: application/json" \
-  -d '{"query": "há»£p Ä‘á»“ng lao Ä‘á»™ng tá»‘i thiá»ƒu", "algorithm": "two_tier", "top_k": 5}'
+  -d '{"query": "hợp đồng lao động tối thiểu", "algorithm": "two_tier", "top_k": 5}'
 ```
 
 ---
 
-## 11. Xá» lÃ½ Sá»± cá»‘ ThÆ°á»ng gáº·p
+## 11. Xá» lý Sự cố Thường gặp
 
-### Lá»—i káº¿t ná»‘i `Python service not responding`
+### Lỗi kết nối `Python service not responding`
 
-**NguyÃªn nhÃ¢n:** Python microservice (port 5005) chÆ°a cháº¡y.
+**Nguyên nhân:** Python microservice (port 5005) chưa chạy.
 
-**CÃ¡ch xá» lÃ½:**
+**Cách xá» lý:**
 ```bash
 cd dashboard
 python scripts/search_service.py
@@ -337,11 +337,11 @@ python scripts/search_service.py
 
 ---
 
-### Lá»—i `Cannot find module` khi cháº¡y Node
+### Lỗi `Cannot find module` khi chạy Node
 
-**NguyÃªn nhÃ¢n:** Báº¡n chÆ°a cÃ i Ä‘áº·t package cho thÆ° má»¥c dashboard.
+**Nguyên nhân:** Bạn chưa cÃ i đặt package cho thư mục dashboard.
 
-**CÃ¡ch xá» lÃ½:**
+**Cách xá» lý:**
 ```bash
 cd dashboard
 npm install
@@ -349,26 +349,26 @@ npm install
 
 ---
 
-### Lá»—i `ModuleNotFoundError` trong Python
+### Lỗi `ModuleNotFoundError` trong Python
 
-**CÃ¡ch xá» lÃ½:** Äáº£m báº£o báº¡n Ä‘Ã£ cÃ i toÃ n bá»™ mÃ´i trÆ°á»ng áº£o.
+**Cách xá» lý:** Đảm bảo bạn đã cÃ i toÃ n bộ môi trường ảo.
 ```bash
 pip install -e ".[ml,dev]"
 ```
 
 ---
 
-### Biá»ƒu Ä‘á»“ 3D khÃ´ng hiá»ƒn thá»‹
+### Biểu đồ 3D không hiển thị
 
-**NguyÃªn nhÃ¢n:** TrÃ¬nh duyá»‡t khÃ´ng há»— trá»£ WebGL hoáº·c GPU bá»‹ vÃ´ hiá»‡u hÃ³a.
+**Nguyên nhân:** Trình duyệt không hỗ trợ WebGL hoặc GPU bị vô hiệu hóa.
 
-**CÃ¡ch xá» lÃ½:**
-- Thá» trÃ¬nh duyá»‡t khÃ¡c (Chrome/Edge phiÃªn báº£n má»›i nháº¥t).
+**Cách xá» lý:**
+- Thá» trình duyệt khác (Chrome/Edge phiên bản mới nhất).
 - Báºt `Override software rendering list` trong `chrome://flags`.
 
 ---
 
-### Out-Of-Memory khi cháº¡y Standard HNSW
+### Out-Of-Memory khi chạy Standard HNSW
 
-**ÄÃ¢y lÃ  Ä‘iá»u bÃ¬nh thÆ°á»ng** vá»›i táºp 16.45M vector. Standard HNSW cáº§n tá»›i ~64 GB RAM. HÃ£y chuyá»ƒn sang sá» dá»¥ng `Two-Tier Quantized HNSW` Ä‘á»ƒ tiáº¿t kiá»‡m 75% RAM.
+**Đây lÃ  điều bình thường** với táºp 16.45M vector. Standard HNSW cần tới ~64 GB RAM. Hãy chuyển sang sá» dụng `Two-Tier Quantized HNSW` để tiết kiệm 75% RAM.
 

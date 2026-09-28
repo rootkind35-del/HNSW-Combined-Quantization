@@ -2,13 +2,13 @@
 
 # Original User Request
 
-## Initial Request â€” 2026-09-21T03:41:12Z
+## Initial Request — 2026-09-21T03:41:12Z
 
-# Teamwork Project Prompt â€” Draft
+# Teamwork Project Prompt — Draft
 
 > Status: Launched
-> Goal: Craft prompt â†’ get user approval â†’ delegate to teamwork_preview
-> Requested team: [none â€” teamwork routes from the description]
+> Goal: Craft prompt → get user approval → delegate to teamwork_preview
+> Requested team: [none — teamwork routes from the description]
 
 Refactor and optimize the existing Vector Search dashboard and backend pipeline on the `main` branch to integrate the new Distributed Sharded IVF-HNSW core logic (from the `update` branch). Clean up all redundant resources, optimize the codebase for performance, and ensure the UI reflects the new distributed architecture while keeping the original data loading configuration intact.
 
@@ -36,13 +36,13 @@ Do not alter the existing dataset structure or data loading configuration. The d
 - [ ] An independent judge agent verifies that redundant files (e.g., unused 3D visualizers or legacy scripts in `dashboard/public/js`) have been fully deleted.
 - [ ] The dashboard source code is reviewed for performance bottlenecks and passes the judge's code quality rubric.
 
-## Follow-up â€” 2026-09-21T05:47:25Z
+## Follow-up — 2026-09-21T05:47:25Z
 
-# Teamwork Project Prompt â€” Draft
+# Teamwork Project Prompt — Draft
 
 > Status: Launched
-> Goal: Craft prompt â†’ get user approval â†’ delegate to teamwork_preview
-> Requested team: [none â€” teamwork routes from the description]
+> Goal: Craft prompt → get user approval → delegate to teamwork_preview
+> Requested team: [none — teamwork routes from the description]
 
 Continue the refactoring of the Vector Search project on the `main` branch. Milestone 1 (Backend Core Integration) is successfully completed. The goal now is to execute Milestone 2 (Dashboard Clean-up & UI Optimization) and Milestone 3 (Pipeline Optimization) to fully align the UI and execution scripts with the new Distributed Sharded IVF-HNSW logic.
 
@@ -69,13 +69,13 @@ Do not alter the existing dataset structure or data loading configuration. The d
 ### Pipeline Execution
 - [ ] An independent judge agent verifies that `scripts/run_pipeline.py` initializes the `ShardedIVFHNSW` router correctly and contains no legacy `memmap` or monolithic graph logic.
 
-## Follow-up â€” 2026-09-21T16:00:55Z
+## Follow-up — 2026-09-21T16:00:55Z
 
-# Teamwork Project Prompt â€” Draft
+# Teamwork Project Prompt — Draft
 
 > Status: Launched
-> Goal: Craft prompt â†’ get user approval â†’ delegate to teamwork_preview
-> Requested team: [none â€” teamwork routes from the description]
+> Goal: Craft prompt → get user approval → delegate to teamwork_preview
+> Requested team: [none — teamwork routes from the description]
 
 Finalize and audit the refactored Vector Search dashboard and backend pipeline on the `main` branch. The core integration, UI cleanup, and pipeline optimization (Milestones 1, 2, 3) were previously implemented, but the final independent audit was interrupted. Conduct a strict post-victory audit to ensure all UI routing metrics (Shard IDs, latency) are properly displayed, the pipeline (`run_pipeline.py`) uses the new IVF K-Means logic, and no redundant 3D assets or memmap logic remain. Fix any outstanding issues discovered during the audit.
 
@@ -102,11 +102,11 @@ Confirm that the existing dataset structure and data loading configurations rema
 ### Pipeline Execution
 - [ ] An independent judge agent executes or reviews `scripts/run_pipeline.py` to confirm it initializes the `ShardedIVFHNSW` router correctly and passes adversarial checks for legacy code.
 
-## Follow-up â€” 2026-09-21T16:02:19Z
+## Follow-up — 2026-09-21T16:02:19Z
 
 CRITICAL UPDATE FROM USER: The user has requested to KEEP and INTEGRATE the 3D UI files (`three_engine.js`, `three_hnsw_graph.js`, etc.) instead of deleting them. DO NOT delete any 3D UI files. Instead, make sure they are preserved and properly wired to the new backend if necessary. Update your acceptance criteria and audit to expect the 3D UI to be present and functional.
 
-## Follow-up â€” 2026-09-21T16:08:29Z
+## Follow-up — 2026-09-21T16:08:29Z
 
 CRITICAL UPDATE 2 FROM USER: The user has requested a major new feature for the dashboard. You must build a comprehensive, detailed metrics collection and charting dashboard, similar in style and detail to Weights & Biases (https://wandb.ai/). It should track and plot system metrics, query latency over time, shard hit distribution, recall rates, early exit rates, and other relevant metrics. Use frontend charting libraries (like Chart.js or similar already present) to create these detailed tracking charts. Update your requirements to include this WandB-style metrics dashboard.
 
