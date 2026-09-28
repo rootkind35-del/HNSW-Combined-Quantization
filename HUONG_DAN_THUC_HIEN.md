@@ -3,8 +3,8 @@
 # Hướng dẫn Thực hiện — HNSW Combined Quantization
 
 **Phiên bản:** v1.0.0  
-**Cáºp nháºt:** Tháng 9, 2026  
-**Phạm vi:** CÃ i đặt, chạy thá», sá» dụng dashboard vÃ  đánh giá kết quả
+**Cập nhật:** Tháng 9, 2026  
+**Phạm vi:** Cài đặt, chạy thá», sử dụng dashboard vÃ  đánh giá kết quả
 
 ---
 
@@ -12,15 +12,15 @@
 
 1. [Yêu cầu Phần cứng & Phần mềm](#1-yêu-cầu-phần-cứng--phần-mềm)
 2. [Tải Dữ liệu (Bắt buộc)](#2-tải-dữ-liệu-bắt-buộc)
-3. [CÃ i đặt Dự Ã¡n](#3-cÃ i-đặt-dự-án)
+3. [Cài đặt Dự án](#3-cài-đặt-dự-án)
 4. [Chạy Dashboard Trực quan](#4-chạy-dashboard-trực-quan)
-5. [Hướng dẫn Sá» dụng Từng Tab](#5-hÆ°á»›ng-dáº«n-sá»-dá»¥ng-tá»«ng-tab)
-6. [Chạy Đánh giá Thuáºt toÃ¡n](#6-cháº¡y-Ä‘Ã¡nh-giÃ¡-thuáºt-toÃ¡n)
+5. [Hướng dẫn Sử dụng Từng Tab](#5-hướng-dẫn-sá»-dụng-từng-tab)
+6. [Chạy Đánh giá Thuật toán](#6-chạy-đánh-giá-thuật-toán)
 7. [Chạy Pipeline Từ Đầu](#7-chạy-pipeline-từ-đầu)
 8. [Cấu hình Siêu tham số](#8-cấu-hình-siêu-tham-số)
-9. [Chạy Bộ Kiểm thá»](#9-cháº¡y-bá»™-kiá»ƒm-thá»)
+9. [Chạy Bộ Kiểm thá»](#9-chạy-bộ-kiểm-thá»)
 10. [API Reference](#10-api-reference)
-11. [Xá» lý Sự cố Thường gáº·p](#11-xá»-lÃ½-sá»±-cá»‘-thÆ°á»ng-gáº·p)
+11. [Xá» lý Sự cố Thường gặp](#11-xá»-lý-sự-cố-thường-gặp)
 
 ---
 
@@ -50,7 +50,7 @@
 
 ## 2. Tải Dữ liệu (Bắt buộc)
 
-Do giới hạn về dung lượng của GitHub, dữ liệu không được Ä‘Ãnh kèm trong mã nguồn. Bạn cần tải dữ liệu vÃ  đặt đúng vÃ o thư mục `data/`.
+Do giới hạn về dung lượng của GitHub, dữ liệu không được đánh kèm trong mã nguồn. Bạn cần tải dữ liệu vÃ  đặt đúng vÃ o thư mục `data/`.
 
 👉 **Link tải trọn bộ dữ liệu (Google Drive):**  
 [https://drive.google.com/drive/folders/1b2yiq6Ly5cl3VdNW2LuM1EqdaZNdpbPW?usp=sharing](https://drive.google.com/drive/folders/1b2yiq6Ly5cl3VdNW2LuM1EqdaZNdpbPW?usp=sharing)
@@ -72,7 +72,7 @@ HNSW-Combined-Quantization/
 
 ---
 
-## 3. CÃ i đặt Dự án
+## 3. Cài đặt Dự án
 
 ### Bước 1 — Clone vÃ  môi trường
 
@@ -89,17 +89,17 @@ python -m venv.venv
 source.venv/bin/activate
 ```
 
-### Bước 2 — CÃ i đặt thư viện Python
+### Bước 2 — Cài đặt thư viện Python
 
 ```bash
-# CÃ i đặt cơ bản
+# Cài đặt cơ bản
 pip install -e.
 
-# CÃ i đặt thêm ML + dev tools
+# Cài đặt thêm ML + dev tools
 pip install -e ".[ml,dev]"
 ```
 
-### Bước 3 — CÃ i đặt Node.js cho Dashboard
+### Bước 3 — Cài đặt Node.js cho Dashboard
 
 ```bash
 cd dashboard
@@ -107,7 +107,7 @@ npm install
 cd..
 ```
 
-### Bước 4 — Kiểm tra cÃ i đặt
+### Bước 4 — Kiểm tra cài đặt
 
 ```bash
 python -c "import numpy, sentence_transformers; print('Python OK')"
@@ -138,16 +138,16 @@ Mở trình duyệt, truy cáºp: **http://localhost:3000**
 
 ---
 
-## 5. Hướng dẫn Sá» dụng Từng Tab
+## 5. Hướng dẫn Sử dụng Từng Tab
 
 ### Tab 1 — Tìm kiếm & Execution Inspector
 
-**Mục Ä‘Ãch:** Nháºp câu truy vấn ngữ nghĩa vÃ  xem kết quả tìm kiếm cùng với biểu đồ thực thi 4 giai đoạn.
+**Mục đÃch:** Nháºp câu truy vấn ngữ nghĩa vÃ  xem kết quả tìm kiếm cùng với biểu đồ thực thi 4 giai đoạn.
 
-**Cách sá» dụng:**
+**Cách sử dụng:**
 
 1. Nháºp văn bản vÃ o ô tìm kiếm (vÃ dụ: `hợp đồng lao động tối thiểu`).
-2. Chọn thuáºt toán: `Two-Tier Quantized HNSW`, `Standard HNSW` hoặc `Distributed Collaborative Filtering`.
+2. Chọn thuật toán: `Two-Tier Quantized HNSW`, `Standard HNSW` hoặc `Distributed Collaborative Filtering`.
 3. Chỉnh Top-K slider (5-20 kết quả).
 4. Chọn chip danh mục nếu muốn lọc.
 5. Nhấn **Tìm kiếm** hoặc Enter.
@@ -175,13 +175,13 @@ Mở trình duyệt, truy cáºp: **http://localhost:3000**
 
 ### Tab 2 — Không gian Vector 3D (Three.js)
 
-**Mục Ä‘Ãch:** Trực quan hóa không gian vector nhúng 384-D được chiếu xuống 3 chiều qua PCA.
+**Mục đÃch:** Trực quan hóa không gian vector nhúng 384-D được chiếu xuống 3 chiều qua PCA.
 
-**Cách sá» dụng:**
+**Cách sử dụng:**
 
 1. Thực hiện tìm kiếm ở Tab 1 trước.
 2. Chuyển sang Tab 2.
-3. Các điểm kết quả tìm kiếm được tô mÃ u vÃ ng/đỏ, các điểm nền mÃ u xanh.
+3. Các điểm kết quả tìm kiếm được tô mã u vÃ ng/đỏ, các điểm nền mã u xanh.
 4. Di chuột lên điểm bất kỳ để xem tooltip (tiêu đề, danh mục, score, lý do).
 5. Nhấn **Xem trên 3D** trên một kết quả để focus vÃ o điểm đó.
 6. Panel **HUD Detail** hiển thị đầy đủ thông tin tÃ i liệu được chọn.
@@ -195,7 +195,7 @@ Mở trình duyệt, truy cáºp: **http://localhost:3000**
 
 ### Tab 3 — Danh sách Top-K
 
-**Mục Ä‘Ãch:** Xem bảng kết quả tìm kiếm đầy đủ với xếp hạng rõ rÃ ng.
+**Mục đÃch:** Xem bảng kết quả tìm kiếm đầy đủ với xếp hạng rõ rÃ ng.
 
 **Nội dung hiển thị:**
 - Thứ tự xếp hạng (Rank #1 = độ tương đồng cao nhất)
@@ -211,12 +211,12 @@ Mở trình duyệt, truy cáºp: **http://localhost:3000**
 
 ### Tab 4 — Đánh giá Thuáºt toán
 
-**Mục Ä‘Ãch:** So sánh Two-Tier Quantized HNSW vs Standard HNSW trên các chỉ số QPS, Recall, Latency.
+**Mục đÃch:** So sánh Two-Tier Quantized HNSW vs Standard HNSW trên các chỉ số QPS, Recall, Latency.
 
-**Cách sá» dụng:**
+**Cách sử dụng:**
 
 1. Nhấn **Chạy Đánh giá**.
-2. Hệ thống chạy 100 câu truy vấn mẫu trên cả 2 thuáºt toán.
+2. Hệ thống chạy 100 câu truy vấn mẫu trên cả 2 thuật toán.
 3. Biểu đồ QPS, Latency, Recall hiển thị so sánh trực tiếp.
 4. Biểu đồ HNSW Siêu tham số cho phép thay đổi `M`, `ef_construction`, `ef_search` để xem ảnh hưởng.
 
@@ -224,10 +224,10 @@ Mở trình duyệt, truy cáºp: **http://localhost:3000**
 
 ## 6. Chạy Đánh giá Thuáºt toán bằng CLI
 
-NgoÃ i việc dùng Dashboard, bạn có thể chạy bằng dòng lệnh:
+Ngoài việc dùng Dashboard, bạn có thể chạy bằng dòng lệnh:
 
 ```bash
-# Chạy đánh giá truy xuất trên 2 thuáºt toán
+# Chạy đánh giá truy xuất trên 2 thuật toán
 python scripts/run_retrieval_evaluation.py --top-k 10
 
 # Kết quả lưu tại:
@@ -280,21 +280,21 @@ File cấu hình: `configs/default_pipeline.json`
 
 ## 9. Chạy Bộ Kiểm thá»
 
-### Kiểm thá» Backend Python
+### Kiểm thử Backend Python
 
 ```bash
-# Chạy toÃ n bộ 91 bÃ i kiểm thá» pytest
+# Chạy toÃ n bộ 91 bÃ i kiểm thử pytest
 pytest tests/ -v
 ```
 
-### Kiểm thá» Frontend UI
+### Kiểm thử Frontend UI
 
 ```bash
-# Kiểm thá» render vÃ  logic UI (Node.js)
+# Kiểm thử render vÃ  logic UI (Node.js)
 node tests/test_ui_render_harness.js
 # Kết quả: 19 passed, 0 failed
 
-# Kiểm thá» adversarial stress
+# Kiểm thử adversarial stress
 node tests/test_adversarial_frontend_stress.js
 # Kết quả: 3 adversarial cases, 0 findings
 ```
@@ -309,7 +309,7 @@ Server Express của Dashboard chạy trên port 3000.
 |:---|:---|:---|:---|
 | `GET /api/status` | GET | — | Trạng thái index, RAM usage, số bản ghi |
 | `POST /api/search` | POST | `{ query, algorithm, top_k, category }` | Thực thi tìm kiếm ngữ nghĩa |
-| `POST /api/eval/run` | POST | `{ top_k }` | Chạy benchmark 2 thuáºt toán |
+| `POST /api/eval/run` | POST | `{ top_k }` | Chạy benchmark 2 thuật toán |
 | `GET /api/eval/history` | GET | — | Danh sách các báo cáo benchmark đã chạy |
 | `GET /api/eval/download/:type/:file` | GET | type=report/query, file=filename | Tải JSON/Markdown report |
 
@@ -329,7 +329,7 @@ curl -X POST http://localhost:3000/api/search \
 
 **Nguyên nhân:** Python microservice (port 5005) chưa chạy.
 
-**Cách xá» lý:**
+**Cách xử lý:**
 ```bash
 cd dashboard
 python scripts/search_service.py
@@ -339,9 +339,9 @@ python scripts/search_service.py
 
 ### Lỗi `Cannot find module` khi chạy Node
 
-**Nguyên nhân:** Bạn chưa cÃ i đặt package cho thư mục dashboard.
+**Nguyên nhân:** Bạn chưa cài đặt package cho thư mục dashboard.
 
-**Cách xá» lý:**
+**Cách xử lý:**
 ```bash
 cd dashboard
 npm install
@@ -351,7 +351,7 @@ npm install
 
 ### Lỗi `ModuleNotFoundError` trong Python
 
-**Cách xá» lý:** Đảm bảo bạn đã cÃ i toÃ n bộ môi trường ảo.
+**Cách xử lý:** Đảm bảo bạn đã cài toÃ n bộ môi trường ảo.
 ```bash
 pip install -e ".[ml,dev]"
 ```
@@ -362,13 +362,13 @@ pip install -e ".[ml,dev]"
 
 **Nguyên nhân:** Trình duyệt không hỗ trợ WebGL hoặc GPU bị vô hiệu hóa.
 
-**Cách xá» lý:**
-- Thá» trình duyệt khác (Chrome/Edge phiên bản mới nhất).
+**Cách xử lý:**
+- Thử trình duyệt khác (Chrome/Edge phiên bản mới nhất).
 - Báºt `Override software rendering list` trong `chrome://flags`.
 
 ---
 
 ### Out-Of-Memory khi chạy Standard HNSW
 
-**Đây lÃ  điều bình thường** với táºp 16.45M vector. Standard HNSW cần tới ~64 GB RAM. Hãy chuyển sang sá» dụng `Two-Tier Quantized HNSW` để tiết kiệm 75% RAM.
+**Đây lÃ  điều bình thường** với táºp 16.45M vector. Standard HNSW cần tới ~64 GB RAM. Hãy chuyển sang sử dụng `Two-Tier Quantized HNSW` để tiết kiệm 75% RAM.
 

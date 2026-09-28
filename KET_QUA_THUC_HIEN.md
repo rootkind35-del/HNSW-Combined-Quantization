@@ -40,11 +40,11 @@
 
 ## 3. So sánh ToÃ n diện Hai Thuáºt toán
 
-Đánh giá thực hiện trên táºp kiểm thá» gồm 91 bÃ i kiểm thá» tự động (pytest) vÃ  100 câu truy vấn đánh giá thủ công qua dashboard.
+Đánh giá thực hiện trên táºp kiểm thử gồm 91 bÃ i kiểm thử tự động (pytest) vÃ  100 câu truy vấn đánh giá thủ công qua dashboard.
 
 | Chỉ số Đánh giá | Standard HNSW | Two-Tier Quantized HNSW | Cải thiện |
 |:---|:---:|:---:|:---:|
-| **RAM sá» dụng** | ~33.7 GB (16.45M vectors) | **8.10 GB** | **-75.9%** |
+| **RAM sử dụng** | ~33.7 GB (16.45M vectors) | **8.10 GB** | **-75.9%** |
 | **Recall@5** | 96.8% | **95.1%** | -1.7 điểm % |
 | **Recall@10** | 98.3% | **95.4%** | -2.9 điểm % |
 | **Latency p50** | 2.90 ms | **1.25 ms** | **-56.9%** |
@@ -54,7 +54,7 @@
 | **Khả năng chạy trên 16GB PC** | Không (OOM) | **Có** | N/A |
 | **KÃch thước index trên disk** | 64.20 GB (float32 graph) | **8.10 GB** | **-87.4%** |
 
-*(Bổ sung: Đã tÃch hợp thuáºt toán **Distributed Collaborative Filtering** dựa trên Sharded MIPS (Maximum Inner Product Search) mô phỏng quá trình tìm kiếm nhân tố ẩn trong Recommendation System. Thuáºt toán nÃ y hoạt động song song trên bộ chia shard, đảm bảo kết xuất đồng nhất với HNSW).* 
+*(Bổ sung: Đã tÃch hợp thuật toán **Distributed Collaborative Filtering** dựa trên Sharded MIPS (Maximum Inner Product Search) mô phỏng quá trình tìm kiếm nhân tố ẩn trong Recommendation System. Thuáºt toán nÃ y hoạt động song song trên bộ chia shard, đảm bảo kết xuất đồng nhất với HNSW).* 
 
 > **Ghi chú:** Standard HNSW kết quả OOM (Out-Of-Memory) khi thu nạp 16.45M vector trên máy có 32 GB RAM do cấu trúc danh sách kề phân tầng. Số liệu được đo trên táºp con 5,000 bản ghi (scale_stress) vÃ  nội suy toÃ n quy mô theo công thức tuyến tÃnh.
 
@@ -90,7 +90,7 @@ Vòng đời thực thi một câu truy vấn:
 
 ## 5. Quét Siêu tham số Adaptive Early-Exit
 
-Thực hiện trên bộ kiểm thá» 91 bÃ i, thay đổi đồng thời `tau`, `epsilon` vÃ  `K_rerank`.
+Thực hiện trên bộ kiểm thử 91 bÃ i, thay đổi đồng thời `tau`, `epsilon` vÃ  `K_rerank`.
 
 | tau | epsilon | K_rerank | Recall@10 | Mean Latency | QPS | Cắt tỉa Đồ thị |
 |:---:|:---:|:---:|:---:|:---:|:---:|:---:|
@@ -161,17 +161,17 @@ Dashboard ghi lại telemetry từng bước thực thi theo 4 giai đoạn (S00
 | 10,000,000 | ~41.0 GB | ~10.2 GB | -75.1% |
 | 16,459,486 | ~64.2 GB (OOM) | **8.10 GB** | **-87.4%** |
 
-> Giá trị Standard HNSW tại 16.45M vector lÃ  ước tÃnh theo công thức `N x (D x 4 + M x 4) bytes` với M=16. Máy thá» nghiệm 32GB RAM không thể nạp toÃ n bộ index.
+> Giá trị Standard HNSW tại 16.45M vector lÃ  ước tÃnh theo công thức `N x (D x 4 + M x 4) bytes` với M=16. Máy thử nghiệm 32GB RAM không thể nạp toÃ n bộ index.
 
 ---
 
 ## 9. Chỉ số Đánh giá Dashboard (Số lần chạy)
 
-Trong quá trình phát triển vÃ  thá» nghiệm dashboard:
+Trong quá trình phát triển vÃ  thử nghiệm dashboard:
 
 - **19 test case UI pass** (0 fail) — `node tests/test_ui_render_harness.js`
 - **3 adversarial test case pass** (0 finding) — `node tests/test_adversarial_frontend_stress.js`
-- **91 pytest pass** — toÃ n bộ bộ kiểm thá» backend Python
+- **91 pytest pass** — toÃ n bộ bộ kiểm thử backend Python
 
 ---
 
